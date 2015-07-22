@@ -1,5 +1,18 @@
 
 import numpy
+import os
+
+data_dir = os.path.join(os.path.dirname(__file__), 'data')
+
+def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
+    if geometry == "IceCube":
+        return Cylinder()
+    elif geometry == "EdgeWeighted":
+        gcd='IceCubeHEX_{geometry}_spacing{spacing}m_ExtendedDepthRange.GCD.i3.bz2'.format(**locals())
+    elif geometry == "Sunflower":
+        gcd='IceCubeHEX_{geometry}_{spacing}m_v3_ExtendedDepthRange.GCD.i3.bz2'.format(**locals())
+    gcd = os.path.join(data_dir, 'geometries', gcd)
+    return ExtrudedPolygon.from_file(gcd, padding=padding)
 
 def convex_hull(points):
     """Computes the convex hull of a set of 2D points.
@@ -79,7 +92,73 @@ def signed_area(points):
     
     return numpy.sum(points[:,0][:-1]*points[:,1][1:] - points[:,0][1:]*points[:,1][:-1])/2.
 
-class ExtrudedPolygon(object):
+class UprightSurface(object):
+    """
+    A closed volume consisting entirely of vertical and horizontal surfaces.
+    """
+    def get_cap_area(self):
+        """
+        Get the area of the vertical surfaces
+        """
+        raise NotImplementedError
+    
+    def get_side_area(self):
+        """
+        Get azimuth-averaged area of the vertical surfaces
+        """
+        raise NotImplementedError
+    
+    def azimuth_averaged_area(self, cos_theta):
+        """
+        Return projected area at the given zenith angle, averaged over all
+        azimuth angles.
+        
+        :param cos_theta: cosine of the zenith angle
+        """
+        return self.get_cap_area()*abs(cos_theta) + self.get_side_area()*numpy.sqrt(1-cos_theta**2)
+    
+    @staticmethod
+    def _integrate_area(a, b, cap, sides):
+        return (cap*(b**2-a**2) + sides*(numpy.arccos(a) - numpy.arccos(b) - numpy.sqrt(1-a**2)*a + numpy.sqrt(1-b**2)*b))/2.
+    
+    def entendue(self, cosMin=-1., cosMax=1.):
+        """
+        Integrate A * d\Omega over the given range of zenith angles
+        
+        :param cosMin: cosine of the maximum zenith angle
+        :param cosMax: cosine of the minimum zenith angle
+        :returns: a product of area and solid angle. Divide by
+                  2*pi*(cosMax-cosMin) to obtain the average projected area in
+                  this zenith angle range
+        """
+        
+        sides = self.get_side_area()
+        cap = self.get_cap_area()
+        
+        if (cosMin >= 0 and cosMax >= 0):
+            area = self._integrate_area(cosMin, cosMax, cap, sides)
+        elif (cosMin < 0 and cosMax <= 0):
+            area = self._integrate_area(-cosMax, -cosMin, cap, sides)
+        elif (cosMin < 0 and cosMax > 0):
+            area = self._integrate_area(0, -cosMin, cap, sides) \
+                + self._integrate_area(0, cosMax, cap, sides)
+        else:
+            area = numpy.nan
+            raise ValueError("Can't deal with zenith range [%.1e, %.1e]" % (cosMin, cosMax))
+        return 2*numpy.pi*area
+    
+    def average_area(self, cosMin=-1, cosMax=1):
+        """
+        Projected area of the surface, averaged between the given zenith angles
+        and over all azimuth angles.
+        
+        :param cosMin: cosine of the maximum zenith angle
+        :param cosMax: cosine of the minimum zenith angle
+        :returns: the average projected area in the zenith angle range
+        """
+        return self.entendue(cosMin, cosMax)/(2*numpy.pi*(cosMax-cosMin))
+
+class ExtrudedPolygon(UprightSurface):
     """
     A *convex* polygon in the x-y plane, extruded in the z direction
     """
@@ -105,6 +184,15 @@ class ExtrudedPolygon(object):
         self._areas = numpy.concatenate((side_areas, cap_area))
         self._normals = numpy.concatenate((side_normals, cap_normals))
         assert self._areas.size == self._normals.shape[0]
+    
+    def get_cap_area(self):
+        return self._areas[-1]
+    
+    def get_side_area(self):
+        # the projected area of a plane, averaged over a 2\pi rotation that
+        # passes through the normal, is
+        # A*\int_0^\pi \Theta(\sin\alpha)\sin\alpha d\alpha / 2\pi = A/\pi
+        return self._side_lengths.sum()*self.length/numpy.pi
     
     def expand(self, padding):
         """
@@ -244,12 +332,17 @@ class ExtrudedPolygon(object):
             intersections = numpy.concatenate((sides, caps))
             return [numpy.nanmin(intersections), numpy.nanmax(intersections)] 
 
-class Cylinder(object):
+class Cylinder(UprightSurface):
     def __init__(self, length=1000, radius=587):
         self.length = length
         self.radius = radius
-    def area(self, cos_zenith, azimuth):
-        ct = abs(cos_zenith)
-        side = 2*self.radius*self.length*numpy.sqrt(1.-ct**2)
-        cap = numpy.pi*self.radius**2*ct
-        return side + cap
+    
+    def get_cap_area(self):
+        return numpy.pi*self.radius**2
+    
+    def get_side_area(self):
+        return 2*self.radius*self.length
+    
+    def area(self, cos_zenith, azimuth=numpy.nan):
+        return self.azimuth_averaged_area(cos_zenith)
+    
