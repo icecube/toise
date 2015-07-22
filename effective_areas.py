@@ -3,7 +3,7 @@ import os
 import numpy
 import itertools
 
-from surfaces import Cylinder
+from surfaces import get_fiducial_surface
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -83,9 +83,25 @@ class ZenithDependentMuonSelectionEfficiency(object):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
 		return numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1)
 
+class MuonEffectiveArea(object):
+	"""
+	The product of geometric area and selection efficiency
+	"""
+	def __init__(self, geometry, spacing=125):
+		self.geometry = geometry
+		self.spacing = spacing
+		self._surface = get_fiducial_surface(geometry, spacing)
+		if geometry == "IceCube":
+			self._efficiency = MuonSelectionEfficiency()
+		else:
+			self._efficiency = ZenithDependentMuonSelectionEfficiency('%s_%dm_bdt0_efficiency.fits' % (geometry, spacing))
+	def __call__(self, muon_energy, cos_theta):
+		geo = self._surface.azimuth_averaged_area(cos_theta)
+		return geo * self._efficiency(muon_energy, cos_theta)
+
 def create_throughgoing_aeff(energy_resolution=0.25,
     selection_efficiency=MuonSelectionEfficiency(),
-    full_sky=False, energy_threshold_scale=1., surface=Cylinder()):
+    full_sky=False, energy_threshold_scale=1., surface=get_fiducial_surface("IceCube")):
 	"""
 	Create effective areas in the same format as above
 	"""
