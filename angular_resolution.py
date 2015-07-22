@@ -24,12 +24,15 @@ class AngularResolution(object):
         return numpy.radians(numpy.sqrt(mu_reco**2 + 0.7**2/(10**(loge-3))))
 
 class PointSpreadFunction(object):
-    def __init__(self, fname=os.path.join(data_dir, 'veto', 'aachen_psf.fits')):
+    def __init__(self, fname='aachen_psf.fits'):
+        if not fname.startswith('/'):
+            fname = os.path.join(data_dir, 'psf', fname)
         from icecube.photospline import I3SplineTable
         self._spline = I3SplineTable(fname)
+        self._loge_extents, self._ct_extents = self._spline.extents[:2]
     def __call__(self, psi, energy, cos_theta):
         psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi), numpy.log10(energy), cos_theta)
-        loge = numpy.clip(loge, 3, 7)
-        ct = numpy.clip(ct, -1, 0)
+        loge = numpy.clip(loge, *self._loge_extents)
+        ct = numpy.clip(ct, *self._ct_extents)
         
         return numpy.array([self._spline.eval(coords) for coords in zip(loge.flatten(), ct.flatten(), psi.flatten())]).reshape(psi.shape)
