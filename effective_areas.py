@@ -4,6 +4,7 @@ import numpy
 import itertools
 
 from surfaces import get_fiducial_surface
+from energy_resolution import MuonEnergyResolution
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -99,7 +100,7 @@ class MuonEffectiveArea(object):
 		geo = self._surface.azimuth_averaged_area(cos_theta)
 		return geo * self._efficiency(muon_energy, cos_theta)
 
-def create_throughgoing_aeff(energy_resolution=0.25,
+def create_throughgoing_aeff(energy_resolution=MuonEnergyResolution(),
     selection_efficiency=MuonSelectionEfficiency(),
     full_sky=False, energy_threshold_scale=1., surface=get_fiducial_surface("IceCube")):
 	"""
@@ -133,12 +134,9 @@ def create_throughgoing_aeff(energy_resolution=0.25,
 	aeff *= selection_efficiency[None,:,:]
 	
 	# Step 4: apply smearing for energy resolution
-	binwidth = numpy.log10(efficiency.binedges[2][1]/efficiency.binedges[2][0])
-	# distance from each bin edge to the middle of the central bin, in sigmas
-	t = numpy.linspace(-9.5, 9.5, 20)*(binwidth/energy_resolution)
-	kernel = numpy.diff(erf(t))
-	kernel /= kernel.sum()
-	aeff = numpy.apply_along_axis(numpy.convolve, 2, aeff, kernel, mode='same')
+	emu, ereco = efficiency.binedges[2], efficiency.binedges[2]
+	response = energy_resolution.get_response_matrix(emu, ereco)
+	aeff = numpy.apply_along_axis(numpy.inner, 2, aeff, response)
 	
 	total_aeff = numpy.zeros((6,) + aeff.shape + (aeff.shape[1], 2))
 	# For now, we make the following assumptions:
