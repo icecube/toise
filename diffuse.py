@@ -2,6 +2,7 @@
 import numpy
 import itertools
 from scipy.integrate import quad
+from copy import copy
 import multillh
 
 class DiffuseNuGen(object):
@@ -48,7 +49,23 @@ class AtmosphericNu(DiffuseNuGen):
 		
 		# sum over neutrino flavors, energies, and zenith angles
 		total = (self._flux[...,None,None,None]*self._aeff*self._livetime).sum(axis=(0,1,2))
+		# dimensions of the keys in expectations are now reconstructed energy, zenith
 		self.expectations = dict(cascades=total[...,0], tracks=total[...,1])
+	
+	def point_source_background(self, psi_bins, zenith_index, with_energy=True):
+		"""
+		convert to a point source background
+		
+		:param bin_areas: areas (in sr) of the search bins around the putative source
+		"""
+		background = copy(self)
+		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,...]
+		# dimensions of the keys in expectations are now energy, radial bin
+		background.expectations = {k: (v[:,zenith_index]/self._solid_angle[zenith_index])[...,None]*bin_areas for k,v in self.expectations.items()}
+		if not with_energy:
+			# just radial bins
+			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
+		return background
 	
 	@classmethod
 	def conventional(cls, effective_area, edges, livetime, veto_threshold=1e3):

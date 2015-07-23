@@ -243,7 +243,7 @@ def pseudodata_llh(llh, **hypothesis):
 
 	return llhprime
 
-def asimov_llh(llh, **nominal):
+def asimov_llh(components, **nominal):
 	"""
 	Create a likelihood on the average over all realizations of the hypothesis
 	*nominal*, also known as the Asimov_ dataset. Likelihood ratios obtained
@@ -254,14 +254,14 @@ def asimov_llh(llh, **nominal):
 	"""
 	
 	allh = LLHEval(None)
-	allh.components = llh.components
-	for k in llh.components.keys():
+	allh.components = components
+	for k in allh.components.keys():
 		if not k in nominal:
 			try:
-				nominal[k] = getattr(llh.components[k], 'seed')
+				nominal[k] = getattr(components[k], 'seed')
 			except AttributeError:
 				nominal[k] = 1
-	allh.data = llh.expectations(**nominal)
+	allh.data = allh.expectations(**nominal)
 	return allh
 
 
