@@ -4,7 +4,7 @@ import numpy
 import itertools
 
 from surfaces import get_fiducial_surface
-from energy_resolution import MuonEnergyResolution
+from energy_resolution import get_energy_resolution
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -44,7 +44,7 @@ from scipy import interpolate
 import tables, dashi
 
 class MuonSelectionEfficiency(object):
-	def __init__(self, filename='aachen_muon_selection_efficiency.npz'):
+	def __init__(self, filename='aachen_muon_selection_efficiency.npz', energy_threshold=0):
 		if not filename.startswith('/'):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
 		if filename.endswith('.npz'):
@@ -66,23 +66,33 @@ class MuonSelectionEfficiency(object):
 			w[~numpy.isfinite(w)] = 1
 	
 			self.interp = interpolate.UnivariateSpline(loge, v, w=w)
-
+		self.energy_threshold = energy_threshold
 
 	def __call__(self, muon_energy, cos_theta):
-		return numpy.clip(self.interp(numpy.log10(muon_energy)), 0, 1)
+		return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.interp(numpy.log10(muon_energy)), 0, 1), 0.)
 
 class ZenithDependentMuonSelectionEfficiency(object):
-	def __init__(self, filename='sunflower_200m_bdt0_efficiency.fits'):
+	def __init__(self, filename='sunflower_200m_bdt0_efficiency.fits', energy_threshold=0):
 		from icecube.photospline import I3SplineTable
 		if not filename.startswith('/'):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
 		self._spline = I3SplineTable(filename)
 		self.eval = numpy.vectorize(self._eval)
+		self.energy_threshold = energy_threshold
 	def _eval(self, loge, cos_theta):
 		return self._spline.eval([loge, cos_theta])
 	def __call__(self, muon_energy, cos_theta):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
-		return numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1)
+		return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
+
+def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0):
+	"""
+	:param energy_threshold: artificial energy threshold in GeV
+	"""
+	if geometry == "IceCube":
+		return MuonSelectionEfficiency(energy_threshold=energy_threshold)
+	else:
+		return ZenithDependentMuonSelectionEfficiency("%s_%dm_bdt0_efficiency.fits" % (geometry, spacing), energy_threshold=energy_threshold)
 
 class MuonEffectiveArea(object):
 	"""
@@ -100,7 +110,7 @@ class MuonEffectiveArea(object):
 		geo = self._surface.azimuth_averaged_area(cos_theta)
 		return geo * self._efficiency(muon_energy, cos_theta)
 
-def create_throughgoing_aeff(energy_resolution=MuonEnergyResolution(),
+def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     selection_efficiency=MuonSelectionEfficiency(),
     full_sky=False, energy_threshold_scale=1., surface=get_fiducial_surface("IceCube")):
 	"""
@@ -122,7 +132,7 @@ def create_throughgoing_aeff(energy_resolution=MuonEnergyResolution(),
 		efficiency = dashi.histload(hdf, '/muon_efficiency')
 	
 	# Step 2: Geometric muon effective area (no selection effects yet)
-	# FIXME: assumes cylindrical symmetry.
+	# NB: assumes cylindrical symmetry.
 	aeff = efficiency.bincontent * (numpy.vectorize(surface.average_area)(efficiency.binedges[1][:-1], efficiency.binedges[1][1:])[None,:,None])
 	
 	# Step 3: apply selection efficiency

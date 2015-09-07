@@ -6,19 +6,15 @@ from copy import copy
 from multillh import LLHEval, asimov_llh
 
 class PointSource(object):
-	def __init__(self, effective_area, edges, livetime, zenith_bin, point_spread_function, psi_bins, with_energy=True):
-		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
-		def intflux(e, gamma):
-			return (e**(1+gamma))/(1+gamma)
-		tev = edges[0]/1e3
-		# 1/cm^2 yr
-		fluence = 1e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
+	def __init__(self, effective_area, edges, fluence, zenith_bin, point_spread_function, psi_bins, with_energy=True):
 		
 		effective_area = effective_area[...,zenith_bin,:]
 		expand = [None]*effective_area.ndim
 		expand[1] = slice(None)
 		# 1/yr
 		rate = fluence[tuple(expand)]*(effective_area*1e4)
+		
+		assert numpy.isfinite(rate).all()
 		
 		ct, mu_energy = map(center, edges[1:3])
 		ct = ct[zenith_bin]
@@ -30,12 +26,12 @@ class PointSource(object):
 		self._rate = rate
 		self._edges = edges + [psi_bins]
 	
-	def expectations(self, gamma=-2, **kwargs):
+	def expectations(self, ps_gamma=-2, **kwargs):
 		
 		energy = self._edges[0]
 		
 		centers = 0.5*(energy[1:] + energy[:-1])
-		specweight = (centers/1e3)**(gamma+2)
+		specweight = (centers/1e3)**(ps_gamma+2)
 		
 		expand = [None]*(self._rate.ndim)
 		expand[1] = slice(None)
@@ -69,7 +65,18 @@ class PointSource(object):
 			e_center = 10**(0.5*(loge[start] + loge[stop]))
 			yield e_center, chunk
 
-def discovery_potential(point_source, diffuse_components, sigma=5):
+class SteadyPointSource(PointSource):
+	def __init__(self, effective_area, edges, livetime, zenith_bin, point_spread_function, psi_bins, with_energy=True):
+		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
+		def intflux(e, gamma):
+			return (e**(1+gamma))/(1+gamma)
+		tev = edges[0]/1e3
+		# 1/cm^2 yr
+		fluence = 1e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
+		
+		PointSource.__init__(self, effective_area, edges, fluence, zenith_bin, point_spread_function, psi_bins, with_energy)
+
+def discovery_potential(point_source, diffuse_components, sigma=5., **fixed):
 	critical_ts = sigma**2
 	def nevents(llh, **hypo):
 		"""
@@ -77,7 +84,10 @@ def discovery_potential(point_source, diffuse_components, sigma=5):
 		"""
 		for k in llh.components:
 			if not k in hypo:
-				hypo[k] = 1
+				if hasattr(llh.components[k], 'seed'):
+					hypo[k] = llh.components[k].seed
+				else:
+					hypo[k] = 1
 		return sum(map(numpy.sum, llh.expectations(**hypo).values()))
 	
 	components = dict(ps=point_source)
@@ -87,24 +97,34 @@ def discovery_potential(point_source, diffuse_components, sigma=5):
 		Test statistic of flux_norm against flux norm=0
 		"""
 		allh = asimov_llh(components, ps=flux_norm)
-		return -2*(allh.llh(**allh.fit(ps=0))-allh.llh(**allh.fit(ps=flux_norm)))
+		if len(fixed) == len(diffuse_components):
+			return -2*(allh.llh(ps=0, **fixed)-allh.llh(ps=flux_norm, **fixed))
+		else:
+			return -2*(allh.llh(**allh.fit(ps=0, **fixed))-allh.llh(**allh.fit(ps=flux_norm, **fixed)))
 	def f(flux_norm):
 		return ts(flux_norm)-critical_ts
 	# estimate significance as signal/sqrt(background)
-	allh = asimov_llh(components, ps=1)
-	total = nevents(allh, ps=1)
-	nb = nevents(allh, ps=0)
+	allh = asimov_llh(components, ps=1, **fixed)
+	total = nevents(allh, ps=1, **fixed)
+	nb = nevents(allh, ps=0, **fixed)
 	ns = total-nb
 	baseline = numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))
-	return optimize.fsolve(f, baseline, xtol=1e-2)[0]	 
+	print total, ns, nb, baseline
+	if baseline > 1e4:
+		return numpy.inf
+	else:
+		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
+		actual = optimize.fsolve(f, baseline/10, xtol=1e-2)
+		print baseline, actual
+		return actual[0]
 
-def differential_discovery_potential(point_source, diffuse_components, sigma=5):
+def differential_discovery_potential(point_source, diffuse_components, sigma=5, **fixed):
 
 	energies = []
 	sensitivities = []
 	for energy, pschunk in point_source.differential_chunks(decades=0.5):
 		energies.append(energy)
-		sensitivities.append(discovery_potential(pschunk, diffuse_components))
+		sensitivities.append(discovery_potential(pschunk, diffuse_components, **fixed))
 	return energies, sensitivities
 
 def center(x):

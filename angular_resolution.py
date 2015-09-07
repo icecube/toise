@@ -3,6 +3,13 @@ import pickle, os, numpy
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
+def get_angular_resolution(geometry="Sunflower", spacing=200):
+	if geometry == "IceCube":
+		fname = "aachen_psf.fits"
+	else:
+		fname = "%s_%s_bdt0_psf.fits" % (geometry.lower(), spacing)
+	return PointSpreadFunction(fname)
+
 class AngularResolution(object):
     def __init__(self, fname=os.path.join(data_dir, 'veto', 'aachen_angular_resolution.npz')):
         f = numpy.load(fname)
