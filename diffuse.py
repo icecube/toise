@@ -16,11 +16,21 @@ class DiffuseNuGen(object):
 		self._aeff = effective_area
 		self._livetime = livetime
 		self._edges = edges
+		# dimensions of flux should be: nu type (6),
+		# nu energy, cos(nu zenith), reco energy, cos(reco zenith),
+		# signature (cascade/track)
 		self._flux = flux
 		
 		self._solid_angle = 2*numpy.pi*numpy.diff(edges[1])
 		
 		self.seed = 1.
+		self.uncertainty = None
+	
+	def prior(self, value):
+		if self.uncertainty is None:
+			return 0.
+		else:
+			return -(value-self.seed)**2/(2*self.uncertainty**2)
 	
 	@staticmethod
 	def _integrate_flux(edges, flux, passing_fraction=lambda *args, **kwargs: 1.):
@@ -52,14 +62,18 @@ class AtmosphericNu(DiffuseNuGen):
 		# dimensions of the keys in expectations are now reconstructed energy, zenith
 		self.expectations = dict(cascades=total[...,0], tracks=total[...,1])
 	
-	def point_source_background(self, psi_bins, zenith_index, with_energy=True):
+	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
 		"""
 		convert to a point source background
 		
 		:param bin_areas: areas (in sr) of the search bins around the putative source
+		:param livetime: if not None, the actual livetime to integrate over in seconds
 		"""
 		background = copy(self)
 		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,...]
+		# observation time shorter for triggered transient searches
+		if livetime is not None:
+			bin_areas *= (livetime/self._livetime/(3600.*24*365.))
 		# dimensions of the keys in expectations are now energy, radial bin
 		background.expectations = {k: (v[:,zenith_index]/self._solid_angle[zenith_index])[...,None]*bin_areas for k,v in self.expectations.items()}
 		if not with_energy:
@@ -88,6 +102,34 @@ class DiffuseAstro(DiffuseNuGen):
 		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
 		flux = self._integrate_flux(edges, lambda pt, e, ct: 0.5e-18*(e/1e5)**(-2.))
 		super(DiffuseAstro, self).__init__(effective_area, edges, flux, livetime)
+	
+	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
+		"""
+		convert to a point source background
+		
+		:param bin_areas: areas (in sr) of the search bins around the putative source
+		:param livetime: if not None, the actual livetime to integrate over in seconds
+		"""
+		background = copy(self)
+		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,None,None,None,:,None]
+		# observation time shorter for triggered transient searches
+		if livetime is not None:
+			bin_areas *= (livetime/self._livetime/(3600.*24*365.))
+		# dimensions of the keys in expectations are now energy, radial bin
+		
+		# cut flux down to a single zenith band
+		# dimensions of self._flux are flavor, energy, zenith
+		sel = slice(zenith_index, zenith_index+1)
+		# dimensions of flux are now 1/m^2 sr
+		background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
+		# replace reconstructed zenith with opening angle
+		# dimensions of aeff are now m^2 sr
+		background._aeff = self._aeff[:,:,sel,:,sel,:]*bin_areas
+		
+		if not with_energy:
+			raise ValueError("Can't disable energy dimension just yet")
+
+		return background
 	
 	def expectations(self, gamma=-2, **kwargs):
 		def intflux(e, gamma):

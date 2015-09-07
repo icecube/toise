@@ -37,3 +37,13 @@ def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors='k', **kwargs):
 	if ax.get_ylabel() == '':
 		ax.set_ylabel(y)
 	return cs
+
+import palettable
+def pretty_style():
+	style = {
+	    u'axes.color_cycle' : palettable.colorbrewer.qualitative.Set1_9.mpl_colors,
+	    u'figure.figsize' : (4,4),
+	    u'legend.frameon' : False,
+	    u'legend.fontsize': 'small',
+	}
+	return style
