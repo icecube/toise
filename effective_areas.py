@@ -110,11 +110,54 @@ class MuonEffectiveArea(object):
 		geo = self._surface.azimuth_averaged_area(cos_theta)
 		return geo * self._efficiency(muon_energy, cos_theta)
 
+def center(x):
+	return 0.5*(x[1:] + x[:-1])
+
+def get_muon_production_efficiency(ct_edges=None):
+	"""
+	Get the probability that a muon neutrino of energy E_nu from zenith angle
+	cos_theta will produce a muon that reaches the detector with energy E_mu
+	
+	:param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
+	    at the centers of these bins
+	:returns: a tuple edges, efficiency. *edges* is a 3-element tuple giving the
+	    edges in E_nu, cos_theta, and E_mu, while *efficiency* is a 3D array
+	    with the same axes.
+	"""
+	from scipy import interpolate
+	with tables.open_file('/Users/jakob/Documents/IceCube/projects/2015/gen2_analysis/data/veto/numu.hdf5') as hdf:
+		h = dashi.histload(hdf, '/muon_efficiency')
+	edges = [numpy.log10(h.binedges[0]), h.binedges[1], numpy.log10(h.binedges[2])]
+	if ct_edges is None:
+		ct_edges = edges[1]
+	centers = map(center, edges)
+	newcenters = centers[0], numpy.clip(center(ct_edges), centers[1].min(), centers[1].max()), centers[2]
+	y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
+	assert not isnan(y).any()
+	interpolant = interpolate.RegularGridInterpolator(centers, y, bounds_error=True, fill_value=-numpy.inf)
+	
+	xi = numpy.vstack(map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
+	assert isfinite(xi).all()
+	
+	v = interpolant(xi, 'linear').reshape(map(lambda x: x.size, newcenters))
+	v[~numpy.isfinite(v)] = -numpy.inf
+	
+	assert not isnan(v).any()
+	
+	return (h.binedges[0], ct_edges, h.binedges[1]), 10**v
+
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     selection_efficiency=MuonSelectionEfficiency(),
-    full_sky=False, energy_threshold_scale=1., surface=get_fiducial_surface("IceCube")):
+    surface=get_fiducial_surface("IceCube"),
+	cos_theta=None):
 	"""
 	Create effective areas in the same format as above
+	
+	:param energy_resolution: a muon energy resolution kernel
+	:param selection_efficiency: an energy- and zenith-dependent muon selection efficiency
+	:param surface: the fiducial surface surrounding the detector
+	:param cos_theta: edges of bins in the cosine of the zenith angle. If None,
+	    use the native binning of the efficiency histogram.
 	"""
 	
 	# Ingredients:
@@ -128,24 +171,18 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	# Step 1: Efficiency for a neutrino to produce a muon that reaches the
 	#         detector with a given energy
-	with tables.open_file(os.path.join(data_dir, 'veto', 'numu.hdf5')) as hdf:
-		efficiency = dashi.histload(hdf, '/muon_efficiency')
+	(e_nu, cos_theta, e_mu), efficiency = get_muon_production_efficiency(cos_theta)
 	
 	# Step 2: Geometric muon effective area (no selection effects yet)
 	# NB: assumes cylindrical symmetry.
-	aeff = efficiency.bincontent * (numpy.vectorize(surface.average_area)(efficiency.binedges[1][:-1], efficiency.binedges[1][1:])[None,:,None])
+	aeff = efficiency * (numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1][1:])[None,:,None])
 	
 	# Step 3: apply selection efficiency
-	emu, cos_theta = numpy.meshgrid(efficiency.bincenters[2]/energy_threshold_scale, efficiency.bincenters[1], indexing='ij')
-	selection_efficiency = selection_efficiency(emu, cos_theta).T
-	if not full_sky:
-		# only accept events from below the horizon
-		selection_efficiency[cos_theta.T > 0] = 0
+	selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu)/energy_threshold_scale, center(cos_theta), indexing='ij')).T
 	aeff *= selection_efficiency[None,:,:]
 	
 	# Step 4: apply smearing for energy resolution
-	emu, ereco = efficiency.binedges[2], efficiency.binedges[2]
-	response = energy_resolution.get_response_matrix(emu, ereco)
+	response = energy_resolution.get_response_matrix(e_mu, e_mu)
 	aeff = numpy.apply_along_axis(numpy.inner, 2, aeff, response)
 	
 	total_aeff = numpy.zeros((6,) + aeff.shape + (aeff.shape[1], 2))
@@ -159,7 +196,7 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	diag.setflags(write=True)
 	diag[:] = aeff[None,:].transpose((0,1,3,2))
 	
-	edges = efficiency.binedges + [efficiency.binedges[1]]
+	edges = (e_nu, cos_theta, e_mu, cos_theta)
 	
 	return edges, total_aeff
 	
