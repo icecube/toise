@@ -2,6 +2,7 @@
 import os
 import numpy
 import itertools
+import healpy
 
 from surfaces import get_fiducial_surface
 from energy_resolution import get_energy_resolution
@@ -113,13 +114,11 @@ class MuonEffectiveArea(object):
 def center(x):
 	return 0.5*(x[1:] + x[:-1])
 
-def get_muon_production_efficiency(ct_edges=None):
+def _interpolate_muon_production_efficiency(cos_zenith):
 	"""
 	Get the probability that a muon neutrino of energy E_nu from zenith angle
 	cos_theta will produce a muon that reaches the detector with energy E_mu
 	
-	:param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
-	    at the centers of these bins
 	:returns: a tuple edges, efficiency. *edges* is a 3-element tuple giving the
 	    edges in E_nu, cos_theta, and E_mu, while *efficiency* is a 3D array
 	    with the same axes.
@@ -128,24 +127,83 @@ def get_muon_production_efficiency(ct_edges=None):
 	with tables.open_file('/Users/jakob/Documents/IceCube/projects/2015/gen2_analysis/data/veto/numu.hdf5') as hdf:
 		h = dashi.histload(hdf, '/muon_efficiency')
 	edges = [numpy.log10(h.binedges[0]), h.binedges[1], numpy.log10(h.binedges[2])]
-	if ct_edges is None:
-		ct_edges = edges[1]
 	centers = map(center, edges)
-	newcenters = centers[0], numpy.clip(center(ct_edges), centers[1].min(), centers[1].max()), centers[2]
+	newcenters = centers[0], numpy.clip(cos_zenith, centers[1].min(), centers[1].max()), centers[2]
 	y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
-	assert not isnan(y).any()
+	assert not numpy.isnan(y).any()
 	interpolant = interpolate.RegularGridInterpolator(centers, y, bounds_error=True, fill_value=-numpy.inf)
 	
 	xi = numpy.vstack(map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
-	assert isfinite(xi).all()
+	assert numpy.isfinite(xi).all()
 	
 	v = interpolant(xi, 'linear').reshape(map(lambda x: x.size, newcenters))
 	v[~numpy.isfinite(v)] = -numpy.inf
 	
-	assert not isnan(v).any()
+	assert not numpy.isnan(v).any()
 	
-	return (h.binedges[0], ct_edges, h.binedges[1]), 10**v
+	return (h.binedges[0], None, h.binedges[2]), 10**v
 
+def _ring_range(nside):
+	"""
+	Return the eqivalent cos(zenith) ranges for the rings of a HEALpix map
+	with NSide *nside*.
+	"""
+	# get cos(colatitude) at the center of each ring, and invert to get
+	# cos(zenith). This assumes that the underlying map is in equatorial
+	# coordinates.
+	centers = -healpy.ringinfo(nside, numpy.arange(1, 4*nside))[2]
+	return numpy.concatenate(([-1], 0.5*(centers[1:]+centers[:-1]), [1]))
+
+def get_muon_production_efficiency(ct_edges=None):
+	"""
+	Get the probability that a muon neutrino of energy E_nu from zenith angle
+	cos_theta will produce a muon that reaches the detector with energy E_mu
+	
+	:param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
+	    at the centers of these bins. If an integer, interpret as the NSide of
+	    a HEALpix map
+	:returns: a tuple edges, efficiency. *edges* is a 3-element tuple giving the
+	    edges in E_nu, cos_theta, and E_mu, while *efficiency* is a 3D array
+	    with the same axes.
+	"""
+	if ct_edges is None:
+		ct_edges = edges[1]
+	elif isinstance(ct_edges, int):
+		nside = ct_edges
+		ct_edges = _ring_range(nside)
+	
+	edges, efficiency = _interpolate_muon_production_efficiency(center(ct_edges))
+	return (edges[0], ct_edges, edges[2]), efficiency
+
+class effective_area(object):
+	"""
+	Effective area with metadata
+	"""
+	def __init__(self, edges, aeff, sky_binning='cos_theta'):
+		self.bin_edges = edges
+		self.values = aeff
+		self.sky_binning = sky_binning
+		self.dimensions = ['type', 'true_energy', 'true_zenith_band', 'reco_energy', 'reco_zenith_band', 'reco_signature']
+	
+	@property
+	def is_healpix(self):
+		return self.sky_binning == 'healpix'
+	
+	@property
+	def nside(self):
+		assert self.is_healpix
+		return self.nring/4 + 1
+	
+	@property
+	def nring(self):
+		assert self.is_healpix
+		return self.values.shape[2]
+	
+	@property
+	def ring_repeat_pattern(self):
+		assert self.is_healpix
+		return healpy.ringinfo(self.nside, numpy.arange(self.nring)+1)[1]
+	
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     selection_efficiency=MuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
@@ -157,7 +215,8 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	:param selection_efficiency: an energy- and zenith-dependent muon selection efficiency
 	:param surface: the fiducial surface surrounding the detector
 	:param cos_theta: edges of bins in the cosine of the zenith angle. If None,
-	    use the native binning of the efficiency histogram.
+	    use the native binning of the efficiency histogram. If an integer,
+	    interpret as the NSide of a HEALpix map
 	"""
 	
 	# Ingredients:
@@ -169,16 +228,20 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	import tables, dashi
 	from scipy.special import erf
 	
+	nside = None
+	if isinstance(cos_theta, int):
+		nside = cos_theta
+	
 	# Step 1: Efficiency for a neutrino to produce a muon that reaches the
 	#         detector with a given energy
 	(e_nu, cos_theta, e_mu), efficiency = get_muon_production_efficiency(cos_theta)
 	
 	# Step 2: Geometric muon effective area (no selection effects yet)
 	# NB: assumes cylindrical symmetry.
-	aeff = efficiency * (numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1][1:])[None,:,None])
+	aeff = efficiency * (numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[None,:,None])
 	
 	# Step 3: apply selection efficiency
-	selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu)/energy_threshold_scale, center(cos_theta), indexing='ij')).T
+	selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
 	aeff *= selection_efficiency[None,:,:]
 	
 	# Step 4: apply smearing for energy resolution
@@ -198,5 +261,4 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	edges = (e_nu, cos_theta, e_mu, cos_theta)
 	
-	return edges, total_aeff
-	
+	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
