@@ -4,9 +4,13 @@ import itertools
 from scipy.integrate import quad
 from copy import copy
 import multillh
+import healpy
+import os
+
+data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
 class DiffuseNuGen(object):
-	def __init__(self, effective_area, edges, flux, livetime=1.):
+	def __init__(self, effective_area, flux, livetime=1.):
 		"""
 		:param effective_area: effective area in m^2
 		:param edges: edges of the bins in the effective area histogram
@@ -15,17 +19,21 @@ class DiffuseNuGen(object):
 		"""
 		self._aeff = effective_area
 		self._livetime = livetime
-		self._edges = edges
 		# dimensions of flux should be: nu type (6),
 		# nu energy, cos(nu zenith), reco energy, cos(reco zenith),
 		# signature (cascade/track)
 		self._flux = flux
 		
-		self._solid_angle = 2*numpy.pi*numpy.diff(edges[1])
+		# FIXME: account for healpix binning
+		self._solid_angle = 2*numpy.pi*numpy.diff(self._aeff.bin_edges[1])
 		
 		self.seed = 1.
 		self.uncertainty = None
 	
+	@property
+	def is_healpix(self):
+		return self._aeff.is_healpix
+		
 	def prior(self, value):
 		if self.uncertainty is None:
 			return 0.
@@ -45,21 +53,33 @@ class DiffuseNuGen(object):
 				fluxband = numpy.zeros(len(edges[0])-1)
 				for k in range(len(fluxband)):
 					fluxband[k] = quad(lambda e: flux(pt, e, ct)*passing_fraction(pt, e, ct, depth=2e3), edges[0][k], edges[0][k+1])[0]
-				intflux[i,:,j] = fluxband*2*numpy.pi*(ct_hi-ct_lo)
-		# return integrated flux in 1/(m^2 yr)
+				intflux[i,:,j] = fluxband
+		# return integrated flux in 1/(m^2 yr sr)
 		return intflux*1e4*(3600*24*365)
 
 class AtmosphericNu(DiffuseNuGen):
-	def __init__(self, effective_area, edges, flux_func, passing_fraction, livetime):
+	def __init__(self, effective_area, flux_func, passing_fraction, livetime):
 		if passing_fraction is not None:
-			flux = self._integrate_flux(edges, flux_func.getFlux, passing_fraction)
+			flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux, passing_fraction)
 		else:
-			flux = self._integrate_flux(edges, flux_func.getFlux)
-		super(AtmosphericNu, self).__init__(effective_area, edges, flux, livetime)
+			flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux)
+		
+		# "integrate" over solid angle
+		if effective_area.is_healpix:
+			flux *= healpy.nside2pixarea(effective_area.nside)
+		else:
+			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,:,None]
+		
+		super(AtmosphericNu, self).__init__(effective_area, flux, livetime)
 		
 		# sum over neutrino flavors, energies, and zenith angles
-		total = (self._flux[...,None,None,None]*self._aeff*self._livetime).sum(axis=(0,1,2))
-		# dimensions of the keys in expectations are now reconstructed energy, zenith
+		total = (self._flux[...,None,None,None]*self._aeff.values*self._livetime).sum(axis=(0,1,2))
+		# up to now we've assumed that everything is azimuthally symmetric and
+		# dealt with zenith bins/healpix rings. repeat the values in each ring
+		# to broadcast onto a full healpix map.
+		if self.is_healpix:
+			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
+		# dimensions of the keys in expectations are now reconstructed energy, sky bin (zenith/healpix pixel)
 		self.expectations = dict(cascades=total[...,0], tracks=total[...,1])
 	
 	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
@@ -69,6 +89,9 @@ class AtmosphericNu(DiffuseNuGen):
 		:param bin_areas: areas (in sr) of the search bins around the putative source
 		:param livetime: if not None, the actual livetime to integrate over in seconds
 		"""
+		
+		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
+		
 		background = copy(self)
 		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,...]
 		# observation time shorter for triggered transient searches
@@ -82,26 +105,31 @@ class AtmosphericNu(DiffuseNuGen):
 		return background
 	
 	@classmethod
-	def conventional(cls, effective_area, edges, livetime, veto_threshold=1e3):
+	def conventional(cls, effective_area, livetime, veto_threshold=1e3):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		flux = NewNuFlux.makeFlux('honda2006')
 		flux.knee_reweighting_model = 'gaisserH3a_elbert'
 		pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
-		return cls(effective_area, edges, flux, pf, livetime)
+		return cls(effective_area, flux, pf, livetime)
 
 	@classmethod
-	def prompt(cls, effective_area, edges, livetime, veto_threshold=1e3):
+	def prompt(cls, effective_area, livetime, veto_threshold=1e3):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		flux = NewNuFlux.makeFlux('sarcevic_std')
 		flux.knee_reweighting_model = 'gaisserH3a_elbert'
 		pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
-		return cls(effective_area, edges, flux, pf, livetime)
+		return cls(effective_area, flux, pf, livetime)
  
 class DiffuseAstro(DiffuseNuGen):
-	def __init__(self, effective_area, edges, livetime):
+	def __init__(self, effective_area, livetime):
 		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
-		flux = self._integrate_flux(edges, lambda pt, e, ct: 0.5e-18*(e/1e5)**(-2.))
-		super(DiffuseAstro, self).__init__(effective_area, edges, flux, livetime)
+		flux = self._integrate_flux(effective_area.bin_edges, lambda pt, e, ct: 0.5e-18*(e/1e5)**(-2.))
+		# "integrate" over solid angle
+		if effective_area.is_healpix:
+			flux *= healpy.nside2pixarea(effective_area.nside)
+		else:
+			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,:,None]
+		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
 	
 	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
 		"""
@@ -110,6 +138,9 @@ class DiffuseAstro(DiffuseNuGen):
 		:param bin_areas: areas (in sr) of the search bins around the putative source
 		:param livetime: if not None, the actual livetime to integrate over in seconds
 		"""
+		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
+		
+		
 		background = copy(self)
 		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,None,None,None,:,None]
 		# observation time shorter for triggered transient searches
@@ -134,7 +165,7 @@ class DiffuseAstro(DiffuseNuGen):
 	def expectations(self, gamma=-2, **kwargs):
 		def intflux(e, gamma):
 			return (1e5**(-gamma)/(1+gamma))*e**(1+gamma)
-		energy = self._edges[0]
+		energy = self._aeff.bin_edges[0]
 		# specweight = (intflux(energy[1:], gamma)-intflux(energy[:-1], gamma))/(intflux(energy[1:], -2)-intflux(energy[:-1], -2))
 		
 		centers = 0.5*(energy[1:] + energy[:-1])
@@ -151,8 +182,55 @@ class DiffuseAstro(DiffuseNuGen):
 			flavor_weight[4:6] *= (1. - e - mu)
 			flux *= flavor_weight[:,None,None,None,None,None]
 		
-		total = (flux*self._aeff*self._livetime).sum(axis=(0,1,2))
+		total = (flux*self._aeff.values*self._livetime).sum(axis=(0,1,2))
+		# up to now we've assumed that everything is azimuthally symmetric and
+		# dealt with zenith bins/healpix rings. repeat the values in each ring
+		# to broadcast onto a full healpix map.
+		if self.is_healpix:
+			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
 		return dict(cascades=total[...,0], tracks=total[...,1])
+
+def rebin(skymap, powers=1):
+	"""
+	Rebin a HEALpix map by *powers* powers of 4
+	"""
+	nside = healpy.npix2nside(skymap.size)/(2**powers)
+	return healpy.pixelfunc.ud_grade(skymap, nside)
+
+def transform_map(skymap):
+	"""
+	Interpolate a galactic skymap into equatorial coords
+	"""
+	r = healpy.Rotator(coord=('C', 'G'))
+	npix = skymap.size
+	theta_gal, phi_gal = healpy.pix2ang(healpy.npix2nside(npix), numpy.arange(npix))
+	theta_ecl, phi_ecl = r(theta_gal, phi_gal)
+	return healpy.pixelfunc.get_interp_val(skymap, theta_ecl, phi_ecl)
+
+class FermiGalacticEmission(DiffuseNuGen):
+	def __init__(self, effective_area, livetime=1.):
+		assert effective_area.is_healpix
+		# differential flux at 1 GeV [1/(GeV cm^2 sr s)]
+		map1GeV = numpy.load(os.path.join(data_dir, 'fermi_galactic_emission.npy'))
+		# downsample to resolution of effective area map
+		flux_constant = healpy.ud_grade(transform_map(map1GeV), effective_area.nside)
+		def intflux(e, gamma=-2.71):
+			return (e**(1+gamma))/(1+gamma)
+		e = effective_area.bin_edges[0]
+		# integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
+		flux = (intflux(e[1:]) - intflux(e[:-1]))*healpy.nside2pixarea(effective_area.nside)
+		# units 1/cm^2 s -> 1/m^2 yr
+		flux = flux[None,:,None] * flux_constant[None,None,:] * 1e4 * 365*24*3600
+		
+		super(FermiGalacticEmission, self).__init__(effective_area, flux, livetime)
+		
+		# extract the diagonal in true_angle / reco_angle and broadcast it over healpix rings
+		aeff = numpy.diagonal(self._aeff.values, 0, 2, 4).transpose([0,1,4,2,3]).repeat(self._aeff.ring_repeat_pattern, axis=2)
+		# sum over neutrino flavors and energies
+		total = (self._flux[...,None,None]*aeff*self._livetime).sum(axis=(0,1))
+		
+		# dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
+		self.expectations = dict(cascades=total[...,0].T, tracks=total[...,1].T)
 
 def starting_diffuse_powerlaw(effective_area, edges, livetime=1.,
     flavor_ratio=False, veto_threshold=1e2):
