@@ -7,7 +7,7 @@ import multillh
 import healpy
 import os
 
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
+from util import *
 
 class DiffuseNuGen(object):
 	def __init__(self, effective_area, flux, livetime=1.):
@@ -58,22 +58,34 @@ class DiffuseNuGen(object):
 		return intflux*1e4*(3600*24*365)
 
 class AtmosphericNu(DiffuseNuGen):
-	def __init__(self, effective_area, flux_func, passing_fraction, livetime):
-		if passing_fraction is not None:
-			flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux, passing_fraction)
-		else:
-			flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux)
+	def __init__(self, effective_area, flux, livetime, hard_veto_threshold=None):
 		
-		# "integrate" over solid angle
-		if effective_area.is_healpix:
-			flux *= healpy.nside2pixarea(effective_area.nside)
+		if isinstance(flux, tuple):
+			flux_func, passing_fraction = flux
+			if passing_fraction is not None:
+				flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux, passing_fraction)
+			else:
+				flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux)
+		
+			# "integrate" over solid angle
+			if effective_area.is_healpix:
+				flux *= healpy.nside2pixarea(effective_area.nside)
+			else:
+				flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:]
 		else:
-			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,:,None]
+			# flux was precalculated
+			pass
 		
 		super(AtmosphericNu, self).__init__(effective_area, flux, livetime)
 		
 		# sum over neutrino flavors, energies, and zenith angles
 		total = (self._flux[...,None,None,None]*self._aeff.values*self._livetime).sum(axis=(0,1,2))
+		
+		if hard_veto_threshold is not None:
+			e_mu, cos_theta = effective_area.bin_edges[2:4]
+			scale = numpy.where(~hard_veto_threshold.veto(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')), 1, 1e-4)
+			total *= scale[...,None]
+		
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
@@ -104,22 +116,41 @@ class AtmosphericNu(DiffuseNuGen):
 			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
 		return background
 	
+	_fluxes = dict(conventional=dict(), prompt=dict())
 	@classmethod
-	def conventional(cls, effective_area, livetime, veto_threshold=1e3):
+	def conventional(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
-		flux = NewNuFlux.makeFlux('honda2006')
-		flux.knee_reweighting_model = 'gaisserH3a_elbert'
-		pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
-		return cls(effective_area, flux, pf, livetime)
-
+		cache = cls._fluxes['conventional']
+		if veto_threshold in cache and cache[veto_treshold][0].compatible_with(effective_area):
+			flux = cache[veto_treshold][1]
+		else:
+			flux = NewNuFlux.makeFlux('honda2006')
+			flux.knee_reweighting_model = 'gaisserH3a_elbert'
+			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
+			flux = (flux, pf)
+		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
+		if not isinstance(flux, tuple):
+			cache[veto_treshold] = (effective_area, instance._flux)
+		
+		return instance
+	
 	@classmethod
-	def prompt(cls, effective_area, livetime, veto_threshold=1e3):
+	def prompt(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
-		flux = NewNuFlux.makeFlux('sarcevic_std')
-		flux.knee_reweighting_model = 'gaisserH3a_elbert'
-		pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
-		return cls(effective_area, flux, pf, livetime)
- 
+		cache = cls._fluxes['prompt']
+		if veto_threshold in cache and cache[veto_treshold][0].compatible_with(effective_area):
+			flux = cache[veto_treshold][1]
+		else:
+			flux = NewNuFlux.makeFlux('sarcevic_std')
+			flux.knee_reweighting_model = 'gaisserH3a_elbert'
+			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
+			flux = (flux, pf)
+		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
+		if not isinstance(flux, tuple):
+			cache[veto_treshold] = (effective_area, instance._flux)
+		
+		return instance
+		
 class DiffuseAstro(DiffuseNuGen):
 	def __init__(self, effective_area, livetime):
 		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
@@ -128,8 +159,10 @@ class DiffuseAstro(DiffuseNuGen):
 		if effective_area.is_healpix:
 			flux *= healpy.nside2pixarea(effective_area.nside)
 		else:
-			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,:,None]
+			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:]
 		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
+		
+		self._last_params = dict(gamma=-2)
 	
 	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
 		"""
@@ -162,14 +195,18 @@ class DiffuseAstro(DiffuseNuGen):
 
 		return background
 	
-	def expectations(self, gamma=-2, **kwargs):
+	def calculate_expectations(self, **kwargs):
+		
+		if all([self._last_params[k] == kwargs[k] for k in self._last_params]):
+			return self._last_expectations
+		
 		def intflux(e, gamma):
 			return (1e5**(-gamma)/(1+gamma))*e**(1+gamma)
 		energy = self._aeff.bin_edges[0]
-		# specweight = (intflux(energy[1:], gamma)-intflux(energy[:-1], gamma))/(intflux(energy[1:], -2)-intflux(energy[:-1], -2))
 		
 		centers = 0.5*(energy[1:] + energy[:-1])
-		specweight = (centers/1e5)**(gamma+2)
+		specweight = (centers/1e5)**(kwargs['gamma']+2)
+		self._last_params['gamma'] = kwargs['gamma']
 		
 		flux = (self._flux*(specweight[None,:,None]))[...,None,None,None]
 		
@@ -181,6 +218,8 @@ class DiffuseAstro(DiffuseNuGen):
 			flavor_weight[2:4] *= mu
 			flavor_weight[4:6] *= (1. - e - mu)
 			flux *= flavor_weight[:,None,None,None,None,None]
+			for k in 'e_fraction', 'mu_fraction':
+				self._last_params[k] = kwargs[k]
 		
 		total = (flux*self._aeff.values*self._livetime).sum(axis=(0,1,2))
 		# up to now we've assumed that everything is azimuthally symmetric and
@@ -188,14 +227,12 @@ class DiffuseAstro(DiffuseNuGen):
 		# to broadcast onto a full healpix map.
 		if self.is_healpix:
 			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
-		return dict(cascades=total[...,0], tracks=total[...,1])
+		self._last_expectations = dict(cascades=total[...,0], tracks=total[...,1])
+		return self._last_expectations
+	
+	def expectations(self, gamma=-2, **kwargs):
+		return self.calculate_expectations(gamma=gamma, **kwargs)
 
-def rebin(skymap, powers=1):
-	"""
-	Rebin a HEALpix map by *powers* powers of 4
-	"""
-	nside = healpy.npix2nside(skymap.size)/(2**powers)
-	return healpy.pixelfunc.ud_grade(skymap, nside)
 
 def transform_map(skymap):
 	"""

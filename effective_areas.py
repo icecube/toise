@@ -6,8 +6,7 @@ import healpy
 
 from surfaces import get_fiducial_surface
 from energy_resolution import get_energy_resolution
-
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
+from util import *
 
 def load_jvs_mese():
 	"""
@@ -95,6 +94,24 @@ def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0):
 	else:
 		return ZenithDependentMuonSelectionEfficiency("%s_%dm_bdt0_efficiency.fits" % (geometry, spacing), energy_threshold=energy_threshold)
 
+class StepFunction(object):
+	"""
+	A zenith-dependent energy threshold, modeling the effect of a perfect
+	surface veto whose threshold scales with slant depth
+	"""
+	def __init__(self, threshold=0):
+		self.threshold = threshold
+	def accept(self, e_mu, cos_theta=1.):
+		"""
+		Return True if an event would pass the event selection
+		"""
+		return numpy.where(cos_theta > 0.05, e_mu > self.threshold/cos_theta, True)
+	def veto(self, e_mu, cos_theta=1.):
+		"""
+		Return True if an atmospheric event would be rejected by the veto
+		"""
+		return numpy.where(cos_theta > 0.05, e_mu > self.threshold/cos_theta, False)
+
 class MuonEffectiveArea(object):
 	"""
 	The product of geometric area and selection efficiency
@@ -110,9 +127,6 @@ class MuonEffectiveArea(object):
 	def __call__(self, muon_energy, cos_theta):
 		geo = self._surface.azimuth_averaged_area(cos_theta)
 		return geo * self._efficiency(muon_energy, cos_theta)
-
-def center(x):
-	return 0.5*(x[1:] + x[:-1])
 
 def _interpolate_muon_production_efficiency(cos_zenith):
 	"""
@@ -167,7 +181,7 @@ def get_muon_production_efficiency(ct_edges=None):
 	    with the same axes.
 	"""
 	if ct_edges is None:
-		ct_edges = edges[1]
+		ct_edges = numpy.linspace(-1, 1, 11)
 	elif isinstance(ct_edges, int):
 		nside = ct_edges
 		ct_edges = _ring_range(nside)
@@ -184,6 +198,9 @@ class effective_area(object):
 		self.values = aeff
 		self.sky_binning = sky_binning
 		self.dimensions = ['type', 'true_energy', 'true_zenith_band', 'reco_energy', 'reco_zenith_band', 'reco_signature']
+	
+	def compatible_with(self, other):
+		return self.values.shape == other.values.shape and all(((a==b).all() for a, b in zip(self.bin_edges, other.bin_edges)))
 	
 	@property
 	def is_healpix(self):
@@ -205,6 +222,7 @@ class effective_area(object):
 		return healpy.ringinfo(self.nside, numpy.arange(self.nring)+1)[1]
 	
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
+    energy_threshold=StepFunction(),
     selection_efficiency=MuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
 	cos_theta=None):
@@ -258,6 +276,10 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	assert id(diag.base) == id(total_aeff), "numpy.diagonal() must return a view"
 	diag.setflags(write=True)
 	diag[:] = aeff[None,:].transpose((0,1,3,2))
+	
+	# Step 5: apply an energy threshold in the southern hemisphere
+	# print 
+	total_aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij'))[None,None,None,...,None]
 	
 	edges = (e_nu, cos_theta, e_mu, cos_theta)
 	

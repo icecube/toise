@@ -4,6 +4,7 @@ from scipy import optimize
 import itertools
 from copy import copy
 from multillh import LLHEval, asimov_llh
+from util import *
 
 class PointSource(object):
 	def __init__(self, effective_area, edges, fluence, zenith_bin, point_spread_function, psi_bins, with_energy=True):
@@ -126,7 +127,4 @@ def differential_discovery_potential(point_source, diffuse_components, sigma=5, 
 		energies.append(energy)
 		sensitivities.append(discovery_potential(pschunk, diffuse_components, **fixed))
 	return energies, sensitivities
-
-def center(x):
-	return 0.5*(x[1:]+x[:-1])
 

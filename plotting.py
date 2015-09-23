@@ -19,6 +19,18 @@ def stepped_path(edges, bins):
 	
 	return x,y
 
+def format_energy(fmt, energy):
+	places = int(numpy.log10(energy)/3)*3
+	if places == 0:
+		unit = 'GeV'
+	elif places == 3:
+		unit = 'TeV'
+	elif places == 6:
+		unit = 'PeV'
+	elif places == 9:
+		unit = 'EeV'
+	return (fmt % (energy/10**(places))) + ' ' + unit
+
 def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors='k', **kwargs):
 	from scipy.stats import chi2
 	import matplotlib.pyplot as plt
