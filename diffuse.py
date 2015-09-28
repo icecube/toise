@@ -6,6 +6,7 @@ from copy import copy
 import multillh
 import healpy
 import os
+import numexpr
 
 from util import *
 
@@ -57,6 +58,12 @@ class DiffuseNuGen(object):
 		# return integrated flux in 1/(m^2 yr sr)
 		return intflux*1e4*(3600*24*365)
 
+	# apply 3-element multiplication + reduction without creating too many
+	# unnecessary temporaries. numexpr allows a single reduction, so do it here
+	_reduce_flux = numexpr.NumExpr('sum(aeff*flux*livetime, axis=2)')
+	def _apply_flux(self, effective_area, flux, livetime):
+		return self._reduce_flux(effective_area.values, flux[...,None,None,None], livetime).sum(axis=(0,1))
+
 class AtmosphericNu(DiffuseNuGen):
 	def __init__(self, effective_area, flux, livetime, hard_veto_threshold=None):
 		
@@ -79,7 +86,7 @@ class AtmosphericNu(DiffuseNuGen):
 		super(AtmosphericNu, self).__init__(effective_area, flux, livetime)
 		
 		# sum over neutrino flavors, energies, and zenith angles
-		total = (self._flux[...,None,None,None]*self._aeff.values*self._livetime).sum(axis=(0,1,2))
+		total = self._apply_flux(self._aeff, self._flux, self._livetime)
 		
 		if hard_veto_threshold is not None:
 			e_mu, cos_theta = effective_area.bin_edges[2:4]
@@ -121,16 +128,18 @@ class AtmosphericNu(DiffuseNuGen):
 	def conventional(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['conventional']
-		if veto_threshold in cache and cache[veto_treshold][0].compatible_with(effective_area):
-			flux = cache[veto_treshold][1]
+		if veto_threshold in cache and cache[veto_threshold][0].compatible_with(effective_area):
+			flux = cache[veto_threshold][1]
 		else:
+			assert len(cls._fluxes['conventional']) == 0
 			flux = NewNuFlux.makeFlux('honda2006')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
 			flux = (flux, pf)
 		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
-		if not isinstance(flux, tuple):
-			cache[veto_treshold] = (effective_area, instance._flux)
+		if isinstance(flux, tuple):
+			cache[veto_threshold] = (effective_area, instance._flux)
+		assert len(cls._fluxes['conventional']) > 0 
 		
 		return instance
 	
@@ -138,16 +147,16 @@ class AtmosphericNu(DiffuseNuGen):
 	def prompt(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['prompt']
-		if veto_threshold in cache and cache[veto_treshold][0].compatible_with(effective_area):
-			flux = cache[veto_treshold][1]
+		if veto_threshold in cache and cache[veto_threshold][0].compatible_with(effective_area):
+			flux = cache[veto_threshold][1]
 		else:
 			flux = NewNuFlux.makeFlux('sarcevic_std')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
 			flux = (flux, pf)
 		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
-		if not isinstance(flux, tuple):
-			cache[veto_treshold] = (effective_area, instance._flux)
+		if isinstance(flux, tuple):
+			cache[veto_threshold] = (effective_area, instance._flux)
 		
 		return instance
 		
@@ -221,7 +230,7 @@ class DiffuseAstro(DiffuseNuGen):
 			for k in 'e_fraction', 'mu_fraction':
 				self._last_params[k] = kwargs[k]
 		
-		total = (flux*self._aeff.values*self._livetime).sum(axis=(0,1,2))
+		total = self._apply_flux(self._aeff, self._flux, self._livetime)
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
@@ -255,16 +264,16 @@ class FermiGalacticEmission(DiffuseNuGen):
 			return (e**(1+gamma))/(1+gamma)
 		e = effective_area.bin_edges[0]
 		# integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
-		flux = (intflux(e[1:]) - intflux(e[:-1]))*healpy.nside2pixarea(effective_area.nside)
-		# units 1/cm^2 s -> 1/m^2 yr
-		flux = flux[None,:,None] * flux_constant[None,None,:] * 1e4 * 365*24*3600
+		flux = (intflux(e[1:]) - intflux(e[:-1]))
+		flux *= healpy.nside2pixarea(effective_area.nside) * 1e4 * 365*24*3600
+		flux = flux[None,:,None] * flux_constant[None,None,:]
 		
 		super(FermiGalacticEmission, self).__init__(effective_area, flux, livetime)
 		
 		# extract the diagonal in true_angle / reco_angle and broadcast it over healpix rings
 		aeff = numpy.diagonal(self._aeff.values, 0, 2, 4).transpose([0,1,4,2,3]).repeat(self._aeff.ring_repeat_pattern, axis=2)
 		# sum over neutrino flavors and energies
-		total = (self._flux[...,None,None]*aeff*self._livetime).sum(axis=(0,1))
+		total = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')(aeff, self._flux[...,None,None], self._livetime).sum(axis=0)
 		
 		# dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
 		self.expectations = dict(cascades=total[...,0].T, tracks=total[...,1].T)
