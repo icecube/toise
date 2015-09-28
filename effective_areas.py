@@ -99,18 +99,19 @@ class StepFunction(object):
 	A zenith-dependent energy threshold, modeling the effect of a perfect
 	surface veto whose threshold scales with slant depth
 	"""
-	def __init__(self, threshold=0):
+	def __init__(self, threshold=0, maximum_inclination=60):
+		self.max_inclination = numpy.cos(numpy.radians(maximum_inclination))
 		self.threshold = threshold
 	def accept(self, e_mu, cos_theta=1.):
 		"""
 		Return True if an event would pass the event selection
 		"""
-		return numpy.where(cos_theta > 0.05, e_mu > self.threshold/cos_theta, True)
+		return numpy.where(cos_theta > 0.05, (e_mu > self.threshold) & (cos_theta >= self.max_inclination), True)
 	def veto(self, e_mu, cos_theta=1.):
 		"""
 		Return True if an atmospheric event would be rejected by the veto
 		"""
-		return numpy.where(cos_theta > 0.05, e_mu > self.threshold/cos_theta, False)
+		return numpy.where(cos_theta > 0.05, (e_mu > self.threshold) & (cos_theta >= self.max_inclination), False)
 
 class MuonEffectiveArea(object):
 	"""
