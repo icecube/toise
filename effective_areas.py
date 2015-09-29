@@ -223,7 +223,7 @@ class effective_area(object):
 		return healpy.ringinfo(self.nside, numpy.arange(self.nring)+1)[1]
 	
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
-    energy_threshold=StepFunction(),
+    energy_threshold=StepFunction(numpy.inf),
     selection_efficiency=MuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
 	cos_theta=None):
