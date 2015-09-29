@@ -54,6 +54,15 @@ class Winter2014GRBFluence(object):
 		
 		return geometric_scale*luminosity_scale*(10**self._log_fluence(np.log10(energy)))/energy**2
 
+class WaxmannBahcallFluence(object):
+	def __call__(self, E, *args, **kwargs):
+		# E. Waxman, Nucl. Phys. B, Proc. Suppl. 118, 353 (2003).
+		# fluence from a single GRB, assuming 667 bursts per year over the whole sky
+		peryear = 667/(3600*24*365*4*np.pi)
+		# factor of 3 for flavor
+		fluence = 0.9e-8/3/peryear
+		return np.where(E < 1e5, E**-1*fluence/1e5, np.where(E > 1e7, E**-4*(fluence*(1e7**2)), E**-2*fluence))
+
 class LuminosityDistance(object):
 	_instance = None
 	@classmethod
