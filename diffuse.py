@@ -172,6 +172,7 @@ class DiffuseAstro(DiffuseNuGen):
 		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
 		
 		self._last_params = dict(gamma=-2)
+		self._last_expectations = None
 	
 	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
 		"""
@@ -206,7 +207,7 @@ class DiffuseAstro(DiffuseNuGen):
 	
 	def calculate_expectations(self, **kwargs):
 		
-		if all([self._last_params[k] == kwargs[k] for k in self._last_params]):
+		if self._last_expectations is not None and all([self._last_params[k] == kwargs[k] for k in self._last_params]):
 			return self._last_expectations
 		
 		def intflux(e, gamma):
@@ -217,7 +218,7 @@ class DiffuseAstro(DiffuseNuGen):
 		specweight = (centers/1e5)**(kwargs['gamma']+2)
 		self._last_params['gamma'] = kwargs['gamma']
 		
-		flux = (self._flux*(specweight[None,:,None]))[...,None,None,None]
+		flux = (self._flux*(specweight[None,:,None]))#[...,None,None,None]
 		
 		if 'e_fraction' in kwargs:
 			flavor_weight = 3*numpy.ones(6)
@@ -230,7 +231,7 @@ class DiffuseAstro(DiffuseNuGen):
 			for k in 'e_fraction', 'mu_fraction':
 				self._last_params[k] = kwargs[k]
 		
-		total = self._apply_flux(self._aeff, self._flux, self._livetime)
+		total = self._apply_flux(self._aeff, flux, self._livetime)
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
