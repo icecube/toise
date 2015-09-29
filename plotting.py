@@ -1,7 +1,7 @@
 
 import numpy
 
-def stepped_path(edges, bins):
+def stepped_path(edges, bins, cumulative=False):
 	"""
 	Create a stepped path suitable for histogramming
 	
@@ -16,6 +16,12 @@ def stepped_path(edges, bins):
 	
 	x[0::2], x[1::2] = edges, edges
 	y[1:-1:2], y[2::2] = bins, bins
+	
+	if cumulative is not False:
+		if cumulative == '<':
+			y = y.cumsum()
+		elif cumulative == '>':
+			y = y[::-1].cumsum()[::-1]
 	
 	return x,y
 
@@ -51,11 +57,19 @@ def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors='k', **kwargs):
 	return cs
 
 import palettable
-def pretty_style():
+def pretty_style(tex=False):
 	style = {
 	    u'axes.color_cycle' : palettable.colorbrewer.qualitative.Set1_9.mpl_colors,
-	    u'figure.figsize' : (4,4),
+	    u'figure.figsize' : (3.375,3.375),
 	    u'legend.frameon' : False,
 	    u'legend.fontsize': 'small',
+	    u'lines.linewidth'    : 1.5,
+	    u'grid.linewidth' : 0.1,
+	    u'grid.linestyle' : '-',
+	    u'axes.titlesize' : 'medium',
 	}
+	if tex:
+		style[u'font.family'] = 'serif'
+		style[u'font.serif'] = 'Computer Modern'
+		style[u'text.usetex'] = True
 	return style
