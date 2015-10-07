@@ -36,8 +36,12 @@ class PointSource(object):
 		self._use_energies = with_energy
 		
 		self._rate = rate
+		self._last_gamma = None
 	
 	def expectations(self, ps_gamma=-2, **kwargs):
+		
+		if self._last_gamma == ps_gamma:
+			return self._last_expectations
 		
 		energy = self._edges[0]
 		
@@ -54,7 +58,9 @@ class PointSource(object):
 		if not self._use_energies:
 			total = total.sum(axis=0)
 		
-		return dict(cascades=total[...,0,:], tracks=total[...,1,:])
+		self._last_expectations = dict(cascades=total[...,0,:], tracks=total[...,1,:])
+		self._last_gamma = ps_gamma
+		return self._last_expectations
 	
 	def differential_chunks(self, decades=1):
 		"""
