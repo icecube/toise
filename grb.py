@@ -128,6 +128,7 @@ class LuminosityDistance(object):
 		self._interpolant = interpolate.interp1d(z, result)
 	
 	def __call__(self, z):
+		""":returns: luminosity distance in cm"""
 		return self._interpolant(z)
 
 class SwiftTriggerHorizon(object):
