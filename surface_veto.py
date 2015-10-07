@@ -80,7 +80,9 @@ def get_geometric_coverage_for_area(gcdfile, area, ct_bins=numpy.linspace(0, 1, 
         for dummy in xrange(nsamples):
             pos, direction = deep_surface.sample_impact_ray(rng, ct_lo, ct_hi)
             # project up the to the surface
-            pos -= ((1950-pos.z)/direction.z)*direction
+            pos += ((1950-pos.z)/direction.z)*direction
+            # catch stupid sign errors
+            assert abs(pos.z - 1950) < 1
             # did the shower cross the surface array?
             if veto_surface._point_in_hull(tuple(pos)):
                 inside += 1
@@ -89,18 +91,21 @@ def get_geometric_coverage_for_area(gcdfile, area, ct_bins=numpy.linspace(0, 1, 
 
 class GeometricVetoCoverage(object):
     cache_file = os.path.join(data_dir, 'veto', 'geometric_veto_coverage.pickle')
-    def __init__(self):
+    def __init__(self, geometry='Sunflower', spacing=240, area=10.):
+        self.geometry = geometry
+        self.spacing = spacing
+        self.area = area
         if os.path.exists(self.cache_file):
             self.cache = pickle.load(open(self.cache_file))
         else:
             self.cache = dict()
-    def __call__(self, geometry, spacing, area, ct_bins=numpy.linspace(-1, 1, 11)):
-        key = (geometry, spacing, area, (ct_bins[0], ct_bins[-1], len(ct_bins)))
+    def __call__(self, ct_bins=numpy.linspace(-1, 1, 11)):
+        key = (self.geometry, self.spacing, self.area, (ct_bins[0], ct_bins[-1], len(ct_bins)))
         if key in self.cache:
             return self.cache[key]
         else:
-            gcdfile = surfaces.get_gcd(geometry, spacing)
-            coverage = get_geometric_coverage_for_area(gcdfile, area, ct_bins, 100000)
+            gcdfile = surfaces.get_gcd(self.geometry, self.spacing)
+            coverage = get_geometric_coverage_for_area(gcdfile, self.area, ct_bins, 100000)
             self.cache[key] = coverage
             pickle.dump(self.cache, open(self.cache_file, 'w'))
             return coverage
