@@ -4,14 +4,21 @@ import os
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
-def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
-    if geometry == "IceCube":
-        return Cylinder()
-    elif geometry == "EdgeWeighted":
+def get_gcd(geometry="Sunflower", spacing=200):
+    if geometry == "EdgeWeighted":
         gcd='IceCubeHEX_{geometry}_spacing{spacing}m_ExtendedDepthRange.GCD.i3.bz2'.format(**locals())
     elif geometry == "Sunflower":
         gcd='IceCubeHEX_{geometry}_{spacing}m_v3_ExtendedDepthRange.GCD.i3.bz2'.format(**locals())
-    gcd = os.path.join(data_dir, 'geometries', gcd)
+    else:
+        raise ValueError("Unknown geometry %s" % geometry)
+    return os.path.join(data_dir, 'geometries', gcd)
+
+def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
+    if geometry == "IceCube":
+        return Cylinder()
+    else:
+        gcd = get_gcd(geometry, spacing)
+    
     return ExtrudedPolygon.from_file(gcd, padding=padding)
 
 def convex_hull(points):
@@ -157,6 +164,9 @@ class UprightSurface(object):
         :returns: the average projected area in the zenith angle range
         """
         return self.entendue(cosMin, cosMax)/(2*numpy.pi*(cosMax-cosMin))
+    
+    def volume(self):
+        return self.get_cap_area()*self.length
 
 class ExtrudedPolygon(UprightSurface):
     """
@@ -184,6 +194,9 @@ class ExtrudedPolygon(UprightSurface):
         self._areas = numpy.concatenate((side_areas, cap_area))
         self._normals = numpy.concatenate((side_normals, cap_normals))
         assert self._areas.size == self._normals.shape[0]
+    
+    def get_z_range(self):
+        return self._z_range
     
     def get_cap_area(self):
         return self._areas[-1]
@@ -336,6 +349,12 @@ class Cylinder(UprightSurface):
     def __init__(self, length=1000, radius=587):
         self.length = length
         self.radius = radius
+
+    def expand(self, margin):
+        return Cylinder(self.length+2*margin, self.radius+margin)
+    
+    def get_z_range(self):
+        return (-self.length/2., self.length/2)
     
     def get_cap_area(self):
         return numpy.pi*self.radius**2
@@ -345,4 +364,4 @@ class Cylinder(UprightSurface):
     
     def area(self, cos_zenith, azimuth=numpy.nan):
         return self.azimuth_averaged_area(cos_zenith)
-    
+
