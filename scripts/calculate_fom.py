@@ -169,7 +169,7 @@ elif opts.figure_of_merit == 'grb':
 	bkg = atmo.point_source_background(psi_bins, slice(None), livetime=t90.sum())
 	scale = pointsource.discovery_potential(pop, dict(atmo=bkg), atmo=1.)
 	
-	exes = get_expectations(multillh.asimov_llh(dict(atmo=bkg, grb=pop), grb=scale))
+	exes = get_expectations(multillh.asimov_llh(dict(atmo=bkg, grb=pop)), grb=scale)
 	nb = exes['atmo']['tracks'].sum()
 	ns = exes['grb']['tracks'].sum()
 	
@@ -192,8 +192,7 @@ elif opts.figure_of_merit == 'gzk':
 	pev = numpy.where(aeff.bin_edges[2][1:] > 1e6)[0][0]
 	ns = gzk.expectations()['tracks'].sum(axis=1)[pev:].sum()
 	nb = astro.expectations(gamma=-2.3)['tracks'].sum(axis=1)[pev:].sum()
-	baseline = 10*5*numpy.sqrt(nb)/ns
-	print ns, nb, baseline
+	baseline = 5*numpy.sqrt(nb)/ns
 	
 	components = dict(atmo=atmo, astro=astro, gamma=gamma)
 	scale = pointsource.discovery_potential(gzk, components,
@@ -202,8 +201,8 @@ elif opts.figure_of_merit == 'gzk':
 	components['gzk'] = gzk
 	llh = multillh.asimov_llh(components)
 	exes = get_expectations(llh, gzk=scale)
-	nb = exes['atmo']['tracks'].sum() + exes['astro']['tracks'].sum()
-	ns = exes['gzk']['tracks'].sum()
+	nb = exes['atmo']['tracks'][pev:,:].sum() + exes['astro']['tracks'][pev:,:].sum()
+	ns = exes['gzk']['tracks'][pev:,:].sum()
 
 	print_result(scale, nb=nb, ns=ns)
 
