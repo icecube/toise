@@ -224,6 +224,7 @@ class effective_area(object):
 	
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
     selection_efficiency=MuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
 	cos_theta=None):
@@ -263,6 +264,19 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
 	aeff *= selection_efficiency[None,:,:]
 	
+	# Step 3.1: reduce the geometric area in the southern hemisphere to the
+	#           portion shadowed by the surface veto (if it exists)
+	# NB: assumes that the selection efficiency and energy resolution are the
+	# same both in and out of the shadow of the surface veto
+	acceptance = numpy.where(center(cos_theta) < 0.05, 1, veto_coverage(cos_theta))
+	aeff *= acceptance[None,:,None]
+	
+	# Step 3.2: apply an energy threshold in the southern hemisphere
+	# NB: this is in units of true muon energy. While this isn't realizable, it
+	# avoids the mess of different E_true -> E_reco mappings for different
+	# detector geometries
+	aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T[None,...]
+	
 	# Step 4: apply smearing for energy resolution
 	response = energy_resolution.get_response_matrix(e_mu, e_mu)
 	aeff = numpy.apply_along_axis(numpy.inner, 2, aeff, response)
@@ -280,7 +294,9 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	# Step 5: apply an energy threshold in the southern hemisphere
 	# print 
-	total_aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij'))[None,None,None,...,None]
+	# total_aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij'))[None,None,None,...,None]
+	# print total_aeff.shape, energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).shape
+	# total_aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T[None,None,...,None,None]
 	
 	edges = (e_nu, cos_theta, e_mu, cos_theta)
 	

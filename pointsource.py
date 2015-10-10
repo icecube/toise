@@ -105,7 +105,7 @@ def nevents(llh, **hypo):
 				hypo[k] = 1
 	return sum(map(numpy.sum, llh.expectations(**hypo).values()))
 
-def discovery_potential(point_source, diffuse_components, sigma=5., **fixed):
+def discovery_potential(point_source, diffuse_components, sigma=5., baseline=None, tolerance=1e-2, **fixed):
 	critical_ts = sigma**2
 
 	
@@ -119,22 +119,27 @@ def discovery_potential(point_source, diffuse_components, sigma=5., **fixed):
 		if len(fixed) == len(diffuse_components):
 			return -2*(allh.llh(ps=0, **fixed)-allh.llh(ps=flux_norm, **fixed))
 		else:
-			return -2*(allh.llh(**allh.fit(ps=0, **fixed))-allh.llh(**allh.fit(ps=flux_norm, **fixed)))
+			null = allh.fit(ps=0, **fixed)
+			alternate = allh.fit(ps=flux_norm, **fixed)
+			# print null, alternate, -2*(allh.llh(**null)-allh.llh(**alternate))-critical_ts
+			return -2*(allh.llh(**null)-allh.llh(**alternate))
 	def f(flux_norm):
 		return ts(flux_norm)-critical_ts
-	# estimate significance as signal/sqrt(background)
-	allh = asimov_llh(components, ps=1, **fixed)
-	total = nevents(allh, ps=1, **fixed)
-	nb = nevents(allh, ps=0, **fixed)
-	ns = total-nb
-	baseline = numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))
-	print total, ns, nb, baseline
+	if baseline is None:
+		# estimate significance as signal/sqrt(background)
+		allh = asimov_llh(components, ps=1, **fixed)
+		total = nevents(allh, ps=1, **fixed)
+		nb = nevents(allh, ps=0, **fixed)
+		ns = total-nb
+		baseline = min((1000, numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))))/10
+		logging.getLogger().debug('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
+	# baseline = 1000
 	if baseline > 1e4:
 		return numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
-		actual = optimize.fsolve(f, baseline/10, xtol=1e-2)
-		print baseline, actual
+		actual = optimize.fsolve(f, baseline, xtol=tolerance)
+		logging.getLogger().debug("baseline: %.2g actual %.2g" % (baseline, actual))
 		return actual[0]
 
 def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
@@ -153,21 +158,22 @@ def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
 		else:
 			return -2*(allh.llh(**allh.fit(ps=0, **fixed))-allh.llh(**allh.fit(ps=flux_norm, **fixed)))
 	def f(flux_norm):
-		return ts(flux_norm)-critical_ts
+		# NB: minus sign, because now the null hypothesis is no source
+		return -ts(flux_norm)-critical_ts
 	# estimate significance as signal/sqrt(background)
 	allh = asimov_llh(components, ps=1, **fixed)
 	total = nevents(allh, ps=1, **fixed)
 	nb = nevents(allh, ps=0, **fixed)
 	ns = total-nb
 	baseline = numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))
-	logging.getLogger().info('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
+	logging.getLogger().debug('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
 	
 	if baseline > 1e4:
 		return numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
 		actual = optimize.fsolve(f, baseline/10, xtol=1e-2)
-		print baseline, actual
+		logging.getLogger().debug("baseline: %.2g actual %.2g" % (baseline, actual))
 		return actual[0]
 
 

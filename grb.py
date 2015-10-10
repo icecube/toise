@@ -3,6 +3,7 @@ import numpy as np
 from scipy import stats, interpolate
 from StringIO import StringIO
 import warnings
+import pointsource
 
 class Winter2014GRBFluence(object):
 	"""
@@ -62,6 +63,33 @@ class WaxmannBahcallFluence(object):
 		# factor of 3 for flavor
 		fluence = 0.9e-8/3/peryear
 		return np.where(E < 1e5, E**-1*fluence/1e5, np.where(E > 1e7, E**-4*(fluence*(1e7**2)), E**-2*fluence))
+
+class GRBPopulation(pointsource.PointSource):
+	def __init__(self, effective_area, z, Eiso, point_spread_function, psi_bins, with_energy=True):
+		"""
+		:param z: redshift of bursts
+		:param Eiso: isotropic energy output of bursts, in erg
+		"""
+		
+		# perburst() returns a fluence in 1/GeV cm^2 per burst
+		perburst = Winter2014GRBFluence()
+		energy = effective_area.bin_edges[0]
+		
+		def intflux(e, gamma=-2):
+			"""
+			Integrate burst spectrum, assuming that 
+			"""
+			return (e**(1+gamma))/(1+gamma)
+		
+		norm = perburst(energy[1:,None], Eiso=Eiso, z=z)*energy[1:,None]**2
+		
+		# 1/cm^2
+		fluence = norm*(intflux(energy[1:,None]) - intflux(energy[:-1,None]))
+		fluence[~np.isfinite(fluence)] = 0
+		
+		nbands = effective_area.bin_edges[1].size-1
+		# sum over all bursts (assuming that observe for t90 each time)
+		pointsource.PointSource.__init__(self, effective_area, fluence.sum(axis=1)*0.9/nbands, slice(None), point_spread_function, psi_bins, with_energy)
 
 class LuminosityDistance(object):
 	_instance = None

@@ -2,11 +2,13 @@
 import numpy
 import itertools
 from scipy.integrate import quad
+from StringIO import StringIO
 from copy import copy
 import multillh
 import healpy
 import os
 import numexpr
+import cPickle as pickle
 
 from util import *
 
@@ -62,7 +64,13 @@ class DiffuseNuGen(object):
 	# unnecessary temporaries. numexpr allows a single reduction, so do it here
 	_reduce_flux = numexpr.NumExpr('sum(aeff*flux*livetime, axis=2)')
 	def _apply_flux(self, effective_area, flux, livetime):
-		return self._reduce_flux(effective_area.values, flux[...,None,None,None], livetime).sum(axis=(0,1))
+		return self._reduce_flux(effective_area, flux[...,None,None,None], livetime).sum(axis=(0,1))
+
+def detect(sequence, pred):
+	try:
+		return next((s for s in sequence if pred(s)))
+	except StopIteration:
+		return None
 
 class AtmosphericNu(DiffuseNuGen):
 	def __init__(self, effective_area, flux, livetime, hard_veto_threshold=None):
@@ -85,13 +93,16 @@ class AtmosphericNu(DiffuseNuGen):
 		
 		super(AtmosphericNu, self).__init__(effective_area, flux, livetime)
 		
-		# sum over neutrino flavors, energies, and zenith angles
-		total = self._apply_flux(self._aeff, self._flux, self._livetime)
-		
 		if hard_veto_threshold is not None:
-			e_mu, cos_theta = effective_area.bin_edges[2:4]
-			scale = numpy.where(~hard_veto_threshold.veto(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')), 1, 1e-4)
-			total *= scale[...,None]
+			# reduce the flux in the south
+			# NB: assumes that a surface veto has been applied!
+			flux = self._flux * numpy.where(center(effective_area.bin_edges[3]) < 0.05, 1, 1e-4)[None,None,:]
+		else:
+			flux = self._flux
+			
+		# sum over neutrino flavors, energies, and zenith angles
+		total = self._apply_flux(self._aeff.values, flux, self._livetime)
+
 		
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
@@ -123,22 +134,32 @@ class AtmosphericNu(DiffuseNuGen):
 			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
 		return background
 	
-	_fluxes = dict(conventional=dict(), prompt=dict())
+	_cache_file = os.path.join(data_dir, 'cache', 'atmospheric_fluxes.pickle')
+	if os.path.exists(_cache_file):
+		with open(_cache_file) as f:
+			_fluxes = pickle.load(f)
+	else:
+		_fluxes = dict(conventional=dict(), prompt=dict())
 	@classmethod
 	def conventional(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['conventional']
-		if veto_threshold in cache and cache[veto_threshold][0].compatible_with(effective_area):
-			flux = cache[veto_threshold][1]
-		else:
-			assert len(cls._fluxes['conventional']) == 0
+		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==effective_area.values.shape)
+		if flux is None:
 			flux = NewNuFlux.makeFlux('honda2006')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
 			flux = (flux, pf)
+		else:
+			flux = flux[1]
 		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
 		if isinstance(flux, tuple):
-			cache[veto_threshold] = (effective_area, instance._flux)
+			
+			if not veto_threshold in cache:
+				cache[veto_threshold] = list()
+			cache[veto_threshold].append((effective_area.values.shape, instance._flux))
+			with open(cls._cache_file, 'w') as f:
+				pickle.dump(cls._fluxes, f, protocol=2)
 		assert len(cls._fluxes['conventional']) > 0 
 		
 		return instance
@@ -147,16 +168,21 @@ class AtmosphericNu(DiffuseNuGen):
 	def prompt(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['prompt']
-		if veto_threshold in cache and cache[veto_threshold][0].compatible_with(effective_area):
-			flux = cache[veto_threshold][1]
-		else:
+		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==effective_area.values.shape)
+		if flux is None:
 			flux = NewNuFlux.makeFlux('sarcevic_std')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
 			flux = (flux, pf)
+		else:
+			flux = flux[1]
 		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
 		if isinstance(flux, tuple):
-			cache[veto_threshold] = (effective_area, instance._flux)
+			if not veto_threshold in cache:
+				cache[veto_threshold] = list()
+			cache[veto_threshold].append((effective_area.values.shape, instance._flux))
+			with open(cls._cache_file, 'w') as f:
+				pickle.dump(cls._fluxes, f, protocol=2)
 		
 		return instance
 		
@@ -171,7 +197,7 @@ class DiffuseAstro(DiffuseNuGen):
 			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:]
 		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
 		
-		self._last_params = dict(gamma=-2)
+		self._last_params = dict()
 		self._last_expectations = None
 	
 	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
@@ -205,18 +231,17 @@ class DiffuseAstro(DiffuseNuGen):
 
 		return background
 	
+	def spectral_weight(self, e_center, **kwargs):
+		self._last_params['gamma'] = kwargs['gamma']
+		return (e_center/1e5)**(kwargs['gamma']+2)
+	
 	def calculate_expectations(self, **kwargs):
-		
 		if self._last_expectations is not None and all([self._last_params[k] == kwargs[k] for k in self._last_params]):
 			return self._last_expectations
 		
-		def intflux(e, gamma):
-			return (1e5**(-gamma)/(1+gamma))*e**(1+gamma)
 		energy = self._aeff.bin_edges[0]
-		
 		centers = 0.5*(energy[1:] + energy[:-1])
-		specweight = (centers/1e5)**(kwargs['gamma']+2)
-		self._last_params['gamma'] = kwargs['gamma']
+		specweight = self.spectral_weight(centers, **kwargs)
 		
 		flux = (self._flux*(specweight[None,:,None]))#[...,None,None,None]
 		
@@ -231,7 +256,7 @@ class DiffuseAstro(DiffuseNuGen):
 			for k in 'e_fraction', 'mu_fraction':
 				self._last_params[k] = kwargs[k]
 		
-		total = self._apply_flux(self._aeff, flux, self._livetime)
+		total = self._apply_flux(self._aeff.values, flux, self._livetime)
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
@@ -243,6 +268,64 @@ class DiffuseAstro(DiffuseNuGen):
 	def expectations(self, gamma=-2, **kwargs):
 		return self.calculate_expectations(gamma=gamma, **kwargs)
 
+class AhlersGZK(DiffuseAstro):
+	"""
+	Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
+	pure protons
+	see: http://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.083010
+	Fig 2. left panel, solid red line (protons with source evolution)
+	"""
+	def __init__(self, *args, **kwargs):
+		from scipy import interpolate
+		
+		super(AhlersGZK, self).__init__(*args, **kwargs)
+		logE, logWeight = numpy.log10(numpy.loadtxt(StringIO(
+		    """3.095e5	8.345e-13
+		    4.306e5	1.534e-12
+		    5.777e5	2.305e-12
+		    7.091e5	3.411e-12
+		    8.848e5	4.944e-12
+		    1.159e6	7.158e-12
+		    1.517e6	1.075e-11
+		    2.118e6	1.619e-11
+		    2.868e6	2.284e-11
+		    3.900e6	3.181e-11
+		    5.660e6	4.502e-11
+		    7.891e6	6.003e-11
+		    1.042e7	8.253e-11
+		    1.449e7	1.186e-10
+		    1.918e7	1.670e-10
+		    3.224e7	3.500e-10
+		    7.012e7	1.062e-9
+		    1.106e8	1.892e-9
+		    1.610e8	2.816e-9
+		    2.235e8	3.895e-9
+		    3.171e8	5.050e-9
+		    5.042e8	6.529e-9
+		    7.787e8	7.401e-9
+		    1.199e9	7.595e-9
+		    1.801e9	7.084e-9
+		    2.869e9	6.268e-9
+		    4.548e9	4.972e-9
+		    6.372e9	3.959e-9
+		    8.144e9	3.155e-9
+		    1.131e10	2.318e-9
+		    1.366e10	1.747e-9
+		    2.029e10	9.879e-10
+		    2.612e10	6.441e-10
+		    3.289e10	4.092e-10
+		    4.885e10	1.828e-10
+		    8.093e10	5.691e-11
+		    1.260e11	1.677e-11
+		    1.653e11	7.984e-12
+		    2.167e11	3.631e-12
+		    2.875e11	1.355e-12
+		    """))).T
+
+		self._interpolant = interpolate.interp1d(logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
+		
+	def spectral_weight(self, e_center, **kwargs):
+		return 10**self._interpolant(numpy.log10(e_center))
 
 def transform_map(skymap):
 	"""
