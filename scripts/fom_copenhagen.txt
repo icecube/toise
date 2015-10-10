@@ -1,0 +1,71 @@
+-------------+------+----------------------+--------------------------------------------------------------+------+
+     IceCube | 125m |            (no veto) |                                                Survey volume | 2.12
+     IceCube | 125m | veto: 25km^2/100 TeV |                                                              | 2.81
+   Sunflower | 240m |            (no veto) |                                                              | 3.60
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 4.63
+   Sunflower | 240m | veto: 75km^2/100 TeV |                                                              | 5.97
+   Sunflower | 200m | veto: 25km^2/100 TeV |                                                              | 4.21
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 4.63
+   Sunflower | 300m | veto: 25km^2/100 TeV |                                                              | 3.42
+EdgeWeighted | 240m | veto: 25km^2/100 TeV |                                                              | 5.02
+-------------+------+----------------------+--------------------------------------------------------------+------+
+     IceCube | 125m |            (no veto) |                                      GRB discovery potential | 5.28
+     IceCube | 125m | veto: 25km^2/100 TeV |                                                              | 3.97
+   Sunflower | 240m |            (no veto) |                                                              | 3.01
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 2.41
+   Sunflower | 240m | veto: 75km^2/100 TeV |                                                              | 2.06
+   Sunflower | 200m | veto: 25km^2/100 TeV |                                                              | 2.64
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 2.41
+   Sunflower | 300m | veto: 25km^2/100 TeV |                                                              | 2.76
+EdgeWeighted | 240m | veto: 25km^2/100 TeV |                                                              | 2.39
+-------------+------+----------------------+--------------------------------------------------------------+------+
+     IceCube | 125m |            (no veto) |      Astrophysical spectral index resolution (above 100 TeV) | 0.17
+     IceCube | 125m | veto: 25km^2/100 TeV |                                                              | 0.13
+   Sunflower | 240m |            (no veto) |                                                              | 0.12
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 0.54
+   Sunflower | 240m | veto: 75km^2/100 TeV |                                                              | 0.54
+   Sunflower | 200m | veto: 25km^2/100 TeV |                                                              | 0.55
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 0.54
+   Sunflower | 300m | veto: 25km^2/100 TeV |                                                              | 0.54
+EdgeWeighted | 240m | veto: 25km^2/100 TeV |                                                              | 0.55
+-------------+------+----------------------+--------------------------------------------------------------+------+
+     IceCube | 125m |            (no veto) |        Astrophysical spectral index resolution (above 1 PeV) | 0.40
+     IceCube | 125m | veto: 25km^2/100 TeV |                                                              | 0.29
+   Sunflower | 240m |            (no veto) |                                                              | 0.34
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 0.22
+   Sunflower | 240m | veto: 75km^2/100 TeV |                                                              | 0.18
+   Sunflower | 200m | veto: 25km^2/100 TeV |                                                              | 0.23
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 0.22
+   Sunflower | 300m | veto: 25km^2/100 TeV |                                                              | 0.21
+EdgeWeighted | 240m | veto: 25km^2/100 TeV |                                                              | 0.23
+-------------+------+----------------------+--------------------------------------------------------------+------+
+     IceCube | 125m |            (no veto) |     Significance of galactic diffuse emission (above 10 TeV) | 1.69
+     IceCube | 125m | veto: 25km^2/100 TeV |                                                              | 1.72
+   Sunflower | 240m |            (no veto) |                                                              | 3.00
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 3.03
+   Sunflower | 240m | veto: 75km^2/100 TeV |                                                              | 3.05
+   Sunflower | 200m | veto: 25km^2/100 TeV |                                                              | 2.75
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 3.03
+   Sunflower | 300m | veto: 25km^2/100 TeV |                                                              | 3.15
+EdgeWeighted | 240m | veto: 25km^2/100 TeV |                                                              | 2.81
+-------------+------+----------------------+--------------------------------------------------------------+------+
+     IceCube | 125m |            (no veto) |    Significance of galactic diffuse emission (above 100 TeV) | 0.59
+     IceCube | 125m | veto: 25km^2/100 TeV |                                                              | 0.68
+   Sunflower | 240m |            (no veto) |                                                              | 1.04
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 1.12
+   Sunflower | 240m | veto: 75km^2/100 TeV |                                                              | 1.17
+   Sunflower | 200m | veto: 25km^2/100 TeV |                                                              | 1.03
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 1.12
+   Sunflower | 300m | veto: 25km^2/100 TeV |                                                              | 1.16
+EdgeWeighted | 240m | veto: 25km^2/100 TeV |                                                              | 1.06
+-------------+------+----------------------+--------------------------------------------------------------+------+
+     IceCube | 125m |            (no veto) |                                      GZK discovery potential | 25.83
+     IceCube | 125m | veto: 25km^2/100 TeV |                                                              | 9.66
+   Sunflower | 240m |            (no veto) |                                                              | 14.05
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 4.78
+   Sunflower | 240m | veto: 75km^2/100 TeV |                                                              | 3.49
+   Sunflower | 200m | veto: 25km^2/100 TeV |                                                              | 5.20
+   Sunflower | 240m | veto: 25km^2/100 TeV |                                                              | 4.78
+   Sunflower | 300m | veto: 25km^2/100 TeV |                                                              | 4.26
+EdgeWeighted | 240m | veto: 25km^2/100 TeV |                                                              | 5.16
+

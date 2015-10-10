@@ -30,7 +30,7 @@ def fill_factor_for_threshold(emu_min, passing_rate=1e-4):
     """
     return (1e5/(20*emu_min))*(1e-3/passing_rate)*1e-3
 
-def veto_cost(theta_max, emu_min, surface):
+def veto_cost_for_angle(theta_max, emu_min, surface):
     """
     cost, in megabucks, of an array that rejects all atmospheric backgrounds
     above emu_min out to theta_max
@@ -38,6 +38,14 @@ def veto_cost(theta_max, emu_min, surface):
     fill = fill_factor_for_threshold(emu_min)
     area = surface_area(numpy.radians(theta_max), surface)
     return array_cost(area/1e6, fill)/1e6
+
+def veto_cost(area, emu_min, surface):
+    """
+    cost, in megabucks, of an array that rejects all atmospheric backgrounds
+    above emu_min and covers an area *area* km^2
+    """
+    fill = fill_factor_for_threshold(emu_min)
+    return array_cost(area, fill)/1e6
 
 from scipy.optimize import fsolve
 def margin_for_area(base_surface, area):
@@ -48,7 +56,7 @@ def margin_for_area(base_surface, area):
         return base_surface.expand(margin).get_cap_area()/1e6 - area
     return fsolve(area_diff, 0)[0]
 
-def get_geometric_coverage_for_area(gcdfile, area, ct_bins=numpy.linspace(0, 1, 11), nsamples=int(1e4)):
+def get_geometric_coverage_for_area(geometry, spacing, area, ct_bins=numpy.linspace(0, 1, 11), nsamples=int(1e4)):
     """
     Calculate the geometric coverage of a surface veto by Monte Carlo
     :param gcdfile: path to a GCD file defining the geometry of the in-ice detector
@@ -61,11 +69,16 @@ def get_geometric_coverage_for_area(gcdfile, area, ct_bins=numpy.linspace(0, 1, 
     # SamplingSurfaces from MuonGun
     from icecube import MuonGun, phys_services
     rng = phys_services.I3GSLRandomService(numpy.random.randint(numpy.iinfo(numpy.uint32).max))
-    deep_surface = MuonGun.ExtrudedPolygon.from_file(gcdfile, 60.)
     
-    veto_surface = surfaces.ExtrudedPolygon.from_file(gcdfile, 60.)
-    margin = margin_for_area(veto_surface, area)
-    veto_surface = veto_surface.expand(margin)
+    ref_surface = surfaces.get_fiducial_surface(geometry, spacing)
+    margin = margin_for_area(ref_surface, area)
+    veto_surface = ref_surface.expand(margin)
+    
+    if geometry == 'IceCube':
+        deep_surface = MuonGun.Cylinder(ref_surface.length, ref_surface.radius)
+    else:
+        gcdfile = surfaces.get_gcd(geometry, spacing)
+        deep_surface = MuonGun.ExtrudedPolygon.from_file(gcdfile, 60.)
     
     coverage = numpy.zeros(ct_bins.size-1)
     
@@ -84,7 +97,7 @@ def get_geometric_coverage_for_area(gcdfile, area, ct_bins=numpy.linspace(0, 1, 
             # catch stupid sign errors
             assert abs(pos.z - 1950) < 1
             # did the shower cross the surface array?
-            if veto_surface._point_in_hull(tuple(pos)):
+            if veto_surface.point_in_footprint(tuple(pos)):
                 inside += 1
         coverage[i] = inside/float(nsamples)
     return coverage
@@ -104,8 +117,7 @@ class GeometricVetoCoverage(object):
         if key in self.cache:
             return self.cache[key]
         else:
-            gcdfile = surfaces.get_gcd(self.geometry, self.spacing)
-            coverage = get_geometric_coverage_for_area(gcdfile, self.area, ct_bins, 100000)
+            coverage = get_geometric_coverage_for_area(self.geometry, self.spacing, self.area, ct_bins, 100000)
             self.cache[key] = coverage
             pickle.dump(self.cache, open(self.cache_file, 'w'))
             return coverage

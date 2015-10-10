@@ -327,6 +327,9 @@ class ExtrudedPolygon(UprightSurface):
     def _distance_to_caps(self, point, dir):
         return sorted((self._distance_to_cap(point, dir, cap_z) for cap_z in self._z_range))
     
+    def point_in_footprint(self, point):
+        return self._point_in_hull(point)
+    
     def intersections(self, x, y, z, cos_zenith, azimuth):
         point = numpy.array((x, y, z))
         vec = self._direction_to_vec(cos_zenith, azimuth)
@@ -352,6 +355,9 @@ class Cylinder(UprightSurface):
 
     def expand(self, margin):
         return Cylinder(self.length+2*margin, self.radius+margin)
+    
+    def point_in_footprint(self, point):
+        return numpy.hypot(point[0], point[1]) < self.radius
     
     def get_z_range(self):
         return (-self.length/2., self.length/2)
