@@ -9,6 +9,7 @@ import healpy
 import os
 import numexpr
 import cPickle as pickle
+import logging
 
 from util import *
 
@@ -63,8 +64,12 @@ class DiffuseNuGen(object):
 	# apply 3-element multiplication + reduction without creating too many
 	# unnecessary temporaries. numexpr allows a single reduction, so do it here
 	_reduce_flux = numexpr.NumExpr('sum(aeff*flux*livetime, axis=2)')
+	
 	def _apply_flux(self, effective_area, flux, livetime):
-		return self._reduce_flux(effective_area, flux[...,None,None,None], livetime).sum(axis=(0,1))
+		if effective_area.shape[2] > 1:
+			return self._reduce_flux(effective_area, flux[...,None,None,None], livetime).sum(axis=(0,1))
+		else:
+			return (effective_area*flux[...,None,None,None]*livetime).sum(axis=(0,1,2))
 
 def detect(sequence, pred):
 	try:
@@ -197,6 +202,9 @@ class DiffuseAstro(DiffuseNuGen):
 			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:]
 		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
 		
+		self._invalidate_cache()
+	
+	def _invalidate_cache(self):
 		self._last_params = dict()
 		self._last_expectations = None
 	
@@ -222,14 +230,46 @@ class DiffuseAstro(DiffuseNuGen):
 		sel = slice(zenith_index, zenith_index+1)
 		# dimensions of flux are now 1/m^2 sr
 		background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
+		
 		# replace reconstructed zenith with opening angle
 		# dimensions of aeff are now m^2 sr
-		background._aeff = self._aeff[:,:,sel,:,sel,:]*bin_areas
+		background._aeff = copy(self._aeff)
+		background._aeff.values = self._aeff.values[:,:,sel,:,sel,:]*bin_areas
+		
+		background._invalidate_cache()
+		
+		# total = self._apply_flux(background._aeff.values, background._flux, self._livetime)
+		# print background._aeff.values.sum(axis=tuple(range(0, 5)))
+		# print total.sum(axis=tuple(range(0, 2)))
+		# print background._aeff.values.shape, background._flux.shape
+		# print total[...,0].sum()
+		# assert total[...,1].sum() > 0
 		
 		if not with_energy:
 			raise ValueError("Can't disable energy dimension just yet")
 
 		return background
+	
+	def differential_chunks(self, decades=1):
+		"""
+		Yield copies of self with the neutrino spectrum restricted to *decade*
+		decades in energy
+		"""
+		# now, sum over decades in neutrino energy
+		loge = numpy.log10(self._aeff.bin_edges[0])
+		bin_range = int(decades/(loge[1]-loge[0]))+1
+		
+		for i in range(loge.size-1-bin_range):
+			start = i
+			stop = start + bin_range
+			chunk = copy(self)
+			chunk._invalidate_cache()
+			# zero out the neutrino flux outside the given range
+			chunk._flux = self._flux.copy()
+			chunk._flux[:,:start,...] = 0
+			chunk._flux[:,stop:,...] = 0
+			e_center = 10**(0.5*(loge[start] + loge[stop]))
+			yield e_center, chunk
 	
 	def spectral_weight(self, e_center, **kwargs):
 		self._last_params['gamma'] = kwargs['gamma']
@@ -256,7 +296,11 @@ class DiffuseAstro(DiffuseNuGen):
 			for k in 'e_fraction', 'mu_fraction':
 				self._last_params[k] = kwargs[k]
 		
+		
 		total = self._apply_flux(self._aeff.values, flux, self._livetime)
+		
+		assert total.ndim == 3
+		
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.

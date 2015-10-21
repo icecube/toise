@@ -2,7 +2,7 @@
 #METAPROJECT icerec/trunk
 
 import logging
-# logging.basicConfig(level='DEBUG')
+logging.basicConfig(level='WARN')
 
 from argparse import ArgumentParser
 parser = ArgumentParser()
@@ -13,6 +13,7 @@ parser.add_argument("--veto-threshold", type=float, default=1e4)
 parser.add_argument("--no-cuts", default=False, action="store_true")
 parser.add_argument("--livetime", type=float, default=10.)
 parser.add_argument("--energy-threshold", type=float, default=None)
+parser.add_argument("-o", "--outfile", default=None)
 
 parser.add_argument("figure_of_merit")
 
@@ -46,6 +47,8 @@ import surface_veto
 import multillh
 import plotting
 from util import *
+
+import cPickle as pickle
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -135,6 +138,9 @@ if opts.figure_of_merit == 'survey_volume':
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
+	astro.seed = 2
+	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
 	psf = angular_resolution.get_angular_resolution(opts.geometry, opts.spacing)
 	psi_bins = numpy.radians((numpy.linspace(0, 5, 91)))
 	
@@ -144,14 +150,63 @@ if opts.figure_of_merit == 'survey_volume':
 		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi,
 		    point_spread_function=psf, psi_bins=psi_bins)
 		bkg = atmo.point_source_background(zenith_index=zi, psi_bins=psi_bins)
-
+		astro_bkg = astro.point_source_background(zenith_index=zi, psi_bins=psi_bins)
+		
+		diffuse = dict(atmo=bkg, astro=astro_bkg, gamma=gamma)
+		fixed = dict(atmo=1, gamma=gamma.seed, astro=2)
 		atmo.seed = 1
-		dp.append(1e-12*pointsource.discovery_potential(ps, dict(atmo=bkg), atmo=1))
+		dp.append(1e-12*pointsource.discovery_potential(ps, diffuse, **fixed))
 	dp = numpy.array(dp)[::-1]
 	
 	volume = survey_volume(sindec, dp)
 	
 	print_result(volume)
+
+elif opts.figure_of_merit == 'differential_discovery_potential':
+	
+	if opts.outfile is None:
+		parser.error("You must supply an output file name")
+	
+	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
+	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
+	astro.seed = 2
+	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+	psf = angular_resolution.get_angular_resolution(opts.geometry, opts.spacing)
+	psi_bins = numpy.radians((numpy.linspace(0, 5, 91)))
+	
+	values = dict()
+	
+	sindec = numpy.linspace(-1, 1, 21)[::-1]
+	for zi in xrange(0, 20, 1):	
+		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi,
+		    point_spread_function=psf, psi_bins=psi_bins)
+		atmo_bkg = atmo.point_source_background(zenith_index=zi, psi_bins=psi_bins)
+		astro_bkg = astro.point_source_background(zenith_index=zi, psi_bins=psi_bins)
+		if astro.expectations(gamma=gamma.seed)['tracks'][:,zi].sum() > 0:
+			assert astro_bkg.expectations(gamma=gamma.seed)['tracks'].sum() > 0
+		dps = []
+		nses = []
+		energies = []
+		for ecenter, chunk in ps.differential_chunks(decades=1):
+			energies.append(ecenter)
+			diffuse = dict(atmo=atmo_bkg, astro=astro_bkg, gamma=gamma)
+			fixed = dict(atmo=1, gamma=gamma.seed, astro=2)
+			actual = pointsource.discovery_potential(chunk, diffuse, **fixed)
+			components = dict(diffuse)
+			components['ps'] = chunk
+			allh = multillh.asimov_llh(components)
+			total = pointsource.nevents(allh, ps=actual, **fixed)
+			nb = pointsource.nevents(allh, ps=0, **fixed)
+			ns = total-nb
+			dps.append(1e-12*actual)
+			nses.append(ns)
+			
+		values[sindec[zi]] = (energies, dps)
+	with open(opts.outfile, 'w') as f:
+		pickle.dump(values, f, 2)
 
 elif opts.figure_of_merit == 'grb':
 	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
@@ -205,6 +260,32 @@ elif opts.figure_of_merit == 'gzk':
 	ns = exes['gzk']['tracks'][pev:,:].sum()
 
 	print_result(scale, nb=nb, ns=ns)
+
+elif opts.figure_of_merit == 'differential_diffuse':
+	
+	if opts.outfile is None:
+		parser.error("You must supply an output file name")
+	
+	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
+	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+	atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
+	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+	prompt.min = 0.5
+	prompt.max = 3
+	prompt.seed = 1
+	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
+	astro.seed = 1
+	gamma = multillh.NuisanceParam(-2, 0.5, min=-2.7, max=-1.7)
+	
+	energies = []
+	dps = []
+	i = 0
+	for ecenter, chunk in astro.differential_chunks(decades=1):
+		energies.append(ecenter)
+		dps.append(1e-8*pointsource.discovery_potential(chunk, dict(atmo=atmo, prompt=prompt, gamma=gamma), atmo=1, prompt=1, gamma=-2))
+	
+	numpy.savetxt(opts.outfile, numpy.vstack((energies, dps)).T, header='# energy\tdiscovery flux [GeV cm-2 sr^-1 s^-1]')
 
 elif opts.figure_of_merit == 'diffuse_index':
 	

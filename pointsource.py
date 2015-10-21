@@ -53,6 +53,7 @@ class PointSource(object):
 		
 		total = (self._rate*(specweight[expand])).sum(axis=(0,1,2))
 		# FIXME: this assumes the track PSF for both tracks and cascades.
+		# also, it neglects the opening angle between neutrino and muon
 		total = total[...,None]*self._psf_quantiles[...,None,:]
 		
 		if not self._use_energies:
@@ -132,14 +133,19 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		nb = nevents(allh, ps=0, **fixed)
 		ns = total-nb
 		baseline = min((1000, numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))))/10
-		logging.getLogger().debug('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
+		baseline = (numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb)))/10
+		# logging.getLogger().info('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
 	# baseline = 1000
 	if baseline > 1e4:
 		return numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
 		actual = optimize.fsolve(f, baseline, xtol=tolerance)
-		logging.getLogger().debug("baseline: %.2g actual %.2g" % (baseline, actual))
+		allh = asimov_llh(components, ps=actual, **fixed)
+		total = nevents(allh, ps=actual, **fixed)
+		nb = nevents(allh, ps=0, **fixed)
+		ns = total-nb
+		logging.getLogger().info("baseline: %.2g actual %.2g ns: %.2g nb: %.2g" % (baseline, actual, ns, nb))
 		return actual[0]
 
 def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
