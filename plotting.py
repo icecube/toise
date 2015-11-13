@@ -14,14 +14,14 @@ def stepped_path(edges, bins, cumulative=False):
 	x = numpy.zeros((2*len(edges)))
 	y = numpy.zeros((2*len(edges)))
 	
-	x[0::2], x[1::2] = edges, edges
-	y[1:-1:2], y[2::2] = bins, bins
-	
 	if cumulative is not False:
 		if cumulative == '<':
-			y = y.cumsum()
+			bins = bins.cumsum()
 		elif cumulative == '>':
-			y = y[::-1].cumsum()[::-1]
+			bins = bins[::-1].cumsum()[::-1]
+	
+	x[0::2], x[1::2] = edges, edges
+	y[1:-1:2], y[2::2] = bins, bins
 	
 	return x,y
 
