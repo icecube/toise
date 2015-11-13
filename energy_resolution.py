@@ -8,15 +8,19 @@ data_dir = os.path.join(os.path.dirname(__file__), 'data')
 def get_energy_resolution(geometry="Sunflower", spacing=200):
 	if geometry == "IceCube":
 		fname = "aachen_muon_energy_profile.npz"
+		# FIXME: we have to stretch the energy resolution for IC86 to get the
+		# right shape at threshold. why?
+		overdispersion = 1.5
 	else:
 		fname = "%s_%sm_bdt0_muon_energy_profile.npz" % (geometry.lower(), spacing)
-	return MuonEnergyResolution(fname)
+		overdispersion = 1
+	return MuonEnergyResolution(fname, overdispersion=overdispersion)
 
 class MuonEnergyResolution(object):
 	"""
 	A parameterization of the inherent smearing in muon energy resolution
 	"""
-	def __init__(self, fname='aachen_muon_energy_profile.npz'):
+	def __init__(self, fname='aachen_muon_energy_profile.npz', overdispersion=1.):
 		"""
 		The default is a parameterization of the resolution of MuEx on the Aachen
 		IC86 diffuse nu_mu sample.
@@ -26,7 +30,8 @@ class MuonEnergyResolution(object):
 		f = numpy.load(fname)
 		self._loge_range = (f['loge'].min(), f['loge'].max())
 		self._bias = interpolate.UnivariateSpline(f['loge'], f['mean'], s=f['smoothing'])
-		self._sigma = interpolate.UnivariateSpline(f['loge'], f['std'], s=f['smoothing'])
+		self._sigma = interpolate.UnivariateSpline(f['loge'], f['std']*overdispersion, s=f['smoothing'])
+		# self._overdispersion = overdispersion
 	def get_response_matrix(self, true_energy, reco_energy):
 		"""
 		:param true_energy: edges of true muon energy bins
@@ -37,6 +42,8 @@ class MuonEnergyResolution(object):
 		loge_lo = numpy.log10(reco_energy[:-1])
 		loge_hi = numpy.log10(reco_energy[1:])
 		
+		# evaluate at the right edge for maximum smearing on a falling spectrum
+		loge_center = loge_hi
 		mu, hi = numpy.meshgrid(self._bias(loge_center), loge_hi, indexing='ij')
 		sigma, lo = numpy.meshgrid(self._sigma(loge_center), loge_lo, indexing='ij')
 		
