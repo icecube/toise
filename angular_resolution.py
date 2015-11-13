@@ -37,9 +37,15 @@ class PointSpreadFunction(object):
         from icecube.photospline import I3SplineTable
         self._spline = I3SplineTable(fname)
         self._loge_extents, self._ct_extents = self._spline.extents[:2]
+        if self._ct_extents == (-1, 0):
+            self._mirror = True
+        else:
+            self._mirror = False
     def __call__(self, psi, energy, cos_theta):
         psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi), numpy.log10(energy), cos_theta)
         loge = numpy.clip(loge, *self._loge_extents)
+        if self._mirror:
+            ct = -numpy.abs(ct)
         ct = numpy.clip(ct, *self._ct_extents)
         
         return numpy.array([self._spline.eval(coords) for coords in zip(loge.flatten(), ct.flatten(), psi.flatten())]).reshape(psi.shape)
