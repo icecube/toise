@@ -40,7 +40,8 @@ class Winter2014GRBFluence(object):
 
 		grbs_per_second = 667./units.year
 		# fluence per per burst: GeV/cm^2
-		fluence = diffuse_flux * (4*np.pi) / grbs_per_second
+		# factor of 2 for neutrino/antineutrino
+		fluence = diffuse_flux/2 * (4*np.pi) / grbs_per_second
 		
 		self.dl = LuminosityDistance.instance()
 		self._log_fluence = interpolate.interp1d(np.log10(energy), np.log10(fluence), kind='cubic', bounds_error=False)
@@ -60,8 +61,8 @@ class WaxmannBahcallFluence(object):
 		# E. Waxman, Nucl. Phys. B, Proc. Suppl. 118, 353 (2003).
 		# fluence from a single GRB, assuming 667 bursts per year over the whole sky
 		peryear = 667/(3600*24*365*4*np.pi)
-		# factor of 3 for flavor
-		fluence = 0.9e-8/3/peryear
+		# factor of 3 for flavor, 2 for neutrino/antineutrino
+		fluence = 0.9e-8/3/2/peryear
 		return np.where(E < 1e5, E**-1*fluence/1e5, np.where(E > 1e7, E**-4*(fluence*(1e7**2)), E**-2*fluence))
 
 class GRBPopulation(pointsource.PointSource):

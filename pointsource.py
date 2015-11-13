@@ -86,11 +86,13 @@ class PointSource(object):
 class SteadyPointSource(PointSource):
 	def __init__(self, effective_area, livetime, zenith_bin, point_spread_function, psi_bins, with_energy=True):
 		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
+		# remember: fluxes are defined as neutrino + antineutrino, so the flux
+		# per particle (which we need here) is .5e-12
 		def intflux(e, gamma):
 			return (e**(1+gamma))/(1+gamma)
 		tev = effective_area.bin_edges[0]/1e3
 		# 1/cm^2 yr
-		fluence = 1e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
+		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
 		
 		PointSource.__init__(self, effective_area, fluence, zenith_bin, point_spread_function, psi_bins, with_energy)
 
