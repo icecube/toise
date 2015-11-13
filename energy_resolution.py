@@ -39,12 +39,12 @@ class MuonEnergyResolution(object):
 		"""
 		loge_true = numpy.log10(true_energy)
 		loge_center = numpy.clip(0.5*(loge_true[:-1]+loge_true[1:]), *self._loge_range)
+		loge_width = numpy.diff(loge_true)
 		loge_lo = numpy.log10(reco_energy[:-1])
 		loge_hi = numpy.log10(reco_energy[1:])
-		
 		# evaluate at the right edge for maximum smearing on a falling spectrum
 		loge_center = loge_hi
-		mu, hi = numpy.meshgrid(self._bias(loge_center), loge_hi, indexing='ij')
+		mu, hi = numpy.meshgrid(self._bias(loge_center)+loge_width, loge_hi, indexing='ij')
 		sigma, lo = numpy.meshgrid(self._sigma(loge_center), loge_lo, indexing='ij')
 		
 		return ((erf((hi-mu)/sigma)-erf((lo-mu)/sigma))/2.).T

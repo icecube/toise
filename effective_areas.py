@@ -49,7 +49,14 @@ class MuonSelectionEfficiency(object):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
 		if filename.endswith('.npz'):
 			f = numpy.load(filename)
-			self.interp = interpolate.interp1d(f['log_energy'], f['efficiency'],
+			
+			# selection efficiency was derived from MuonGun simulation above
+			# 1 TeV. Extrapolate with a constant slope below to get the
+			# threshold behavior approximately right.
+			loge = numpy.concatenate(([2], f['log_energy'][2:]))
+			eff  = numpy.concatenate(([0], f['efficiency'][2:]))
+			
+			self.interp = interpolate.interp1d(loge, eff,
 			    bounds_error=False, fill_value=0.)
 		elif filename.endswith('.hdf5'):
 			with tables.open_file(filename) as f:
