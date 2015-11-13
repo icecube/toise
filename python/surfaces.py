@@ -2,7 +2,7 @@
 import numpy
 import os
 
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
+from .util import data_dir
 
 def get_gcd(geometry="Sunflower", spacing=200):
     if geometry == "EdgeWeighted":

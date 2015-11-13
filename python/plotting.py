@@ -56,8 +56,8 @@ def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors='k', **kwargs):
 		ax.set_ylabel(y)
 	return cs
 
-import palettable
 def pretty_style(tex=True):
+	import palettable
 	style = {
 	    u'axes.color_cycle' : palettable.colorbrewer.qualitative.Set1_9.mpl_colors,
 	    u'figure.figsize' : (3.375,3.375),

@@ -36,7 +36,8 @@ import sys, os
 import numpy
 
 
-from icecube.gen2_benchmark import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting, util
+from icecube.gen2_analysis import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
+from icecube.gen2_analysis.util import data_dir
 
 import cPickle as pickle
 
