@@ -50,11 +50,8 @@ class MuonSelectionEfficiency(object):
 		if filename.endswith('.npz'):
 			f = numpy.load(filename)
 			
-			# selection efficiency was derived from MuonGun simulation above
-			# 1 TeV. Extrapolate with a constant slope below to get the
-			# threshold behavior approximately right.
-			loge = numpy.concatenate(([2], f['log_energy'][2:]))
-			eff  = numpy.concatenate(([0], f['efficiency'][2:]))
+			loge = f['log_energy']
+			eff = f['efficiency']
 			
 			self.interp = interpolate.interp1d(loge, eff,
 			    bounds_error=False, fill_value=0.)
@@ -85,7 +82,8 @@ class ZenithDependentMuonSelectionEfficiency(object):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
 		self._spline = I3SplineTable(filename)
 		self.eval = numpy.vectorize(self._eval)
-		self.energy_threshold = energy_threshold
+		# cut off no lower than 500 GeV
+		self.energy_threshold = max((energy_threshold, 5e2))
 	def _eval(self, loge, cos_theta):
 		return self._spline.eval([loge, cos_theta])
 	def __call__(self, muon_energy, cos_theta):
