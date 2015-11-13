@@ -34,19 +34,9 @@ if opts.geometry == 'IceCube':
 
 import sys, os
 import numpy
-sys.path.append('/Users/jakob/Documents/IceCube/projects/2015/gen2_analysis')
 
 
-import effective_areas
-
-import diffuse
-import pointsource
-import angular_resolution
-import grb
-import surface_veto
-import multillh
-import plotting
-from util import *
+from icecube.gen2_benchmark import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting, util
 
 import cPickle as pickle
 
