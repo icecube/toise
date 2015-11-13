@@ -134,7 +134,7 @@ def get_expectations(llh, **nominal):
 
 if opts.figure_of_merit == 'survey_volume':
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 41))
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
