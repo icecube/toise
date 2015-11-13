@@ -227,21 +227,31 @@ class LLHEval:
 				llhpoints.append(list(fit.values()) + [mlh])
 		return numpy.asarray(llhpoints).view(dtype=list(zip(list(fit.keys()) + ['LLH'], [float]*(len(list(fit.keys())) + 1))))
 
-def pseudodata_llh(llh, **hypothesis):
+def _pseudo_llh(components, poisson, **nominal):
+	allh = LLHEval(None)
+	allh.components = components
+	for k in allh.components.keys():
+		if not k in nominal:
+			try:
+				nominal[k] = getattr(components[k], 'seed')
+			except AttributeError:
+				nominal[k] = 1
+	expectations = allh.expectations(**nominal)
+	if poisson:
+		pseudodata = dict()
+		for tag in expectations:
+			pseudodata[tag] = numpy.random.poisson(expectations[tag])
+	else:
+		pseudodata = expectations
+	allh.data = pseudodata
+	return allh
+
+def pseudodata_llh(components, **hypothesis):
 	"""
 	Create a likelihood on a realization of the hypothesis
 	"""
 	
-	llhprime = LLHEval(None)
-	llhprime.components = llh.components
-
-	expectations = llh.expectations(**hypothesis)
-	pseudodata = dict()
-	for tag in expectations:
-		pseudodata[tag] = numpy.random.poisson(expectations[tag])
-	llhprime.data = pseudodata
-
-	return llhprime
+	return _pseudo_llh(components, True, **hypothesis)
 
 def asimov_llh(components, **nominal):
 	"""
@@ -253,15 +263,7 @@ def asimov_llh(components, **nominal):
 	_Asimov: http://dx.doi.org/10.1140/epjc/s10052-011-1554-0
 	"""
 	
-	allh = LLHEval(None)
-	allh.components = components
-	for k in allh.components.keys():
-		if not k in nominal:
-			try:
-				nominal[k] = getattr(components[k], 'seed')
-			except AttributeError:
-				nominal[k] = 1
-	allh.data = allh.expectations(**nominal)
-	return allh
+	return _pseudo_llh(components, False, **nominal)
+
 
 
