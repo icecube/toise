@@ -139,24 +139,37 @@ def _interpolate_muon_production_efficiency(cos_zenith):
 	    with the same axes.
 	"""
 	from scipy import interpolate
-	with tables.open_file('/Users/jakob/Documents/IceCube/projects/2015/gen2_analysis/data/veto/numu.hdf5') as hdf:
-		h = dashi.histload(hdf, '/muon_efficiency')
-	edges = [numpy.log10(h.binedges[0]), h.binedges[1], numpy.log10(h.binedges[2])]
-	centers = map(center, edges)
-	newcenters = centers[0], numpy.clip(cos_zenith, centers[1].min(), centers[1].max()), centers[2]
-	y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
-	assert not numpy.isnan(y).any()
-	interpolant = interpolate.RegularGridInterpolator(centers, y, bounds_error=True, fill_value=-numpy.inf)
 	
-	xi = numpy.vstack(map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
-	assert numpy.isfinite(xi).all()
+	efficiencies = []
+	with tables.open_file(os.path.join(data_dir, 'cross_sections', 'muon_efficiency.hdf5')) as hdf:
+		for flavor in 'numu', 'numu_bar':
+			h = dashi.histload(hdf, '/'+flavor)
+			edges = [numpy.log10(h.binedges[0]), h.binedges[1], numpy.log10(h.binedges[2])]
+			centers = map(center, edges)
+			newcenters = centers[0], numpy.clip(cos_zenith, centers[1].min(), centers[1].max()), centers[2]
+			y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
+			
+			assert not numpy.isnan(y).any()
+			interpolant = interpolate.RegularGridInterpolator(centers, y, bounds_error=True, fill_value=-numpy.inf)
 	
-	v = interpolant(xi, 'linear').reshape(map(lambda x: x.size, newcenters))
-	v[~numpy.isfinite(v)] = -numpy.inf
+			xi = numpy.vstack(map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
+			assert numpy.isfinite(xi).all()
+			
+			# NB: we use nearest-neighbor interpolation here because
+			# n-dimensional linear interpolation has the unfortunate side-effect
+			# of dropping the highest-energy muon energy bin in each neutrino
+			# energy bin, in turn because the next-highest-energy bin is zero
+			# (-inf in log space). Ignoring that bin significantly
+			# underestimates the muon flux from steeply falling neutrino spectra. 
+			v = interpolant(xi, 'nearest').reshape(map(lambda x: x.size, newcenters))
+
+			v[~numpy.isfinite(v)] = -numpy.inf
+		
+			assert not numpy.isnan(v).any()
+		
+			efficiencies.append(10**v)
 	
-	assert not numpy.isnan(v).any()
-	
-	return (h.binedges[0], None, h.binedges[2]), 10**v
+	return (h.binedges[0], None, h.binedges[2]), numpy.array(efficiencies)
 
 def _ring_range(nside):
 	"""
@@ -258,39 +271,40 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	# Step 2: Geometric muon effective area (no selection effects yet)
 	# NB: assumes cylindrical symmetry.
-	aeff = efficiency * (numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[None,:,None])
+	aeff = efficiency * (numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[None,None,:,None])
 	
 	# Step 3: apply selection efficiency
-	selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
-	aeff *= selection_efficiency[None,:,:]
+	# selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
+	selection_efficiency = selection_efficiency(*numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij')).T
+	
+	aeff *= selection_efficiency[None,None,:,:]
 	
 	# Step 3.1: reduce the geometric area in the southern hemisphere to the
 	#           portion shadowed by the surface veto (if it exists)
 	# NB: assumes that the selection efficiency and energy resolution are the
 	# same both in and out of the shadow of the surface veto
 	acceptance = numpy.where(center(cos_theta) < 0.05, 1, veto_coverage(cos_theta))
-	aeff *= acceptance[None,:,None]
+	aeff *= acceptance[None,None,:,None]
 	
 	# Step 3.2: apply an energy threshold in the southern hemisphere
 	# NB: this is in units of true muon energy. While this isn't realizable, it
 	# avoids the mess of different E_true -> E_reco mappings for different
 	# detector geometries
-	aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T[None,...]
+	aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T[None,None,...]
 	
 	# Step 4: apply smearing for energy resolution
 	response = energy_resolution.get_response_matrix(e_mu, e_mu)
-	aeff = numpy.apply_along_axis(numpy.inner, 2, aeff, response)
+	aeff = numpy.apply_along_axis(numpy.inner, 3, aeff, response)
 	
-	total_aeff = numpy.zeros((6,) + aeff.shape + (aeff.shape[1], 2))
+	total_aeff = numpy.zeros((6,) + aeff.shape[1:] + (aeff.shape[2], 2))
 	# For now, we make the following assumptions:
 	# a) muon channel is sensitive only to nu_mu, and all events are tracks
-	# b) cross-section is identical for neutrino and antineutrino
 	# b) angular resolution is perfect
 	# in other words, write the effective area into a diagonal in nu_zenith, reco_zenith
 	diag = numpy.diagonal(total_aeff[2:4,...,1], 0, 2, 4)
 	assert id(diag.base) == id(total_aeff), "numpy.diagonal() must return a view"
 	diag.setflags(write=True)
-	diag[:] = aeff[None,:].transpose((0,1,3,2))
+	diag[:] = aeff.transpose((0,1,3,2))
 	
 	# Step 5: apply an energy threshold in the southern hemisphere
 	# print 
