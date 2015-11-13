@@ -1,7 +1,7 @@
 from scipy import interpolate
 import pickle, os, numpy
 
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
+from .util import data_dir
 
 def get_angular_resolution(geometry="Sunflower", spacing=200):
 	if geometry == "IceCube":

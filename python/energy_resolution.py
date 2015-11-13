@@ -3,7 +3,7 @@ from scipy import interpolate
 import pickle, os, numpy
 from scipy.special import erf
 
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
+from .util import data_dir
 
 def get_energy_resolution(geometry="Sunflower", spacing=200):
 	if geometry == "IceCube":
