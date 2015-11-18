@@ -202,6 +202,14 @@ Starting events
 
 TODO
 
+Model analyses
+**************
+
+Point source sensitivity with throughgoing muons
+------------------------------------------------
+
+.. plot:: projects/gen2_analysis/plots/ps_sensitivity_demo.py demo_plot
+
 .. [Asimov] G. Cowan, K. Cranmer, E. Gross, and O. Vitells. Asymptotic formulae for likelihood-based tests of new physics. The European Physical Journal C, 71(2):1554, 2011. ISSN 1434-6044. `doi: 10.1140/epjc/s10052-011-1554-0 <http://dx.doi.org/10.1140/epjc/s10052-011-1554-0>`_.
 
 Gotchas
