@@ -6,6 +6,7 @@ import healpy
 
 from surfaces import get_fiducial_surface
 from energy_resolution import get_energy_resolution
+from angular_resolution import get_angular_resolution
 from util import *
 
 def load_jvs_mese():
@@ -216,7 +217,7 @@ class effective_area(object):
 		self.bin_edges = edges
 		self.values = aeff
 		self.sky_binning = sky_binning
-		self.dimensions = ['type', 'true_energy', 'true_zenith_band', 'reco_energy', 'reco_zenith_band', 'reco_signature']
+		self.dimensions = ['type', 'true_energy', 'true_zenith_band', 'reco_energy', 'reco_psi']
 	
 	def compatible_with(self, other):
 		return self.values.shape == other.values.shape and all(((a==b).all() for a, b in zip(self.bin_edges, other.bin_edges)))
@@ -239,13 +240,19 @@ class effective_area(object):
 	def ring_repeat_pattern(self):
 		assert self.is_healpix
 		return healpy.ringinfo(self.nside, numpy.arange(self.nring)+1)[1]
+
+def eval_psf(point_spread_function, mu_energy, ct, psi_bins):
+	ct, mu_energy, psi_bins = numpy.meshgrid(ct, mu_energy, psi_bins, indexing='ij')
+	return point_spread_function(psi_bins, mu_energy, ct)
 	
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
     selection_efficiency=MuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
-	cos_theta=None):
+    psf=get_angular_resolution("IceCube"),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 40)),
+	cos_theta=None,):
 	"""
 	Create effective areas in the same format as above
 	
@@ -255,13 +262,21 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	:param cos_theta: edges of bins in the cosine of the zenith angle. If None,
 	    use the native binning of the efficiency histogram. If an integer,
 	    interpret as the NSide of a HEALpix map
+	:param psf: cumulative angular error distribution, parameterized as a
+	    function of true muon energy and zenith angle
+	:param cos_theta: sky binning to use. If cos_theta is an integer,
+	    bin in a HEALpix map with this NSide, otherwise bin in cosine of
+	    zenith angle. If None, use the native binning of the muon production
+	    efficiency histogram.
+	:param psi_bins: bins in angular error
 	"""
 	
 	# Ingredients:
 	# 1) Muon production efficiency
 	# 2) Geometric area
 	# 3) Selection efficiency
-	# 4) Energy resolution
+	# 4) Point spread function
+	# 5) Energy resolution
 	
 	import tables, dashi
 	from scipy.special import erf
@@ -297,26 +312,22 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	# detector geometries
 	aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T[None,None,...]
 	
-	# Step 4: apply smearing for energy resolution
+	# Step 4: apply smearing for angular resolution
+	# Add an overflow bin if none present
+	if numpy.isfinite(psi_bins[-1]):
+		psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
+	cdf = eval_psf(psf, center(e_mu), center(cos_theta), psi_bins[:-1])
+	
+	total_aeff = numpy.zeros((6,) + aeff.shape[1:] + (psi_bins.size-1,))
+	# expand differential contributions along the opening-angle axis
+	total_aeff[2:4,...,:-1] = aeff[...,None]*numpy.diff(cdf, axis=2)[None,...]
+	# put the remainder in the overflow bin
+	total_aeff[2:4,...,-1] = aeff*(1-cdf[...,-1])[None,None,...] 
+	
+	# Step 5: apply smearing for energy resolution
 	response = energy_resolution.get_response_matrix(e_mu, e_mu)
-	aeff = numpy.apply_along_axis(numpy.inner, 3, aeff, response)
+	total_aeff = numpy.apply_along_axis(numpy.inner, 3, total_aeff, response)
 	
-	total_aeff = numpy.zeros((6,) + aeff.shape[1:] + (aeff.shape[2], 2))
-	# For now, we make the following assumptions:
-	# a) muon channel is sensitive only to nu_mu, and all events are tracks
-	# b) angular resolution is perfect
-	# in other words, write the effective area into a diagonal in nu_zenith, reco_zenith
-	diag = numpy.diagonal(total_aeff[2:4,...,1], 0, 2, 4)
-	assert id(diag.base) == id(total_aeff), "numpy.diagonal() must return a view"
-	diag.setflags(write=True)
-	diag[:] = aeff.transpose((0,1,3,2))
-	
-	# Step 5: apply an energy threshold in the southern hemisphere
-	# print 
-	# total_aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij'))[None,None,None,...,None]
-	# print total_aeff.shape, energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).shape
-	# total_aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T[None,None,...,None,None]
-	
-	edges = (e_nu, cos_theta, e_mu, cos_theta)
+	edges = (e_nu, cos_theta, e_mu, cos_theta, psi_bins)
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')

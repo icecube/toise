@@ -7,31 +7,18 @@ from multillh import LLHEval, asimov_llh
 from util import *
 import logging
 
-def psf_quantiles(point_spread_function, psi_bins, mu_energy, ct):
-	mu_energy, ct, psi_bins = numpy.meshgrid(mu_energy, ct, psi_bins, indexing='ij')
-	return numpy.diff(point_spread_function(psi_bins, mu_energy, ct), axis=2)
-
 class PointSource(object):
-	def __init__(self, effective_area, fluence, zenith_bin, point_spread_function, psi_bins, with_energy=True):
+	def __init__(self, effective_area, fluence, zenith_bin, with_energy=True):
 
-		self._edges = effective_area.bin_edges + (psi_bins,)
+		self._edges = effective_area.bin_edges
 		
-		effective_area = effective_area.values[...,zenith_bin,:]
+		effective_area = effective_area.values[...,zenith_bin,:,:-1]
 		expand = [None]*effective_area.ndim
 		expand[1] = slice(None)
 		# 1/yr
 		rate = fluence[tuple(expand)]*(effective_area*1e4)
 		
 		assert numpy.isfinite(rate).all()
-		
-		ct, mu_energy = map(center, self._edges[1:3])
-		ct = ct[zenith_bin]
-		# dimensions: energy, [zenith,] angular bin
-		quantiles = psf_quantiles(point_spread_function, psi_bins, mu_energy, ct)
-		if numpy.isscalar(zenith_bin):
-			self._psf_quantiles = quantiles[:,0,:]
-		else:
-			self._psf_quantiles = quantiles
 		
 		self._use_energies = with_energy
 		
@@ -51,15 +38,14 @@ class PointSource(object):
 		expand = [None]*(self._rate.ndim)
 		expand[1] = slice(None)
 		
-		total = (self._rate*(specweight[expand])).sum(axis=(0,1,2))
-		# FIXME: this assumes the track PSF for both tracks and cascades.
-		# also, it neglects the opening angle between neutrino and muon
-		total = total[...,None]*self._psf_quantiles[...,None,:]
+		# FIXME: this still neglects the opening angle between neutrino and muon
+		total = (self._rate*(specweight[expand])).sum(axis=(0,1))
+		assert total.ndim == 2
 		
 		if not self._use_energies:
 			total = total.sum(axis=0)
 		
-		self._last_expectations = dict(cascades=total[...,0,:], tracks=total[...,1,:])
+		self._last_expectations = dict(tracks=total)
 		self._last_gamma = ps_gamma
 		return self._last_expectations
 	
@@ -84,7 +70,7 @@ class PointSource(object):
 			yield e_center, chunk
 
 class SteadyPointSource(PointSource):
-	def __init__(self, effective_area, livetime, zenith_bin, point_spread_function, psi_bins, with_energy=True):
+	def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
 		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
 		# remember: fluxes are defined as neutrino + antineutrino, so the flux
 		# per particle (which we need here) is .5e-12
@@ -94,7 +80,7 @@ class SteadyPointSource(PointSource):
 		# 1/cm^2 yr
 		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
 		
-		PointSource.__init__(self, effective_area, fluence, zenith_bin, point_spread_function, psi_bins, with_energy)
+		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
 
 def nevents(llh, **hypo):
 	"""

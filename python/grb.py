@@ -66,7 +66,7 @@ class WaxmannBahcallFluence(object):
 		return np.where(E < 1e5, E**-1*fluence/1e5, np.where(E > 1e7, E**-4*(fluence*(1e7**2)), E**-2*fluence))
 
 class GRBPopulation(pointsource.PointSource):
-	def __init__(self, effective_area, z, Eiso, point_spread_function, psi_bins, with_energy=True):
+	def __init__(self, effective_area, z, Eiso, with_energy=True):
 		"""
 		:param z: redshift of bursts
 		:param Eiso: isotropic energy output of bursts, in erg
@@ -90,7 +90,7 @@ class GRBPopulation(pointsource.PointSource):
 		
 		nbands = effective_area.bin_edges[1].size-1
 		# sum over all bursts (assuming that observe for t90 each time)
-		pointsource.PointSource.__init__(self, effective_area, fluence.sum(axis=1)*0.9/nbands, slice(None), point_spread_function, psi_bins, with_energy)
+		pointsource.PointSource.__init__(self, effective_area, fluence.sum(axis=1)*0.9/nbands, slice(None), with_energy)
 
 class LuminosityDistance(object):
 	_instance = None

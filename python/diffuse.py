@@ -63,13 +63,13 @@ class DiffuseNuGen(object):
 
 	# apply 3-element multiplication + reduction without creating too many
 	# unnecessary temporaries. numexpr allows a single reduction, so do it here
-	_reduce_flux = numexpr.NumExpr('sum(aeff*flux*livetime, axis=2)')
+	_reduce_flux = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')
 	
 	def _apply_flux(self, effective_area, flux, livetime):
 		if effective_area.shape[2] > 1:
-			return self._reduce_flux(effective_area, flux[...,None,None,None], livetime).sum(axis=(0,1))
+			return self._reduce_flux(effective_area, flux[...,None,None], livetime).sum(axis=0)
 		else:
-			return (effective_area*flux[...,None,None,None]*livetime).sum(axis=(0,1,2))
+			return (effective_area*flux[...,None,None]*livetime).sum(axis=(0,1))
 
 def detect(sequence, pred):
 	try:
@@ -101,7 +101,7 @@ class AtmosphericNu(DiffuseNuGen):
 		if hard_veto_threshold is not None:
 			# reduce the flux in the south
 			# NB: assumes that a surface veto has been applied!
-			flux = self._flux * numpy.where(center(effective_area.bin_edges[3]) < 0.05, 1, 1e-4)[None,None,:]
+			flux = self._flux * numpy.where(center(effective_area.bin_edges[1]) < 0.05, 1, 1e-4)[None,None,:]
 		else:
 			flux = self._flux
 			
@@ -113,11 +113,11 @@ class AtmosphericNu(DiffuseNuGen):
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
 		if self.is_healpix:
-			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
+			total = total.repeat(self._aeff.ring_repeat_pattern, axis=0)
 		# dimensions of the keys in expectations are now reconstructed energy, sky bin (zenith/healpix pixel)
-		self.expectations = dict(cascades=total[...,0], tracks=total[...,1])
+		self.expectations = dict(tracks=total.sum(axis=2))
 	
-	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
+	def point_source_background(self, zenith_index, livetime=None, with_energy=True):
 		"""
 		convert to a point source background
 		
@@ -128,12 +128,13 @@ class AtmosphericNu(DiffuseNuGen):
 		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
 		
 		background = copy(self)
+		psi_bins = self._aeff.bin_edges[-1][:-1]
 		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,...]
 		# observation time shorter for triggered transient searches
 		if livetime is not None:
 			bin_areas *= (livetime/self._livetime/(3600.*24*365.))
 		# dimensions of the keys in expectations are now energy, radial bin
-		background.expectations = {k: (v[:,zenith_index]/self._solid_angle[zenith_index])[...,None]*bin_areas for k,v in self.expectations.items()}
+		background.expectations = {k: (v[zenith_index,:]/self._solid_angle[zenith_index])[...,None]*bin_areas for k,v in self.expectations.items()}
 		if not with_energy:
 			# just radial bins
 			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
@@ -208,7 +209,7 @@ class DiffuseAstro(DiffuseNuGen):
 		self._last_params = dict()
 		self._last_expectations = None
 	
-	def point_source_background(self, psi_bins, zenith_index, livetime=None, with_energy=True):
+	def point_source_background(self, zenith_index, livetime=None, with_energy=True):
 		"""
 		convert to a point source background
 		
@@ -219,7 +220,8 @@ class DiffuseAstro(DiffuseNuGen):
 		
 		
 		background = copy(self)
-		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,None,None,None,:,None]
+		psi_bins = self._aeff.bin_edges[-1][:-1]
+		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,None,None,:]
 		# observation time shorter for triggered transient searches
 		if livetime is not None:
 			bin_areas *= (livetime/self._livetime/(3600.*24*365.))
@@ -234,7 +236,7 @@ class DiffuseAstro(DiffuseNuGen):
 		# replace reconstructed zenith with opening angle
 		# dimensions of aeff are now m^2 sr
 		background._aeff = copy(self._aeff)
-		background._aeff.values = self._aeff.values[:,:,sel,:,sel,:]*bin_areas
+		background._aeff.values = self._aeff.values[:,:,sel,:,:].sum(axis=4)[...,None]*bin_areas
 		
 		background._invalidate_cache()
 		
@@ -306,7 +308,9 @@ class DiffuseAstro(DiffuseNuGen):
 		# to broadcast onto a full healpix map.
 		if self.is_healpix:
 			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
-		self._last_expectations = dict(cascades=total[...,0], tracks=total[...,1])
+		if total.shape[0] == 1:
+			total = total.reshape(total.shape[1:])
+		self._last_expectations = dict(tracks=total)
 		return self._last_expectations
 	
 	def expectations(self, gamma=-2, **kwargs):
