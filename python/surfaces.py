@@ -9,6 +9,8 @@ def get_gcd(geometry="Sunflower", spacing=200):
         gcd='IceCubeHEX_{geometry}_spacing{spacing}m_ExtendedDepthRange.GCD.i3.bz2'.format(**locals())
     elif geometry == "Sunflower":
         gcd='IceCubeHEX_{geometry}_{spacing}m_v3_ExtendedDepthRange.GCD.i3.bz2'.format(**locals())
+    elif geometry == "IceCube":
+        gcd='GeoCalibDetectorStatus_IC86_Merged.i3.bz2'
     else:
         raise ValueError("Unknown geometry %s" % geometry)
     return os.path.join(data_dir, 'geometries', gcd)
