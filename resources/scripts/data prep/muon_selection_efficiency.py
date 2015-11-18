@@ -48,10 +48,11 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('infile', nargs='*')
-    parser.add_argument('outfile')
+    # parser.add_argument('outfile')
     parser.add_argument('-g', '--geometry', type=str, default='IceCube')
     parser.add_argument('-s', '--spacing', type=int, default=None)
     parser.add_argument('-n', '--nfiles', type=int, default=1, help='Number of generated files')
+    parser.add_argument('--plot', action='store_true', default=False)
 
     opts = parser.parse_args()
 
@@ -63,10 +64,10 @@ if __name__ == "__main__":
         fiducial_surface=surfaces.get_fiducial_surface(opts.geometry, opts.spacing),
         # NB: average over all angles for demonstration purposes
         cos_theta=[-1, 1])
-    
+
     import matplotlib.pyplot as plt
     from icecube.gen2_analysis import plotting
-    
+
     with plotting.pretty(tex=False):
         centers = 10**(util.center(np.log10(bin_edges[0])))
         plt.errorbar(centers, efficiency[:,0], yerr=error[:,0])
