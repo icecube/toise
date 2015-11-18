@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import numpy as np
-import operator
 from icecube.gen2_analysis import surfaces, util
 
 def get_muon_selection_efficiency(hdf, muon='MCMuon', aeff='MuonEffectiveArea',
@@ -43,38 +42,85 @@ def get_muon_selection_efficiency(hdf, muon='MCMuon', aeff='MuonEffectiveArea',
     
     return bincontent, binerror, edges
 
+def fit_muon_selection_efficiency(efficiency, error, binedges, smoothing=1):
+    from icecube.photospline import spglam as glam
+    from icecube.photospline.utils import pad_knots
+    
+    z = efficiency
+    w = 1./error**2
+    
+    for i in range(z.shape[1]):
+        # deweight empty declination bands
+        if not (z[:,i] > 0).any():
+            w[:,i] = 0
+            continue
+        # extrapolate efficiency with a constant
+        last = np.where(z[:,i] > 0)[0][-1]
+        zlast = z[last-10:last,i]
+        mask = zlast != 0
+        w[last:,i] = 1./((error[last-10:last,i][mask]**2).mean())
+        z[last:,i] = zlast[mask].mean()
+        first = np.where(z[:,i] > 0)[0][0]
+        w[:first,i] = 1./((error[first:first+10,i]**2).mean())
+    w[~np.isfinite(w) | ~np.isfinite(z)] = 0
+    centers = [util.center(np.log10(binedges[0])), util.center(binedges[1])]
+    knots = [pad_knots(np.log10(binedges[0]), 2), pad_knots(binedges[1], 2)]
+    order = [2,2]
+    penalties = {2:[10*smoothing,1*smoothing]}
+    spline = glam.fit(z, w, centers, knots, order, penalties=penalties)
+    
+    return spline
+
 if __name__ == "__main__":
 
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('infile', nargs='*')
-    # parser.add_argument('outfile')
+    parser.add_argument('outfile')
     parser.add_argument('-g', '--geometry', type=str, default='IceCube')
     parser.add_argument('-s', '--spacing', type=int, default=None)
     parser.add_argument('-n', '--nfiles', type=int, default=1, help='Number of generated files')
-    parser.add_argument('--plot', action='store_true', default=False)
+    parser.add_argument('--smoothing', type=float, default=1., help='Smoothing strength to apply in spline fit')
+    parser.add_argument('--plot', action='store_true', default=False, help='Plot efficiencies after fitting')
 
     opts = parser.parse_args()
 
+    from icecube.photospline import splinefitstable
+    import os
     import tables
     
-    hdf = tables.open_file(opts.infile[0])
+    with tables.open_file(opts.infile[0]) as hdf:
+        efficiency, error, binedges = get_muon_selection_efficiency(hdf,
+            fiducial_surface=surfaces.get_fiducial_surface(opts.geometry, opts.spacing),)
     
-    efficiency, error, bin_edges = get_muon_selection_efficiency(hdf,
-        fiducial_surface=surfaces.get_fiducial_surface(opts.geometry, opts.spacing),
-        # NB: average over all angles for demonstration purposes
-        cos_theta=[-1, 1])
+    spline = fit_muon_selection_efficiency(efficiency, error, binedges, opts.smoothing)
+    if os.path.exists(opts.outfile):
+        os.unlink(opts.outfile)
+    splinefitstable.write(spline, opts.outfile)
 
-    import matplotlib.pyplot as plt
-    from icecube.gen2_analysis import plotting
+    if opts.plot:
 
-    with plotting.pretty(tex=False):
-        centers = 10**(util.center(np.log10(bin_edges[0])))
-        plt.errorbar(centers, efficiency[:,0], yerr=error[:,0])
-        plt.xlabel('Muon energy [GeV]')
-        plt.ylabel('Selection efficiency')
-        plt.title('%s %dm' % (opts.geometry, opts.spacing))
-        plt.semilogx()
-        plt.ylim((0, 1.1))
-        plt.tight_layout()
-        plt.show()
+        import matplotlib.pyplot as plt
+        from icecube.gen2_analysis import plotting
+        from icecube.photospline import spglam as glam
+        
+        from icecube.photospline import spglam as glam
+        
+        with plotting.pretty(tex=False):
+            ax = plt.gca()
+            x = np.linspace(0, 11, 1001)
+            energy = 10**(util.center(np.log10(binedges[0])))
+            cos_theta = util.center(binedges[1])
+            evaluates = glam.grideval(spline, [x, cos_theta])
+            for i in range(0,len(binedges[1])-1, len(binedges[1])/5):
+                ct = cos_theta[i]
+                label='%.2f' % ct
+                ax.errorbar(energy, efficiency[:,i], yerr=error[:,i], ls='None', marker='o', label=label)
+                ax.semilogx(10**x, evaluates[:,i], color=ax.lines[-1].get_color())
+            ax.legend()
+            ax.set_ylim((0, 1))
+            ax.set_xlabel('Muon energy [GeV]')
+            ax.set_ylabel('Selection efficiency')
+            ax.set_title('%s %sm' % (opts.geometry, opts.spacing))
+            plt.tight_layout()
+            plt.show()
