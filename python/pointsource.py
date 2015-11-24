@@ -40,7 +40,7 @@ class PointSource(object):
 		
 		# FIXME: this still neglects the opening angle between neutrino and muon
 		total = (self._rate*(specweight[expand])).sum(axis=(0,1))
-		assert total.ndim == 2
+		# assert total.ndim == 2
 		
 		if not self._use_energies:
 			total = total.sum(axis=0)
