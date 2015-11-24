@@ -206,6 +206,7 @@ class DiffuseAstro(DiffuseNuGen):
 		else:
 			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:]
 		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
+		self._with_psi = False
 		
 		self._invalidate_cache()
 	
@@ -244,6 +245,7 @@ class DiffuseAstro(DiffuseNuGen):
 		# dimensions of aeff are now m^2 sr
 		background._aeff = copy(self._aeff)
 		background._aeff.values = self._aeff.values[:,:,sel,:,:].sum(axis=4)[...,None]*bin_areas
+		background._with_psi = True
 		
 		background._invalidate_cache()
 		
@@ -307,8 +309,11 @@ class DiffuseAstro(DiffuseNuGen):
 		
 		
 		total = self._apply_flux(self._aeff.values, flux, self._livetime)
-		
-		assert total.ndim == 3
+		if not self._with_psi:
+			total = total.sum(axis=2)
+			assert total.ndim == 2
+		else:
+			assert total.ndim == 3
 		
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
