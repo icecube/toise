@@ -133,8 +133,12 @@ class AtmosphericNu(DiffuseNuGen):
 		# observation time shorter for triggered transient searches
 		if livetime is not None:
 			bin_areas *= (livetime/self._livetime/(3600.*24*365.))
+		if isinstance(zenith_index, slice):
+			omega = self._solid_angle[zenith_index,None]
+		else:
+			omega = self._solid_angle[zenith_index]
 		# dimensions of the keys in expectations are now energy, radial bin
-		background.expectations = {k: (v[zenith_index,:]/self._solid_angle[zenith_index])[...,None]*bin_areas for k,v in self.expectations.items()}
+		background.expectations = {k: (v[zenith_index,:]/omega)[...,None]*bin_areas for k,v in self.expectations.items()}
 		if not with_energy:
 			# just radial bins
 			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
@@ -229,7 +233,10 @@ class DiffuseAstro(DiffuseNuGen):
 		
 		# cut flux down to a single zenith band
 		# dimensions of self._flux are flavor, energy, zenith
-		sel = slice(zenith_index, zenith_index+1)
+		if isinstance(zenith_index, slice):
+			sel = zenith_index
+		else:
+			sel = slice(zenith_index, zenith_index+1)
 		# dimensions of flux are now 1/m^2 sr
 		background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
 		
