@@ -70,6 +70,13 @@ class PointSource(object):
 			yield e_center, chunk
 
 class SteadyPointSource(PointSource):
+	r"""
+	A stead point source of neutrinos.
+	
+	The unit is the differential flux per neutrino flavor at 1 TeV,
+	in units of :math:`10^{-12} \,\, \rm  TeV^{-1} \, cm^{-2} \, s^{-1}`
+	
+	"""
 	def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
 		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
 		# remember: fluxes are defined as neutrino + antineutrino, so the flux
@@ -95,6 +102,24 @@ def nevents(llh, **hypo):
 	return sum(map(numpy.sum, llh.expectations(**hypo).values()))
 
 def discovery_potential(point_source, diffuse_components, sigma=5., baseline=None, tolerance=1e-2, **fixed):
+	"""
+	Calculate the scaling of the flux in *point_source* required to discover it
+	over the background in *diffuse_components* at *sigma* sigma in 50% of
+	experiments.
+	
+	:param point_source: an instance of :class:`PointSource`
+	:param diffuse components: a dict of diffuse components. Each of the values
+	    should be a point source background component, e.g. the return value of
+	    :meth:`diffuse.AtmosphericNu.point_source_background`, along with any
+	    nuisance parameters required to evaluate them.
+	:param sigma: the required significance. The method will scale
+	    *point_source* to find a median test statistic of :math:`\sigma**2`
+	:param baseline: a first guess of the correct scaling. If None, the scaling
+	    will be estimated from the baseline number of signal and background
+	    events as :math:`\sqrt{n_B} \sigma / n_S`.
+	:param tolerance: tolerance for the test statistic
+	:param fixed: values to fix for the diffuse components in each fit.
+	"""
 	critical_ts = sigma**2
 
 	
@@ -137,6 +162,14 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		return actual[0]
 
 def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
+	"""
+	Calculate the median upper limit on *point_source* given the background
+	*diffuse_components*.
+	
+	:param cl: desired confidence level for the upper limit
+	
+	The remaining arguments are the same as :func:`discovery_potential`
+	"""
 	critical_ts = stats.chi2.ppf(cl, 1)
 
 	
@@ -171,11 +204,14 @@ def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
 		return actual[0]
 
 
-def differential_discovery_potential(point_source, diffuse_components, sigma=5, **fixed):
-
+def differential_discovery_potential(point_source, diffuse_components, sigma=5, decades=0.5, **fixed):
+	"""
+	Calculate the discovery potential in the same way as :func:`discovery_potential`,
+	but with the *decades*-wide chunks of the flux due to *point_source*.
+	"""
 	energies = []
 	sensitivities = []
-	for energy, pschunk in point_source.differential_chunks(decades=0.5):
+	for energy, pschunk in point_source.differential_chunks(decades=decades):
 		energies.append(energy)
 		sensitivities.append(discovery_potential(pschunk, diffuse_components, **fixed))
 	return energies, sensitivities
