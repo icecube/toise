@@ -14,12 +14,13 @@ detectors=("--geometry IceCube --veto-area 0"                            \
 
 figures=(
 "survey_volume"                  \
-"grb"                                     \
-"diffuse_index --energy-threshold 1e5"    \
-"diffuse_index --energy-threshold 1e6"    \
-"galactic_diffuse --energy-threshold 1e4" \
-"galactic_diffuse --energy-threshold 1e5" \
-"gzk"                                     \
+"survey_volume --angular-resolution-scale=0.5"                  \
+#"grb"                                     \
+#"diffuse_index --energy-threshold 1e5"    \
+#"diffuse_index --energy-threshold 1e6"    \
+#"galactic_diffuse --energy-threshold 1e4" \
+#"galactic_diffuse --energy-threshold 1e5" \
+#"gzk"                                     \
 )
 
 . ~/.virtualenv/standard/bin/activate 
