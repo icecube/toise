@@ -159,8 +159,8 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		nb = nevents(allh, ps=0, **fixed)
 		ns = total-nb
 		baseline = min((1000, numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))))/10
-		baseline = (numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb)))/10
-		# logging.getLogger().info('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
+		baseline = max(((numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb)))/10, 0.3/ns))
+		# logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
 	# baseline = 1000
 	if baseline > 1e4:
 		return numpy.inf
