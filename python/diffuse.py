@@ -319,7 +319,7 @@ class DiffuseAstro(DiffuseNuGen):
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
 		if self.is_healpix:
-			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
+			total = total.repeat(self._aeff.ring_repeat_pattern, axis=0)
 		if total.shape[0] == 1:
 			total = total.reshape(total.shape[1:])
 		self._last_expectations = dict(tracks=total)
@@ -401,7 +401,7 @@ class FermiGalacticEmission(DiffuseNuGen):
 	def __init__(self, effective_area, livetime=1.):
 		assert effective_area.is_healpix
 		# differential flux at 1 GeV [1/(GeV cm^2 sr s)]
-		map1GeV = numpy.load(os.path.join(data_dir, 'fermi_galactic_emission.npy'))
+		map1GeV = numpy.load(os.path.join(data_dir, 'models', 'fermi_galactic_emission.npy'))
 		# downsample to resolution of effective area map
 		flux_constant = healpy.ud_grade(transform_map(map1GeV), effective_area.nside)
 		def intflux(e, gamma=-2.71):
@@ -414,13 +414,13 @@ class FermiGalacticEmission(DiffuseNuGen):
 		
 		super(FermiGalacticEmission, self).__init__(effective_area, flux, livetime)
 		
-		# extract the diagonal in true_angle / reco_angle and broadcast it over healpix rings
-		aeff = numpy.diagonal(self._aeff.values, 0, 2, 4).transpose([0,1,4,2,3]).repeat(self._aeff.ring_repeat_pattern, axis=2)
+		# sum over opening angles and broadcast zenith angle bin over healpix rings
+		aeff = self._aeff.values.sum(axis=4).repeat(self._aeff.ring_repeat_pattern, axis=2)
 		# sum over neutrino flavors and energies
-		total = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')(aeff, self._flux[...,None,None], self._livetime).sum(axis=0)
+		total = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')(aeff, self._flux[...,None], self._livetime).sum(axis=0)
 		
 		# dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
-		self.expectations = dict(cascades=total[...,0].T, tracks=total[...,1].T)
+		self.expectations = dict(tracks=total)
 
 def starting_diffuse_powerlaw(effective_area, edges, livetime=1.,
     flavor_ratio=False, veto_threshold=1e2):
