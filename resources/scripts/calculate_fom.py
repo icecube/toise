@@ -386,9 +386,7 @@ elif opts.figure_of_merit == 'differential_diffuse':
 elif opts.figure_of_merit == 'diffuse_index':
 	
 	cos_theta = numpy.linspace(-1, 1, 21)
-	sys.stderr.write("loading effective area...")
 	aeffs = dict(tracks=create_aeff(opts,cos_theta=cos_theta))
-	sys.stderr.write("done\n")
 	if opts.cascade_energy_threshold is not None:
 		aeffs['cascades']=create_cascade_aeff(opts,cos_theta=cos_theta)
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
