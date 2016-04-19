@@ -3,12 +3,12 @@ import pickle, os, numpy
 
 from .util import data_dir
 
-def get_angular_resolution(geometry="Sunflower", spacing=200):
+def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1.):
 	if geometry == "IceCube":
 		fname = "aachen_psf.fits"
 	else:
 		fname = "%s_%s_bdt0_psf.fits" % (geometry.lower(), spacing)
-	return PointSpreadFunction(fname)
+	return PointSpreadFunction(fname, scale)
 
 class AngularResolution(object):
     def __init__(self, fname=os.path.join(data_dir, 'veto', 'aachen_angular_resolution.npz')):
@@ -31,7 +31,11 @@ class AngularResolution(object):
         return numpy.radians(numpy.sqrt(mu_reco**2 + 0.7**2/(10**(loge-3))))
 
 class PointSpreadFunction(object):
-    def __init__(self, fname='aachen_psf.fits'):
+    def __init__(self, fname='aachen_psf.fits', scale=1.):
+        """
+        :param scale: angular resolution scale. A scale of 0.5 will halve the
+                      median opening angle, while 2 will double it.
+        """
         if not fname.startswith('/'):
             fname = os.path.join(data_dir, 'psf', fname)
         from icecube.photospline import I3SplineTable
@@ -41,8 +45,9 @@ class PointSpreadFunction(object):
             self._mirror = True
         else:
             self._mirror = False
+        self._scale = scale
     def __call__(self, psi, energy, cos_theta):
-        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi), numpy.log10(energy), cos_theta)
+        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi)/self._scale, numpy.log10(energy), cos_theta)
         loge = numpy.clip(loge, *self._loge_extents)
         if self._mirror:
             ct = -numpy.abs(ct)
