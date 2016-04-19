@@ -9,7 +9,7 @@ def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., channel=
 	if geometry == "IceCube":
 		fname = "aachen_psf.fits"
 	else:
-		fname = "%s_%s_bdt0_psf.fits" % (geometry.lower(), spacing)
+		fname = "11900_MUONGUN_%s_%sm_recos.fits" % (geometry.lower(), spacing)
 	return PointSpreadFunction(fname, scale)
 
 class AngularResolution(object):
