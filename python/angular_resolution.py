@@ -3,7 +3,9 @@ import pickle, os, numpy
 
 from .util import data_dir
 
-def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1.):
+def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., channel='muon'):
+	if channel == 'cascade':
+		return PotemkinCascadePointSpreadFunction()
 	if geometry == "IceCube":
 		fname = "aachen_psf.fits"
 	else:
@@ -54,3 +56,16 @@ class PointSpreadFunction(object):
         ct = numpy.clip(ct, *self._ct_extents)
         
         return numpy.array([self._spline.eval(coords) for coords in zip(loge.flatten(), ct.flatten(), psi.flatten())]).reshape(psi.shape)
+
+class PotemkinCascadePointSpreadFunction(object):
+    
+    def __init__(self, lower_limit=numpy.radians(5), crossover_energy=1e6):
+        self._b = lower_limit
+        self._a = self._b*numpy.sqrt(crossover_energy)
+    
+    def __call__(self, psi, energy, cos_theta):
+        
+        psi, energy, cos_theta = numpy.broadcast_arrays(psi, energy, cos_theta)
+        sigma = self._a/numpy.sqrt(energy) + self._b
+        
+        return 1 - numpy.exp(-psi**2/(2*sigma**2))

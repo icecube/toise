@@ -423,8 +423,8 @@ def create_cascade_aeff(energy_resolution=get_energy_resolution(channel='cascade
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
     selection_efficiency=HESEishMuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
-    psf=get_angular_resolution("IceCube"),
-    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 40)),
+    psf=get_angular_resolution("IceCube", channel='cascade'),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
 	cos_theta=None,):
 	"""
 	Create an effective area for neutrinos interacting inside the volume
