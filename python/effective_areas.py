@@ -100,7 +100,22 @@ def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0):
 	else:
 		return ZenithDependentMuonSelectionEfficiency("%s_%dm_bdt0_efficiency.fits" % (geometry.lower(), spacing), energy_threshold=energy_threshold)
 
-class StepFunction(object):
+class VetoThreshold(object):
+	"""
+	A braindead model of an event selection with a surface veto.
+	"""
+	def accept(self, e_mu, cos_theta=1.):
+		"""
+		Return True if an event would pass the event selection
+		"""
+		raise NotImplementedError
+	def veto(self, e_mu, cos_theta=1.):
+		"""
+		Return True if an atmospheric event would be rejected by the veto
+		"""
+		raise NotImplementedError
+
+class StepFunction(VetoThreshold):
 	"""
 	A zenith-dependent energy threshold, modeling the effect of a perfect
 	surface veto whose threshold scales with slant depth
@@ -109,9 +124,7 @@ class StepFunction(object):
 		self.max_inclination = numpy.cos(numpy.radians(maximum_inclination))
 		self.threshold = threshold
 	def accept(self, e_mu, cos_theta=1.):
-		"""
-		Return True if an event would pass the event selection
-		"""
+		
 		return numpy.where(cos_theta > 0.05, (e_mu > self.threshold) & (cos_theta >= self.max_inclination), True)
 	def veto(self, e_mu, cos_theta=1.):
 		"""
@@ -254,21 +267,34 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 40)),
 	cos_theta=None,):
 	"""
-	Create effective areas in the same format as above
+	Create an effective area for neutrino-induced, incoming muons
 	
-	:param energy_resolution: a muon energy resolution kernel
 	:param selection_efficiency: an energy- and zenith-dependent muon selection efficiency
+	:type: MuonSelectionEfficiency
+	
 	:param surface: the fiducial surface surrounding the detector
-	:param cos_theta: edges of bins in the cosine of the zenith angle. If None,
-	    use the native binning of the efficiency histogram. If an integer,
-	    interpret as the NSide of a HEALpix map
-	:param psf: cumulative angular error distribution, parameterized as a
-	    function of true muon energy and zenith angle
+	:type surface: surfaces.UprightSurface
+	
+	:param veto_coverage: a callable f(cos_theta), returning the fraction of
+	    the fiducial area that is in the shadow of a surface veto
+	:type veto_coverate: surface_veto.GeometricVetoCoverage
+	
+	:param energy_threshold: the energy-dependent veto passing fraction
+	:type energy_threshold: VetoThreshold
+	
+	:param energy_resolution: the muon energy resolution for events that pass the selection
+	:type energy_resolution: energy_resolution.MuonEnergyResolution
+	
+	:param psf: the muon point spread function for events that pass the selection
+	:type psf: angular_resolution.PointSpreadFunction
+	
 	:param cos_theta: sky binning to use. If cos_theta is an integer,
 	    bin in a HEALpix map with this NSide, otherwise bin in cosine of
 	    zenith angle. If None, use the native binning of the muon production
 	    efficiency histogram.
-	:param psi_bins: bins in angular error
+	:param psi_bins: edges of bins in muon/reconstruction opening angle (radians)
+	
+	:returns: an effective_area object
 	"""
 	
 	# Ingredients:

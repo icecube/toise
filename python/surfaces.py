@@ -236,6 +236,12 @@ class ExtrudedPolygon(UprightSurface):
     
     @classmethod
     def from_I3Geometry(cls, i3geo, padding=0):
+        """
+        Create from an I3Geometry object file
+        
+        :param i3geo: an I3Geometry
+        :param padding: distance, in meters, to expand the surface in all directions
+        """
         from collections import defaultdict
         strings = defaultdict(list)
         for omkey, omgeo in i3geo.omgeo:
@@ -253,6 +259,12 @@ class ExtrudedPolygon(UprightSurface):
     
     @classmethod
     def from_file(cls, fname, padding=0):
+        """
+        Create from a GCD file
+        
+        :param fname: path to an I3 file containing at least a G frame
+        :param padding: distance, in meters, to expand the surface in all directions
+        """
         from icecube import icetray, dataio, dataclasses
         f = dataio.I3File(fname)
         fr = f.pop_frame(icetray.I3Frame.Geometry)
