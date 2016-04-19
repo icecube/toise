@@ -117,7 +117,7 @@ def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0):
 	if geometry == "IceCube":
 		return MuonSelectionEfficiency(energy_threshold=energy_threshold)
 	else:
-		return ZenithDependentMuonSelectionEfficiency("%s_%dm_bdt0_efficiency.fits" % (geometry.lower(), spacing), energy_threshold=energy_threshold)
+		return ZenithDependentMuonSelectionEfficiency("11900_MUONGUN_%s_%sm_efficiency_cut.fits" % (geometry.lower(), spacing), energy_threshold=energy_threshold)
 
 class VetoThreshold(object):
 	"""
