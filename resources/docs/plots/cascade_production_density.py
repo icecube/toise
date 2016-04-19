@@ -30,8 +30,8 @@ with plotting.pretty():
     ax.set_ylabel('Cascade density in ice [1/m]')
     
     ax = plt.subplot(griddy[1])
-    decade = 40
-    for i, ec in itertools.islice(enumerate(edges[2][1:]), 2*decade, 6*decade, decade):
+    decade = 10
+    for i, ec in itertools.islice(enumerate(edges[2][1:]), 2*decade-1, 6*decade-1, decade):
         ax.loglog(*plotting.stepped_path(edges[2], energy_spectrum[i,:], cumulative='>'), label=plotting.format_energy('%d', ec), nonposy='clip')
 
     ax.set_xlim((1e2, 2e7))
