@@ -92,7 +92,7 @@ class ZenithDependentMuonSelectionEfficiency(object):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
 		return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
 
-class HESEishMuonSelectionEfficiency(object):
+class HESEishSelectionEfficiency(object):
 	"""
 	Imitate the efficiency one would get from a HESE-like selection
 	"""
@@ -421,7 +421,7 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 def create_cascade_aeff(energy_resolution=get_energy_resolution(channel='cascade'),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
-    selection_efficiency=HESEishMuonSelectionEfficiency(),
+    selection_efficiency=HESEishSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
     psf=get_angular_resolution("IceCube", channel='cascade'),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
