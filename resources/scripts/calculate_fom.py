@@ -13,6 +13,8 @@ parser.add_argument("--veto-threshold", type=float, default=1e4)
 parser.add_argument("--no-cuts", default=False, action="store_true")
 parser.add_argument("--livetime", type=float, default=10.)
 parser.add_argument("--energy-threshold", type=float, default=None)
+parser.add_argument("--sin-dec", type=float, default=None)
+parser.add_argument("--livetimes", type=float, default=None, nargs=3)
 parser.add_argument("-o", "--outfile", default=None)
 
 parser.add_argument("figure_of_merit")
@@ -40,6 +42,7 @@ from icecube.gen2_analysis import effective_areas, diffuse, pointsource, angular
 from icecube.gen2_analysis.util import data_dir, center
 
 import cPickle as pickle
+from clint.textui import progress
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -150,6 +153,48 @@ if opts.figure_of_merit == 'survey_volume':
 	volume = survey_volume(sindec, dp)
 	
 	print_result(volume)
+
+elif opts.figure_of_merit == 'ps_time_evolution':
+	
+	livetime = opts.livetimes[0]
+	cos_theta=numpy.linspace(-1, 1, 21)
+	aeff = create_aeff(opts, cos_theta=cos_theta)
+	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
+	atmo = diffuse.AtmosphericNu.conventional(aeff, livetime, hard_veto_threshold=energy_threshold)
+	prompt = diffuse.AtmosphericNu.prompt(aeff, livetime, hard_veto_threshold=energy_threshold)
+	astro = diffuse.DiffuseAstro(aeff, livetime)
+	astro.seed = 2
+	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+	
+	zi = cos_theta.searchsorted(-opts.sin_dec)-1
+	
+	ps = pointsource.SteadyPointSource(aeff, livetime, zenith_bin=zi)
+	bkg = atmo.point_source_background(zenith_index=zi)
+	astro_bkg = astro.point_source_background(zenith_index=zi)
+		
+	diffuse = dict(atmo=bkg, astro=astro_bkg, gamma=gamma)
+	fixed = dict(atmo=1, gamma=gamma.seed, astro=2)
+	atmo.seed = 1
+	
+	def scale_livetime(component, livetime):
+		if hasattr(component, 'scale_livetime'):
+			return component.scale_livetime(livetime)
+		else:
+			return component
+	
+	livetimes = numpy.linspace(*opts.livetimes)
+	dps = numpy.zeros(livetimes.size)
+	for i in progress.bar(range(livetimes.size)):
+		lt = livetimes[i]
+		dps[i] = 1e-12*pointsource.discovery_potential(scale_livetime(ps, lt), {k: scale_livetime(v, lt) for k,v in diffuse.items()}, **fixed)
+	
+	if opts.outfile is not None:
+		numpy.savez(opts.outfile, livetime=livetimes, discovery_potential=dps,
+		    sin_dec=opts.sin_dec)
+	else:	
+		import pylab
+		pylab.plot(livetimes, dps)
+		pylab.show()
 
 elif opts.figure_of_merit == 'differential_discovery_potential':
 	

@@ -23,7 +23,11 @@ class PointSource(object):
 		self._use_energies = with_energy
 		
 		self._rate = rate
+		self._invalidate_cache()
+	
+	def _invalidate_cache(self):
 		self._last_gamma = None
+		self._last_expectations = None
 	
 	def expectations(self, ps_gamma=-2, **kwargs):
 		
@@ -88,6 +92,15 @@ class SteadyPointSource(PointSource):
 		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
 		
 		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
+		self._livetime = livetime
+	
+	def scale_livetime(self, livetime):
+		scaled = copy(self)
+		scale = livetime / scaled._livetime
+		scaled._rate = scaled._rate*scale
+		scaled._livetime = livetime
+		scaled._invalidate_cache()
+		return scaled
 
 def nevents(llh, **hypo):
 	"""
