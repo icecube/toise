@@ -37,7 +37,7 @@ import numpy
 
 
 from icecube.gen2_analysis import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
-from icecube.gen2_analysis.util import data_dir
+from icecube.gen2_analysis.util import data_dir, center
 
 import cPickle as pickle
 
@@ -156,7 +156,7 @@ elif opts.figure_of_merit == 'differential_discovery_potential':
 	if opts.outfile is None:
 		parser.error("You must supply an output file name")
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 20))
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
@@ -166,12 +166,13 @@ elif opts.figure_of_merit == 'differential_discovery_potential':
 	
 	values = dict()
 	
-	sindec = numpy.linspace(-1, 1, 21)[::-1]
-	for zi in xrange(0, 20, 1):	
+	sindec = center(numpy.linspace(-1, 1, 20)[::-1])
+	for zi in xrange(0, 19, 1):	
 		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi)
 		atmo_bkg = atmo.point_source_background(zenith_index=zi)
 		astro_bkg = astro.point_source_background(zenith_index=zi)
-		if astro.expectations(gamma=gamma.seed)['tracks'][:,zi].sum() > 0:
+		if astro.expectations(gamma=gamma.seed)['tracks'][zi,:].sum() > 0:
+			print astro_bkg.expectations(gamma=gamma.seed)['tracks'].sum()
 			assert astro_bkg.expectations(gamma=gamma.seed)['tracks'].sum() > 0
 		dps = []
 		nses = []
@@ -238,19 +239,20 @@ elif opts.figure_of_merit == 'gzk':
 	gzk = diffuse.AhlersGZK(aeff, opts.livetime)
 	
 	pev = numpy.where(aeff.bin_edges[2][1:] > 1e6)[0][0]
-	ns = gzk.expectations()['tracks'].sum(axis=1)[pev:].sum()
-	nb = astro.expectations(gamma=-2.3)['tracks'].sum(axis=1)[pev:].sum()
+	ns = gzk.expectations()['tracks'].sum(axis=0)[pev:].sum()
+	nb = astro.expectations(gamma=-2.3)['tracks'].sum(axis=0)[pev:].sum()
 	baseline = 5*numpy.sqrt(nb)/ns
 	
 	components = dict(atmo=atmo, astro=astro, gamma=gamma)
+	
 	scale = pointsource.discovery_potential(gzk, components,
 	    baseline=baseline, tolerance=1e-4, gamma=-2.3)
 	
 	components['gzk'] = gzk
 	llh = multillh.asimov_llh(components)
 	exes = get_expectations(llh, gzk=scale)
-	nb = exes['atmo']['tracks'][pev:,:].sum() + exes['astro']['tracks'][pev:,:].sum()
-	ns = exes['gzk']['tracks'][pev:,:].sum()
+	nb = exes['atmo']['tracks'][:,pev:].sum() + exes['astro']['tracks'][:,pev:].sum()
+	ns = exes['gzk']['tracks'][:,pev:].sum()
 
 	print_result(scale, nb=nb, ns=ns)
 
