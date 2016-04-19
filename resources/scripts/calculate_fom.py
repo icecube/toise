@@ -67,6 +67,7 @@ def create_aeff(opts, **kwargs):
 	    selection_efficiency=selection_efficiency,
 	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
 	    energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
+	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing),
 	    **kwargs)
 
 def intflux(e, gamma=-2):
@@ -125,23 +126,20 @@ def get_expectations(llh, **nominal):
 
 if opts.figure_of_merit == 'survey_volume':
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 41))
+	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
 	astro.seed = 2
 	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
-	psf = angular_resolution.get_angular_resolution(opts.geometry, opts.spacing)
-	psi_bins = numpy.radians((numpy.linspace(0, 5, 91)))
 	
 	dp = []
 	sindec = numpy.linspace(-1, 1, 21)
 	for zi in xrange(20):
-		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi,
-		    point_spread_function=psf, psi_bins=psi_bins)
-		bkg = atmo.point_source_background(zenith_index=zi, psi_bins=psi_bins)
-		astro_bkg = astro.point_source_background(zenith_index=zi, psi_bins=psi_bins)
+		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi)
+		bkg = atmo.point_source_background(zenith_index=zi)
+		astro_bkg = astro.point_source_background(zenith_index=zi)
 		
 		diffuse = dict(atmo=bkg, astro=astro_bkg, gamma=gamma)
 		fixed = dict(atmo=1, gamma=gamma.seed, astro=2)
@@ -165,17 +163,14 @@ elif opts.figure_of_merit == 'differential_discovery_potential':
 	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
 	astro.seed = 2
 	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
-	psf = angular_resolution.get_angular_resolution(opts.geometry, opts.spacing)
-	psi_bins = numpy.radians((numpy.linspace(0, 5, 91)))
 	
 	values = dict()
 	
 	sindec = numpy.linspace(-1, 1, 21)[::-1]
 	for zi in xrange(0, 20, 1):	
-		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi,
-		    point_spread_function=psf, psi_bins=psi_bins)
-		atmo_bkg = atmo.point_source_background(zenith_index=zi, psi_bins=psi_bins)
-		astro_bkg = astro.point_source_background(zenith_index=zi, psi_bins=psi_bins)
+		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi)
+		atmo_bkg = atmo.point_source_background(zenith_index=zi)
+		astro_bkg = astro.point_source_background(zenith_index=zi)
 		if astro.expectations(gamma=gamma.seed)['tracks'][:,zi].sum() > 0:
 			assert astro_bkg.expectations(gamma=gamma.seed)['tracks'].sum() > 0
 		dps = []
@@ -204,19 +199,26 @@ elif opts.figure_of_merit == 'grb':
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-	psf = angular_resolution.get_angular_resolution(opts.geometry, opts.spacing)
-	psi_bins = numpy.radians((numpy.linspace(0, 5, 91)))
-
+	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
+	astro.seed = 2
+	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+	
 	z = 2*numpy.ones(opts.livetime*170*2)
 	t90 = numpy.ones(z.size)*45.1
 	Eiso = 10**(53.5)*numpy.ones(z.size)
 
-	pop = grb.GRBPopulation(aeff, z, Eiso, psf, psi_bins)
-	bkg = atmo.point_source_background(psi_bins, slice(None), livetime=t90.sum())
-	scale = pointsource.discovery_potential(pop, dict(atmo=bkg), atmo=1.)
+	pop = grb.GRBPopulation(aeff, z, Eiso)
+	atmo_bkg = atmo.point_source_background(zenith_index=slice(None), livetime=t90.sum())
+	astro_bkg = astro.point_source_background(zenith_index=slice(None), livetime=t90.sum())
+	backgrounds = dict(atmo=atmo_bkg, astro=astro_bkg, gamma=gamma)
+	fixed = dict(atmo=1, gamma=gamma.seed, astro=2)
+	scale = pointsource.discovery_potential(pop, backgrounds, **fixed)
 	
-	exes = get_expectations(multillh.asimov_llh(dict(atmo=bkg, grb=pop)), grb=scale)
-	nb = exes['atmo']['tracks'].sum()
+	components = dict(backgrounds)
+	components['grb'] = pop
+	
+	exes = get_expectations(multillh.asimov_llh(components, grb=scale, **fixed), grb=scale, **fixed)
+	nb = exes['atmo']['tracks'].sum() + exes['astro']['tracks'].sum()
 	ns = exes['grb']['tracks'].sum()
 	
 	print_result(scale, nb=nb, ns=ns)
