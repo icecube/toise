@@ -92,6 +92,23 @@ class ZenithDependentMuonSelectionEfficiency(object):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
 		return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
 
+class HESEishMuonSelectionEfficiency(object):
+	"""
+	Imitate the efficiency one would get from a HESE-like selection
+	"""
+	def __init__(self, geometry="IceCube", spacing=125, energy_threshold=1e5):
+		from icecube.gen2_analysis import surfaces
+		outer = get_fiducial_surface(geometry, spacing)
+		side_padding = spacing/2.
+		top_padding = 100.
+		fiducial = surfaces.ExtrudedPolygon.from_file(surfaces.get_gcd(geometry, spacing), padding=-side_padding)
+		
+		self._threshold = energy_threshold
+		self._efficiency = fiducial.get_cap_area()/outer.get_cap_area()*(fiducial.length + 2*side_padding - top_padding)/outer.length
+	
+	def __call__(self, deposited_energy, cos_theta):
+		return numpy.where(deposited_energy >= self._threshold, self._efficiency, 0.)
+
 def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0):
 	"""
 	:param energy_threshold: artificial energy threshold in GeV
@@ -401,10 +418,10 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 
-def create_cascade_aeff(energy_resolution=get_energy_resolution("IceCube"),
+def create_cascade_aeff(energy_resolution=get_energy_resolution(channel='cascade'),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
-    selection_efficiency=MuonSelectionEfficiency(),
+    selection_efficiency=HESEishMuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
     psf=get_angular_resolution("IceCube"),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 40)),
