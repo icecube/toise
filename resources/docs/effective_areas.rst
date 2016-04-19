@@ -62,7 +62,7 @@ distribution of muon energies in several neutrino energy bins at a single
 zenith angle. These are the elements of a transfer matrix that converts
 neutrino fluxes into detectable muon fluxes.
 
-.. plot:: projects/gen2_analysis/plots/muon_production_efficiency.py
+.. plot:: plots/muon_production_efficiency.py
 
 This formulation approximates the detector volume as a point, and is only valid
 as long as the scale size of the detector volume is much smaller than a) the
@@ -86,12 +86,12 @@ calculation for the `Aachen multi-year diffuse analysis
 2011.html#performance>`_, while the fiducial surface for the Gen2 geometries is
 the convex hull of the strings, with each face moved outward by 60 m.
 
-.. plot:: projects/gen2_analysis/plots/geometries.py
+.. plot:: plots/geometries.py
 
 The figure below shows the area of several geometries averaged over a zenith
 band. The fiducial area of IceCube is given in black for comparison.
 
-.. plot:: projects/gen2_analysis/plots/fiducial_area.py
+.. plot:: plots/fiducial_area.py
 
 Muon selection efficiency
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +100,7 @@ Once muons have reached the detector, the muon events have to pass the event
 selection. We parameterize the selection efficiency as a function of zenith
 angle and muon energy at the detector border as shown in the figure below.
 
-.. plot:: projects/gen2_analysis/plots/selection_efficiency.py
+.. plot:: plots/selection_efficiency.py
 
 The IceCube selection efficiency was derived from MuonGun simulation, while the
 Gen2 efficiencies were derived from NuGen simulation, using a mildly shady
@@ -120,7 +120,7 @@ reconstructed direction is parameterized as a function of muon energy as shown
 in the figure below. The opening angle between neutrino and muon (significant
 below 1 TeV) is neglected. 
 
-.. plot:: projects/gen2_analysis/plots/angular_resolution.py
+.. plot:: plots/angular_resolution.py
 
 Starting events
 ---------------
