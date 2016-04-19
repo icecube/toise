@@ -13,6 +13,7 @@ parser.add_argument("--veto-threshold", type=float, default=1e4)
 parser.add_argument("--no-cuts", default=False, action="store_true")
 parser.add_argument("--livetime", type=float, default=10.)
 parser.add_argument("--energy-threshold", type=float, default=None)
+parser.add_argument("--cascade-energy-threshold", type=float, default=None, help='Energy threshold for cascade detection. If None, no cascades.')
 parser.add_argument("--sin-dec", type=float, default=None)
 parser.add_argument("--livetimes", type=float, default=None, nargs=3)
 parser.add_argument("--angular-resolution-scale", type=float, default=1.)
@@ -48,10 +49,28 @@ from clint.textui import progress
 import warnings
 warnings.filterwarnings("ignore")
 
+def make_key(opts, kwargs):
+	key = dict(opts.__dict__)
+	key.update(kwargs)
+	for k, v in kwargs.items():
+		if isinstance(v, numpy.ndarray):
+			key[k] = (v[0], v[-1], len(v))
+		else:
+			key[k] = v
+	
+	return tuple(key.items())
+
 def create_aeff(opts, **kwargs):
-	
+
 	cache_file = os.path.join(data_dir, 'cache', 'throughgoing_aeff')
-	
+	try:
+		cache = pickle.load(open(cache_file))
+	except IOError:
+		cache = dict()
+	key = make_key(opts, kwargs)
+	if key in cache:
+		return cache[key]
+
 	if opts.veto_area > 0:
 		kwargs['veto_coverage'] = surface_veto.GeometricVetoCoverage(opts.geometry, opts.spacing, opts.veto_area)
 	
@@ -65,8 +84,8 @@ def create_aeff(opts, **kwargs):
 		# selection_efficiency = effective_areas.get_muon_selection_efficiency("IceCube", None)
 	else:
 		selection_efficiency = seleff
-	
-	return effective_areas.create_throughgoing_aeff(
+
+	aeff = effective_areas.create_throughgoing_aeff(
 	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing),
 	    selection_efficiency=selection_efficiency,
 	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
@@ -74,6 +93,34 @@ def create_aeff(opts, **kwargs):
 	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale),
 	    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
 	    **kwargs)
+
+	cache[key] = aeff
+	pickle.dump(cache, open(cache_file, 'w'), 2)
+	return aeff
+
+def create_cascade_aeff(opts, **kwargs):
+
+	cache_file = os.path.join(data_dir, 'cache', 'cascade_aeff')
+	try:
+		cache = pickle.load(open(cache_file))
+	except IOError:
+		cache = dict()
+	key = make_key(opts, kwargs)
+	if key in cache:
+		return cache[key]
+
+	aeff = effective_areas.create_throughgoing_aeff(
+	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing, channel='cascade'),
+	    selection_efficiency=effective_areas.HESEishSelectionEfficiency(opts.geometry, opts.spacing, opts.cascade_energy_threshold),
+	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
+	    # energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
+	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale, channel='cascade'),
+	    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 2)),
+	    **kwargs)
+
+	cache[key] = aeff
+	pickle.dump(cache, open(cache_file, 'w'), 2)
+	return aeff
 
 def intflux(e, gamma=-2):
 	return (e**(1+gamma))/(1+gamma)
@@ -338,22 +385,33 @@ elif opts.figure_of_merit == 'differential_diffuse':
 
 elif opts.figure_of_merit == 'diffuse_index':
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+	cos_theta = numpy.linspace(-1, 1, 21)
+	sys.stderr.write("loading effective area...")
+	aeffs = dict(tracks=create_aeff(opts,cos_theta=cos_theta))
+	sys.stderr.write("done\n")
+	if opts.cascade_energy_threshold is not None:
+		aeffs['cascades']=create_cascade_aeff(opts,cos_theta=cos_theta)
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
-	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-	atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
-	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-	prompt.min = 0.5
-	prompt.max = 3
-	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
-	astro.seed = 2
-	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
-	
-	llh = multillh.asimov_llh(dict(conv=atmo, prompt=prompt, astro=astro, gamma=gamma), astro=2, gamma=-2.3)
+	components = dict()
+	for k, aeff in aeffs.items():
+		atmo = diffuse.AtmosphericNu.conventional(aeff, 1, hard_veto_threshold=energy_threshold)
+		atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
+		prompt = diffuse.AtmosphericNu.prompt(aeff, 1, hard_veto_threshold=energy_threshold)
+		prompt.min = 0.5
+		prompt.max = 3
+		astro = diffuse.DiffuseAstro(aeff, 1)
+		astro.seed = 2
+		components[k] = dict(atmo=atmo, prompt=prompt, astro=astro)
+	def combine(key):
+		return multillh.Combination({k: (components[k][key], opts.livetime) for k in components})
+
+	gamma = multillh.NuisanceParam(-2.3)
+	llh = multillh.asimov_llh(dict(conv=combine('atmo'), prompt=combine('prompt'), astro=combine('astro'), gamma=gamma), astro=2, gamma=-2.3)
 	
 	exes = get_expectations(llh)
-	nb = exes['conv']['tracks'].sum() + exes['prompt']['tracks'].sum()
-	ns = exes['astro']['tracks'].sum()
+	get_events = lambda d: sum(v.sum() for v in d.values())
+	nb = get_events(exes['conv']) + get_events(exes['prompt'])
+	ns = get_events(exes['astro'])
 
 	from scipy import stats, optimize
 	def find_limits(llh, critical_ts = 1**2, plotit=False):
