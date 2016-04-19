@@ -3,6 +3,7 @@ import os
 import numpy
 import itertools
 import healpy
+import warnings
 
 from surfaces import get_fiducial_surface
 from energy_resolution import get_energy_resolution
@@ -243,6 +244,27 @@ def get_starting_event_efficiency(ct_edges=None):
 	edges, efficiency = _interpolate_production_efficiency(center(ct_edges), 'starting_event_efficiency.hdf5', ['e', 'mu', 'tau'])
 	return (edges[0], ct_edges, edges[2], edges[3]), efficiency
 
+def get_cascade_production_density(ct_edges=None):
+	"""
+	Get the probability that a muon neutrino of energy E_nu from zenith angle
+	cos_theta will produce a muon that reaches the detector with energy E_mu
+	
+	:param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
+	    at the centers of these bins. If an integer, interpret as the NSide of
+	    a HEALpix map
+	:returns: a tuple edges, efficiency. *edges* is a 3-element tuple giving the
+	    edges in E_nu, cos_theta, and E_mu, while *efficiency* is a 3D array
+	    with the same axes.
+	"""
+	if ct_edges is None:
+		ct_edges = numpy.linspace(-1, 1, 11)
+	elif isinstance(ct_edges, int):
+		nside = ct_edges
+		ct_edges = _ring_range(nside)
+	
+	edges, efficiency = _interpolate_production_efficiency(center(ct_edges), 'cascade_efficiency.hdf5', ['e', 'mu', 'tau'])
+	return (edges[0], ct_edges, edges[2]), efficiency
+
 class effective_area(object):
 	"""
 	Effective area with metadata
@@ -379,7 +401,7 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 
-def create_starting_aeff(energy_resolution=get_energy_resolution("IceCube"),
+def create_cascade_aeff(energy_resolution=get_energy_resolution("IceCube"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
     selection_efficiency=MuonSelectionEfficiency(),
@@ -407,14 +429,36 @@ def create_starting_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	if isinstance(cos_theta, int):
 		nside = cos_theta
 	
-	# Step 1: Density of final states per m
-	(e_nu, cos_theta, e_shower, e_mu), aeff = get_starting_event_efficiency(cos_theta)
+	# Step 1: Density of final states per meter
+	warnings.warn("Only treating cascades at the moment")
+	(e_nu, cos_theta, e_shower), aeff = get_cascade_production_density(cos_theta)
 	
 	# Step 2: Geometric effective area (no selection effects yet)
 	aeff *= surface.volume()
 	
-	# Step 3: apply selection efficiency
-	# selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
-	selection_efficiency = selection_efficiency(*numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij')).T
+	warnings.warn('Reconstruction quantities are made up for now')
 	
-	aeff *= selection_efficiency[None,None,:,:]
+	# Step 3: apply selection efficiency
+	selection_efficiency = selection_efficiency(*numpy.meshgrid(e_shower[1:], center(cos_theta), indexing='ij')).T
+	aeff *= selection_efficiency[None,None,...]
+	
+	# Step 4: apply smearing for angular resolution
+	# Add an overflow bin if none present
+	if numpy.isfinite(psi_bins[-1]):
+		psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
+	cdf = eval_psf(psf, center(e_shower), center(cos_theta), psi_bins[:-1])
+	
+	total_aeff = numpy.empty(aeff.shape + (psi_bins.size-1,))
+	# expand differential contributions along the opening-angle axis
+	total_aeff[...,:-1] = aeff[...,None]*numpy.diff(cdf, axis=2)[None,...]
+	# put the remainder in the overflow bin
+	total_aeff[...,-1] = aeff*(1-cdf[...,-1])[None,None,...] 
+	
+	# Step 5: apply smearing for energy resolution
+	response = energy_resolution.get_response_matrix(e_shower, e_shower)
+	total_aeff = numpy.apply_along_axis(numpy.inner, 3, total_aeff, response)
+	
+	edges = (e_nu, cos_theta, e_shower, psi_bins)
+	
+	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+	
