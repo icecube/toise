@@ -186,7 +186,8 @@ class AtmosphericNu(DiffuseNuGen):
 		"""
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['conventional']
-		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==effective_area.values.shape)
+		shape_key = effective_area.values.shape[:4]
+		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
 		if flux is None:
 			flux = NewNuFlux.makeFlux('honda2006')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
@@ -199,7 +200,7 @@ class AtmosphericNu(DiffuseNuGen):
 			
 			if not veto_threshold in cache:
 				cache[veto_threshold] = list()
-			cache[veto_threshold].append((effective_area.values.shape, instance._flux))
+			cache[veto_threshold].append((shape_key, instance._flux))
 			with open(cls._cache_file, 'w') as f:
 				pickle.dump(cls._fluxes, f, protocol=2)
 		assert len(cls._fluxes['conventional']) > 0 
@@ -217,7 +218,8 @@ class AtmosphericNu(DiffuseNuGen):
 		"""
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['prompt']
-		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==effective_area.values.shape)
+		shape_key = effective_area.values.shape[:4]
+		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
 		if flux is None:
 			flux = NewNuFlux.makeFlux('sarcevic_std')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
@@ -229,7 +231,7 @@ class AtmosphericNu(DiffuseNuGen):
 		if isinstance(flux, tuple):
 			if not veto_threshold in cache:
 				cache[veto_threshold] = list()
-			cache[veto_threshold].append((effective_area.values.shape, instance._flux))
+			cache[veto_threshold].append((shape_key, instance._flux))
 			with open(cls._cache_file, 'w') as f:
 				pickle.dump(cls._fluxes, f, protocol=2)
 		
