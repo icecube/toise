@@ -78,8 +78,13 @@ def detect(sequence, pred):
 		return None
 
 class AtmosphericNu(DiffuseNuGen):
+	"""
+	The diffuse atmospheric neutrino flux. :meth:`.point_source_background`
+	returns the corresponding point source background.
+	
+	The units of the model are scalings of the underlying flux parameterization.
+	"""
 	def __init__(self, effective_area, flux, livetime, hard_veto_threshold=None):
-		
 		if isinstance(flux, tuple):
 			flux_func, passing_fraction = flux
 			if passing_fraction is not None:
@@ -119,12 +124,17 @@ class AtmosphericNu(DiffuseNuGen):
 	
 	def point_source_background(self, zenith_index, livetime=None, with_energy=True):
 		"""
-		convert to a point source background
+		Convert flux to a form suitable for calculating point source backgrounds.
+		The predictions in **expectations** will be differential in the opening-angle
+		bins provided in the effective area instead of being integrated over them.
 		
-		:param bin_areas: areas (in sr) of the search bins around the putative source
+		:param zenith_index: index of the sky bin to use. May be either an integer
+		                     (for single point source searches) or a slice (for
+		                     stacking searches)
 		:param livetime: if not None, the actual livetime to integrate over in seconds
+		:param with_energy: if False, integrate over reconstructed energy. Otherwise,
+		                    provide a differential prediction in reconstructed energy.
 		"""
-		
 		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
 		
 		background = copy(self)
@@ -152,6 +162,28 @@ class AtmosphericNu(DiffuseNuGen):
 		_fluxes = dict(conventional=dict(), prompt=dict())
 	@classmethod
 	def conventional(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
+		"""
+		Instantiate a conventional atmospheric neutrino flux, using the Honda
+		parameterization with corrections for the cosmic ray knee and the fraction
+		of atmospheric neutrinos accompanied by muons.
+		
+		The flux will be integrated over the effective area's energy and zenith
+		angle bins the first time this method is called. Depending on the number of
+		bins this can take several minutes. Subsequent calls with the same veto
+		threshold and an effective area of the same shape will use the cached flux
+		and instantiate much more quickly.
+			
+		:param effective_area: an instance of :py:class:`effective_areas.effective_area`
+		:param livetime: observation time, in years
+		:param veto_threshold: muon energy, in GeV, above which atmospheric muons
+		                       can be vetoed. This will be used to modify the effective
+		                       atmospheric neutrino flux.
+		:param hard_veto_threshold: if not None, reduce the atmospheric flux to
+		                            1e-4 of its nominal value in the southern
+		                            hemisphere to model the effect of a surface
+		                            veto. This assumes that an energy threshold
+		                            has been applied to the effective area. 
+		"""
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['conventional']
 		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==effective_area.values.shape)
@@ -176,6 +208,13 @@ class AtmosphericNu(DiffuseNuGen):
 	
 	@classmethod
 	def prompt(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
+		"""
+		Instantiate a prompt atmospheric neutrino flux, using the Enberg
+		parameterization with corrections for the cosmic ray knee and the fraction
+		of atmospheric neutrinos accompanied by muons.
+		
+		The parameters have the same meanings as in :meth:`.conventional`
+		"""
 		from icecube import NewNuFlux, AtmosphericSelfVeto
 		cache = cls._fluxes['prompt']
 		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==effective_area.values.shape)
@@ -197,7 +236,18 @@ class AtmosphericNu(DiffuseNuGen):
 		return instance
 		
 class DiffuseAstro(DiffuseNuGen):
+	r"""
+	A diffuse astrophysical neutrino flux. :meth:`.point_source_background`
+	returns the corresponding point source background.
+	
+	The unit is the differential flux per neutrino flavor at 100 TeV,
+	in units of :math:`10^{-18} \,\, \rm  GeV^{-1} \, cm^{-2} \, s^{-1} \, sr^{-1}`
+	"""
 	def __init__(self, effective_area, livetime):
+		"""
+		:param effective_area: the effective area
+		:param livetime: observation time, in years
+		"""
 		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
 		flux = self._integrate_flux(effective_area.bin_edges, lambda pt, e, ct: 0.5e-18*(e/1e5)**(-2.))
 		# "integrate" over solid angle
@@ -215,12 +265,7 @@ class DiffuseAstro(DiffuseNuGen):
 		self._last_expectations = None
 	
 	def point_source_background(self, zenith_index, livetime=None, with_energy=True):
-		"""
-		convert to a point source background
-		
-		:param bin_areas: areas (in sr) of the search bins around the putative source
-		:param livetime: if not None, the actual livetime to integrate over in seconds
-		"""
+		__doc__ = AtmosphericNu.point_source_background.__doc__
 		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
 		
 		
@@ -326,6 +371,12 @@ class DiffuseAstro(DiffuseNuGen):
 		return self._last_expectations
 	
 	def expectations(self, gamma=-2, **kwargs):
+		r"""
+		:param gamma: the spectral index :math:`\gamma`.
+		:returns: the observable distributions expected for a flux of
+		:math:`10^{-18} \frac{E_\nu}{\rm 100 \, TeV}^{\gamma} \,\, \rm  GeV^{-1} \, cm^{-2} \, s^{-1} \, sr^{-1}`
+		per neutrino flavor 
+		"""
 		return self.calculate_expectations(gamma=gamma, **kwargs)
 
 class AhlersGZK(DiffuseAstro):
@@ -398,6 +449,10 @@ def transform_map(skymap):
 	return healpy.pixelfunc.get_interp_val(skymap, theta_ecl, phi_ecl)
 
 class FermiGalacticEmission(DiffuseNuGen):
+	"""
+	Diffuse emission from the galaxy, modeled as 0.95 times the Fermi
+	:math:`\pi^0` map, extrapolated with a spectral index of 2.71.
+	"""
 	def __init__(self, effective_area, livetime=1.):
 		assert effective_area.is_healpix
 		# differential flux at 1 GeV [1/(GeV cm^2 sr s)]
