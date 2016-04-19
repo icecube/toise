@@ -122,6 +122,24 @@ def create_cascade_aeff(opts, **kwargs):
 	pickle.dump(cache, open(cache_file, 'w'), 2)
 	return aeff
 
+class aeff_bundle(object):
+	def __init__(self, component_factory, **kwargs):
+		aeffs = dict(tracks=create_aeff(opts,**kwargs))
+		if opts.cascade_energy_threshold is not None:
+			aeffs['cascades']=create_cascade_aeff(opts,**kwargs)
+		components = dict()
+		for k, aeff in aeffs.items():
+			components[k] = component_factory(aeff)
+		self.components = components
+		self.aeffs = aeffs
+	def get_component(self, key):
+		return multillh.Combination({k: (self.components[k][key], opts.livetime) for k in self.components})
+	def get_components(self):
+		keys = set()
+		for v in self.components.values():
+			keys.update(v.keys())
+		return {key : self.get_component(key) for key in keys}
+
 def intflux(e, gamma=-2):
 	return (e**(1+gamma))/(1+gamma)
 def survey_distance(phi, L0=1e45):
@@ -327,24 +345,29 @@ elif opts.figure_of_merit == 'grb':
 
 elif opts.figure_of_merit == 'gzk':
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
-	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
-	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-	atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
-	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-	prompt.min = 0.5
-	prompt.max = 3
-	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
-	astro.seed = 2
-	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
-	gzk = diffuse.AhlersGZK(aeff, opts.livetime)
+	def components(aeff):
+		energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
+		atmo = diffuse.AtmosphericNu.conventional(aeff, 1., hard_veto_threshold=energy_threshold)
+		atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
+		prompt = diffuse.AtmosphericNu.prompt(aeff, 1., hard_veto_threshold=energy_threshold)
+		prompt.min = 0.5
+		prompt.max = 3
+		astro = diffuse.DiffuseAstro(aeff, 1.)
+		astro.seed = 2
+		gzk = diffuse.AhlersGZK(aeff, 1.)
+		return dict(atmo=atmo, prompt=prompt, astro=astro, gzk=gzk)
+	bundle = aeff_bundle(components, cos_theta=numpy.linspace(-1, 1, 21))
+	components = bundle.get_components()
+	components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+	gzk = components.pop('gzk')
+	aeff = bundle.aeffs.values()[0]
 	
-	pev = numpy.where(aeff.bin_edges[2][1:] > 1e6)[0][0]
-	ns = gzk.expectations()['tracks'].sum(axis=0)[pev:].sum()
-	nb = astro.expectations(gamma=-2.3)['tracks'].sum(axis=0)[pev:].sum()
+	pev = numpy.where(aeff.bin_edges[2][1:] > 5e7)[0][0]
+	def pev_events(observables):
+		return sum((v.sum(axis=0)[pev:].sum() for v in observables.values()))
+	ns = pev_events(gzk.expectations())
+	nb = pev_events(components['astro'].expectations(gamma=-2.3))
 	baseline = 5*numpy.sqrt(nb)/ns
-	
-	components = dict(atmo=atmo, astro=astro, gamma=gamma)
 	
 	scale = pointsource.discovery_potential(gzk, components,
 	    baseline=baseline, tolerance=1e-4, gamma=-2.3)
@@ -352,8 +375,8 @@ elif opts.figure_of_merit == 'gzk':
 	components['gzk'] = gzk
 	llh = multillh.asimov_llh(components)
 	exes = get_expectations(llh, gzk=scale)
-	nb = exes['atmo']['tracks'][:,pev:].sum() + exes['astro']['tracks'][:,pev:].sum()
-	ns = exes['gzk']['tracks'][:,pev:].sum()
+	nb = pev_events(exes['atmo']) + pev_events(exes['astro'])
+	ns = pev_events(exes['gzk'])
 
 	print_result(scale, nb=nb, ns=ns)
 
