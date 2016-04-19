@@ -148,7 +148,7 @@ class MuonEffectiveArea(object):
 		geo = self._surface.azimuth_averaged_area(cos_theta)
 		return geo * self._efficiency(muon_energy, cos_theta)
 
-def _interpolate_muon_production_efficiency(cos_zenith):
+def _interpolate_production_efficiency(cos_zenith, fname='muon_efficiency.hdf5', flavors=['mu']):
 	"""
 	Get the probability that a muon neutrino of energy E_nu from zenith angle
 	cos_theta will produce a muon that reaches the detector with energy E_mu
@@ -160,12 +160,12 @@ def _interpolate_muon_production_efficiency(cos_zenith):
 	from scipy import interpolate
 	
 	efficiencies = []
-	with tables.open_file(os.path.join(data_dir, 'cross_sections', 'muon_efficiency.hdf5')) as hdf:
-		for flavor in 'numu', 'numu_bar':
-			h = dashi.histload(hdf, '/'+flavor)
-			edges = [numpy.log10(h.binedges[0]), h.binedges[1], numpy.log10(h.binedges[2])]
+	with tables.open_file(os.path.join(data_dir, 'cross_sections', fname)) as hdf:
+		for family, anti in itertools.product(flavors, ('', '_bar')):
+			h = dashi.histload(hdf, '/nu'+family+anti)
+			edges = [numpy.log10(h.binedges[0]), h.binedges[1]] + map(numpy.log10, h.binedges[2:])
 			centers = map(center, edges)
-			newcenters = centers[0], numpy.clip(cos_zenith, centers[1].min(), centers[1].max()), centers[2]
+			newcenters = [centers[0], numpy.clip(cos_zenith, centers[1].min(), centers[1].max())] + centers[2:]
 			y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
 			
 			assert not numpy.isnan(y).any()
@@ -188,7 +188,7 @@ def _interpolate_muon_production_efficiency(cos_zenith):
 		
 			efficiencies.append(10**v)
 	
-	return (h.binedges[0], None, h.binedges[2]), numpy.array(efficiencies)
+	return (h.binedges[0], None,) + tuple(h.binedges[2:]), numpy.array(efficiencies)
 
 def _ring_range(nside):
 	"""
@@ -219,8 +219,29 @@ def get_muon_production_efficiency(ct_edges=None):
 		nside = ct_edges
 		ct_edges = _ring_range(nside)
 	
-	edges, efficiency = _interpolate_muon_production_efficiency(center(ct_edges))
+	edges, efficiency = _interpolate_production_efficiency(center(ct_edges))
 	return (edges[0], ct_edges, edges[2]), efficiency
+
+def get_starting_event_efficiency(ct_edges=None):
+	"""
+	Get the probability that a muon neutrino of energy E_nu from zenith angle
+	cos_theta will produce a muon that reaches the detector with energy E_mu
+	
+	:param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
+	    at the centers of these bins. If an integer, interpret as the NSide of
+	    a HEALpix map
+	:returns: a tuple edges, efficiency. *edges* is a 3-element tuple giving the
+	    edges in E_nu, cos_theta, and E_mu, while *efficiency* is a 3D array
+	    with the same axes.
+	"""
+	if ct_edges is None:
+		ct_edges = numpy.linspace(-1, 1, 11)
+	elif isinstance(ct_edges, int):
+		nside = ct_edges
+		ct_edges = _ring_range(nside)
+	
+	edges, efficiency = _interpolate_production_efficiency(center(ct_edges), 'starting_event_efficiency.hdf5', ['e', 'mu', 'tau'])
+	return (edges[0], ct_edges, edges[2], edges[3]), efficiency
 
 class effective_area(object):
 	"""
@@ -357,3 +378,43 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	edges = (e_nu, cos_theta, e_mu, cos_theta, psi_bins)
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+
+def create_starting_aeff(energy_resolution=get_energy_resolution("IceCube"),
+    energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
+    selection_efficiency=MuonSelectionEfficiency(),
+    surface=get_fiducial_surface("IceCube"),
+    psf=get_angular_resolution("IceCube"),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 40)),
+	cos_theta=None,):
+	"""
+	Create an effective area for neutrinos interacting inside the volume
+	
+	:returns: an effective_area object
+	"""
+	
+	# Ingredients:
+	# 1) Final state production efficiency
+	# 2) Geometric area
+	# 3) Selection efficiency
+	# 4) Point spread function
+	# 5) Energy resolution
+	
+	import tables, dashi
+	from scipy.special import erf
+	
+	nside = None
+	if isinstance(cos_theta, int):
+		nside = cos_theta
+	
+	# Step 1: Density of final states per m
+	(e_nu, cos_theta, e_shower, e_mu), aeff = get_starting_event_efficiency(cos_theta)
+	
+	# Step 2: Geometric effective area (no selection effects yet)
+	aeff *= surface.volume()
+	
+	# Step 3: apply selection efficiency
+	# selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
+	selection_efficiency = selection_efficiency(*numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij')).T
+	
+	aeff *= selection_efficiency[None,None,:,:]
