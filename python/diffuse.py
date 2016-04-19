@@ -59,7 +59,7 @@ class DiffuseNuGen(object):
 					fluxband[k] = quad(lambda e: flux(pt, e, ct)*passing_fraction(pt, e, ct, depth=2e3), edges[0][k], edges[0][k+1])[0]
 				intflux[i,:,j] = fluxband
 		# return integrated flux in 1/(m^2 yr sr)
-		return intflux*1e4*(3600*24*365)
+		return intflux*constants.cm2*constants.annum
 
 	# apply 3-element multiplication + reduction without creating too many
 	# unnecessary temporaries. numexpr allows a single reduction, so do it here
@@ -142,7 +142,7 @@ class AtmosphericNu(DiffuseNuGen):
 		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,...]
 		# observation time shorter for triggered transient searches
 		if livetime is not None:
-			bin_areas *= (livetime/self._livetime/(3600.*24*365.))
+			bin_areas *= (livetime/self._livetime/constants.annum)
 		if isinstance(zenith_index, slice):
 			omega = self._solid_angle[zenith_index,None]
 		else:
@@ -153,6 +153,13 @@ class AtmosphericNu(DiffuseNuGen):
 			# just radial bins
 			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
 		return background
+	
+	def scale_livetime(self, livetime):
+		scaled = copy(self)
+		scale = livetime / scaled._livetime
+		scaled.expectations = {k: v*scale for k,v in scaled.expectations.items()}
+		scaled._livetime = livetime
+		return scaled
 	
 	_cache_file = os.path.join(data_dir, 'cache', 'atmospheric_fluxes.pickle')
 	if os.path.exists(_cache_file):
@@ -276,7 +283,7 @@ class DiffuseAstro(DiffuseNuGen):
 		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,None,None,:]
 		# observation time shorter for triggered transient searches
 		if livetime is not None:
-			bin_areas *= (livetime/self._livetime/(3600.*24*365.))
+			background._livetime = livetime/constants.annum
 		# dimensions of the keys in expectations are now energy, radial bin
 		
 		# cut flux down to a single zenith band
@@ -307,6 +314,12 @@ class DiffuseAstro(DiffuseNuGen):
 			raise ValueError("Can't disable energy dimension just yet")
 
 		return background
+	
+	def scale_livetime(self, livetime):
+		scaled = copy(self)
+		scaled._livetime = livetime
+		scaled._invalidate_cache()
+		return scaled
 	
 	def differential_chunks(self, decades=1):
 		"""
@@ -466,7 +479,7 @@ class FermiGalacticEmission(DiffuseNuGen):
 		e = effective_area.bin_edges[0]
 		# integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
 		flux = (intflux(e[1:]) - intflux(e[:-1]))
-		flux *= healpy.nside2pixarea(effective_area.nside) * 1e4 * 365*24*3600
+		flux *= healpy.nside2pixarea(effective_area.nside) * constants.cm2 * constants.annum
 		flux = flux[None,:,None] * flux_constant[None,None,:]
 		
 		super(FermiGalacticEmission, self).__init__(effective_area, flux, livetime)

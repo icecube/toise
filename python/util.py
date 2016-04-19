@@ -8,3 +8,8 @@ data_dir = os.path.join(os.environ['I3_SRC'], 'gen2_analysis', 'resources', 'dat
 
 def center(x):
 	return 0.5*(x[1:] + x[:-1])
+
+class constants:
+	annum = 365*24*3600.
+	cm = 1e2
+	cm2 = 1e4
