@@ -22,6 +22,38 @@ class NuisanceParam:
 			return 0
 		return -(value - self.seed)**2/(2.*self.uncertainty**2)
 
+class Combination(object):
+	def __init__(self, components):
+		"""
+		:param components: a dict of str: (component, livetime)
+		"""
+		self._components = components
+		for label, (component, livetime) in self._components.items():
+			if hasattr(component, 'min'):
+				self.min = component.min
+			if hasattr(component, 'max'):
+				self.max = component.max
+			if hasattr(component, 'seed'):
+				self.seed = component.seed
+	
+	def prior(self, value):
+		v = self._components.values()[0][0]
+		if hasattr(v, 'prior'):
+			return v.prior(value)
+		else:
+			return 0.
+	
+	def expectations(self, *args, **kwargs):
+		exes = dict()
+		for label, (component, livetime) in self._components.items():
+			if hasattr(component.expectations, "__call__"):
+				subex = component.expectations(*args, **kwargs)
+			else:
+				subex = component.expectations
+			for k, v in subex.items():
+				exes[label+'_'+k] = livetime*v
+		return exes
+
 class LLHEval:
 	"""
 	Object containing a Poisson likelihood fit
