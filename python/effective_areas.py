@@ -104,7 +104,8 @@ class HESEishSelectionEfficiency(object):
 		fiducial = surfaces.ExtrudedPolygon.from_file(surfaces.get_gcd(geometry, spacing), padding=-side_padding)
 		
 		self._threshold = energy_threshold
-		self._efficiency = fiducial.get_cap_area()/outer.get_cap_area()*(fiducial.length + 2*side_padding - top_padding)/outer.length
+		self._fiducial_volume = fiducial.get_cap_area()*(fiducial.length + 2*side_padding - top_padding)
+		self._efficiency = self._fiducial_volume/outer.volume()
 	
 	def __call__(self, deposited_energy, cos_theta):
 		return numpy.where(deposited_energy >= self._threshold, self._efficiency, 0.)
@@ -282,6 +283,27 @@ def get_cascade_production_density(ct_edges=None):
 	edges, efficiency = _interpolate_production_efficiency(center(ct_edges), 'cascade_efficiency.hdf5', ['e', 'mu', 'tau'])
 	return (edges[0], ct_edges, edges[2]), efficiency
 
+def get_doublebang_production_density(ct_edges=None):
+	"""
+	Get the probability that a muon neutrino of energy E_nu from zenith angle
+	cos_theta will produce a muon that reaches the detector with energy E_mu
+	
+	:param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
+	    at the centers of these bins. If an integer, interpret as the NSide of
+	    a HEALpix map
+	:returns: a tuple edges, efficiency. *edges* is a 3-element tuple giving the
+	    edges in E_nu, cos_theta, and E_mu, while *efficiency* is a 3D array
+	    with the same axes.
+	"""
+	if ct_edges is None:
+		ct_edges = numpy.linspace(-1, 1, 11)
+	elif isinstance(ct_edges, int):
+		nside = ct_edges
+		ct_edges = _ring_range(nside)
+	
+	edges, efficiency = _interpolate_production_efficiency(center(ct_edges), 'doublebang_efficiency.hdf5', ['e', 'mu', 'tau'])
+	return (edges[0], ct_edges, edges[2]), efficiency
+
 class effective_area(object):
 	"""
 	Effective area with metadata
@@ -418,7 +440,7 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 
-def create_cascade_aeff(energy_resolution=get_energy_resolution(channel='cascade'),
+def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resolution(channel='cascade'),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
     selection_efficiency=HESEishSelectionEfficiency(),
@@ -448,7 +470,10 @@ def create_cascade_aeff(energy_resolution=get_energy_resolution(channel='cascade
 	
 	# Step 1: Density of final states per meter
 	warnings.warn("Only treating cascades at the moment")
-	(e_nu, cos_theta, e_shower), aeff = get_cascade_production_density(cos_theta)
+	if channel == 'cascade':
+		(e_nu, cos_theta, e_shower), aeff = get_cascade_production_density(cos_theta)
+	elif channel == 'doublebang':
+		(e_nu, cos_theta, e_shower), aeff = get_doublebang_production_density(cos_theta)
 	
 	# Step 2: Geometric effective area (no selection effects yet)
 	aeff *= surface.volume()
