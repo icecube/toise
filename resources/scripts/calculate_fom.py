@@ -15,6 +15,7 @@ parser.add_argument("--livetime", type=float, default=10.)
 parser.add_argument("--energy-threshold", type=float, default=None)
 parser.add_argument("--sin-dec", type=float, default=None)
 parser.add_argument("--livetimes", type=float, default=None, nargs=3)
+parser.add_argument("--angular-resolution-scale", type=float, default=1.)
 parser.add_argument("-o", "--outfile", default=None)
 
 parser.add_argument("figure_of_merit")
@@ -70,7 +71,8 @@ def create_aeff(opts, **kwargs):
 	    selection_efficiency=selection_efficiency,
 	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
 	    energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
-	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing),
+	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale),
+	    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
 	    **kwargs)
 
 def intflux(e, gamma=-2):
@@ -148,6 +150,13 @@ if opts.figure_of_merit == 'survey_volume':
 		fixed = dict(atmo=1, gamma=gamma.seed, astro=2)
 		atmo.seed = 1
 		dp.append(1e-12*pointsource.discovery_potential(ps, diffuse, **fixed))
+		s = ps.expectations(**fixed)['tracks'].sum(axis=0)
+		b = bkg.expectations['tracks'].sum(axis=0)
+		if (~numpy.isnan(s/b)).any():
+			pass
+			# print s.cumsum()/s.sum()
+			# print s/b
+		# bkgs.append(bkg.expectations['tracks'][:,:20].sum())
 	dp = numpy.array(dp)[::-1]
 	
 	volume = survey_volume(sindec, dp)
