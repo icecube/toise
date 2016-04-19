@@ -252,13 +252,18 @@ class DiffuseAstro(DiffuseNuGen):
 	The unit is the differential flux per neutrino flavor at 100 TeV,
 	in units of :math:`10^{-18} \,\, \rm  GeV^{-1} \, cm^{-2} \, s^{-1} \, sr^{-1}`
 	"""
-	def __init__(self, effective_area, livetime):
+	def __init__(self, effective_area, livetime, flavor=None, gamma_name='gamma'):
 		"""
 		:param effective_area: the effective area
 		:param livetime: observation time, in years
 		"""
 		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
 		flux = self._integrate_flux(effective_area.bin_edges, lambda pt, e, ct: 0.5e-18*(e/1e5)**(-2.))
+		if isinstance(flavor, int):
+			for i in xrange(flux.shape[0]):
+				if i < 2*flavor or i > 2*flavor+1:
+					flux[i,...] = 0
+
 		# "integrate" over solid angle
 		if effective_area.is_healpix:
 			flux *= healpy.nside2pixarea(effective_area.nside)
@@ -267,6 +272,8 @@ class DiffuseAstro(DiffuseNuGen):
 		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
 		self._with_psi = False
 		
+		self._gamma_name = gamma_name
+		self._with_energy = True
 		self._invalidate_cache()
 	
 	def _invalidate_cache(self):
@@ -301,6 +308,7 @@ class DiffuseAstro(DiffuseNuGen):
 		background._aeff.values = self._aeff.values[:,:,sel,:,:].sum(axis=4)[...,None]*bin_areas
 		background._with_psi = True
 		
+		background._with_energy = with_energy
 		background._invalidate_cache()
 		
 		# total = self._apply_flux(background._aeff.values, background._flux, self._livetime)
@@ -309,9 +317,6 @@ class DiffuseAstro(DiffuseNuGen):
 		# print background._aeff.values.shape, background._flux.shape
 		# print total[...,0].sum()
 		# assert total[...,1].sum() > 0
-		
-		if not with_energy:
-			raise ValueError("Can't disable energy dimension just yet")
 
 		return background
 	
@@ -343,8 +348,8 @@ class DiffuseAstro(DiffuseNuGen):
 			yield e_center, chunk
 	
 	def spectral_weight(self, e_center, **kwargs):
-		self._last_params['gamma'] = kwargs['gamma']
-		return (e_center/1e5)**(kwargs['gamma']+2)
+		self._last_params[self._gamma_name] = kwargs[self._gamma_name]
+		return (e_center/1e5)**(kwargs[self._gamma_name]+2)
 	
 	def calculate_expectations(self, **kwargs):
 		if self._last_expectations is not None and all([self._last_params[k] == kwargs[k] for k in self._last_params]):
@@ -363,7 +368,7 @@ class DiffuseAstro(DiffuseNuGen):
 			flavor_weight[0:2] *= e
 			flavor_weight[2:4] *= mu
 			flavor_weight[4:6] *= (1. - e - mu)
-			flux *= flavor_weight[:,None,None,None,None,None]
+			flux *= flavor_weight[:,None,None]
 			for k in 'e_fraction', 'mu_fraction':
 				self._last_params[k] = kwargs[k]
 		
@@ -382,6 +387,10 @@ class DiffuseAstro(DiffuseNuGen):
 			total = total.repeat(self._aeff.ring_repeat_pattern, axis=0)
 		if total.shape[0] == 1:
 			total = total.reshape(total.shape[1:])
+		
+		if not self._with_energy:
+			total = total.sum(axis=0)
+		
 		self._last_expectations = dict(tracks=total)
 		return self._last_expectations
 	
