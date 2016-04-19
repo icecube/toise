@@ -30,6 +30,8 @@ def get_label(opts):
 	       }[opts.figure_of_merit]
 	if opts.energy_threshold is not None:
 		name += ' (above %s)' % plotting.format_energy('%d', opts.energy_threshold)
+	if opts.angular_resolution_scale != 1:
+		name += ' (%.0fx angular resolution)' % (1./opts.angular_resolution_scale)
 	return name
 
 opts = parser.parse_args()
@@ -408,15 +410,10 @@ elif opts.figure_of_merit == 'differential_diffuse':
 
 elif opts.figure_of_merit == 'diffuse_index':
 	
-	cos_theta = numpy.linspace(-1, 1, 20)
-	aeffs = dict(tracks=create_aeff(opts,cos_theta=cos_theta))
-	if opts.cascade_energy_threshold is not None:
-		aeffs['cascades']=create_cascade_aeff(opts,cos_theta=cos_theta)
-	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
-	components = dict()
 	two_component = False and (opts.energy_threshold is not None)
-
-	for k, aeff in aeffs.items():
+	
+	def components(aeff):
+		energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 		atmo = diffuse.AtmosphericNu.conventional(aeff, 1, hard_veto_threshold=energy_threshold)
 		atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
 		prompt = diffuse.AtmosphericNu.prompt(aeff, 1, hard_veto_threshold=energy_threshold)
@@ -427,34 +424,30 @@ elif opts.figure_of_merit == 'diffuse_index':
 			astro_lo.seed = 2.
 			astro = diffuse.DiffuseAstro(aeff.restrict_energy_range(opts.energy_threshold, numpy.inf), 1)
 			astro.seed = 2.
-			components[k] = dict(atmo=atmo, prompt=prompt, astro_lo=astro_lo, astro=astro)
+			return dict(atmo=atmo, prompt=prompt, astro_lo=astro_lo, astro=astro)
 		else:
 			astro = diffuse.DiffuseAstro(aeff, 1)
 			astro.seed = 2.
-			components[k] = dict(atmo=atmo, prompt=prompt, astro=astro)
-	def combine(key):
-		return multillh.Combination({k: (components[k][key], opts.livetime) for k in components})
-
-	comps = dict(conv=combine('atmo'), prompt=combine('prompt'), astro=combine('astro'), gamma=multillh.NuisanceParam(-2.3))
+			return dict(atmo=atmo, prompt=prompt, astro=astro)
+	bundle = aeff_bundle(components, cos_theta=numpy.linspace(-1, 1, 20))
+	components = bundle.get_components()
+	components['gamma'] =  multillh.NuisanceParam(-2.3)
 	if two_component:
-		comps['astro_lo'] = combine('astro_lo')
-		comps['gamma_lo'] = multillh.NuisanceParam(-2.3)
-	llh = multillh.asimov_llh(comps)
+		components['gamma_lo'] = multillh.NuisanceParam(-2.3)
+	llh = multillh.asimov_llh(components)
 	
 	exes = get_expectations(llh)
 	get_events = lambda d: sum(v.sum() for v in d.values())
-	nb = get_events(exes['conv']) + get_events(exes['prompt'])
+	nb = get_events(exes['atmo']) + get_events(exes['prompt'])
 	ns = get_events(exes['astro'])
 
 	from scipy import stats, optimize
 	def find_limits(llh, critical_ts = 1**2, plotit=False):
 		nom = {k:v.seed for k,v in llh.components.items()}
-		print nom
 		base = llh.llh(**nom)
 		def ts_diff(gamma):
 			alt = llh.fit(gamma=gamma)
 			ts = -2*(llh.llh(**alt) - base) - critical_ts
-			print alt, ts
 			return ts
 		g0 = -2.3
 		try:
