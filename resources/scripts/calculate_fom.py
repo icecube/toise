@@ -385,26 +385,38 @@ elif opts.figure_of_merit == 'differential_diffuse':
 
 elif opts.figure_of_merit == 'diffuse_index':
 	
-	cos_theta = numpy.linspace(-1, 1, 21)
+	cos_theta = numpy.linspace(-1, 1, 20)
 	aeffs = dict(tracks=create_aeff(opts,cos_theta=cos_theta))
 	if opts.cascade_energy_threshold is not None:
 		aeffs['cascades']=create_cascade_aeff(opts,cos_theta=cos_theta)
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	components = dict()
+	two_component = False and (opts.energy_threshold is not None)
+
 	for k, aeff in aeffs.items():
 		atmo = diffuse.AtmosphericNu.conventional(aeff, 1, hard_veto_threshold=energy_threshold)
 		atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
 		prompt = diffuse.AtmosphericNu.prompt(aeff, 1, hard_veto_threshold=energy_threshold)
 		prompt.min = 0.5
-		prompt.max = 3
-		astro = diffuse.DiffuseAstro(aeff, 1)
-		astro.seed = 2
-		components[k] = dict(atmo=atmo, prompt=prompt, astro=astro)
+		prompt.max = 3.
+		if two_component:
+			astro_lo = diffuse.DiffuseAstro(aeff.restrict_energy_range(0, opts.energy_threshold), 1, gamma_name='gamma_lo')
+			astro_lo.seed = 2.
+			astro = diffuse.DiffuseAstro(aeff.restrict_energy_range(opts.energy_threshold, numpy.inf), 1)
+			astro.seed = 2.
+			components[k] = dict(atmo=atmo, prompt=prompt, astro_lo=astro_lo, astro=astro)
+		else:
+			astro = diffuse.DiffuseAstro(aeff, 1)
+			astro.seed = 2.
+			components[k] = dict(atmo=atmo, prompt=prompt, astro=astro)
 	def combine(key):
 		return multillh.Combination({k: (components[k][key], opts.livetime) for k in components})
 
-	gamma = multillh.NuisanceParam(-2.3)
-	llh = multillh.asimov_llh(dict(conv=combine('atmo'), prompt=combine('prompt'), astro=combine('astro'), gamma=gamma), astro=2, gamma=-2.3)
+	comps = dict(conv=combine('atmo'), prompt=combine('prompt'), astro=combine('astro'), gamma=multillh.NuisanceParam(-2.3))
+	if two_component:
+		comps['astro_lo'] = combine('astro_lo')
+		comps['gamma_lo'] = multillh.NuisanceParam(-2.3)
+	llh = multillh.asimov_llh(comps)
 	
 	exes = get_expectations(llh)
 	get_events = lambda d: sum(v.sum() for v in d.values())
@@ -414,16 +426,20 @@ elif opts.figure_of_merit == 'diffuse_index':
 	from scipy import stats, optimize
 	def find_limits(llh, critical_ts = 1**2, plotit=False):
 		nom = {k:v.seed for k,v in llh.components.items()}
+		print nom
 		base = llh.llh(**nom)
 		def ts_diff(gamma):
-			return -2*(llh.llh(**llh.fit(gamma=gamma)) - base) - critical_ts
+			alt = llh.fit(gamma=gamma)
+			ts = -2*(llh.llh(**alt) - base) - critical_ts
+			print alt, ts
+			return ts
 		g0 = -2.3
 		try:
-			lo = optimize.bisect(ts_diff, g0, g0+0.6, xtol=1e-4, rtol=1e-4)
+			lo = optimize.bisect(ts_diff, g0, g0+0.6, xtol=5e-3, rtol=1e-4)
 		except ValueError:
 			lo = g0+1
 		try:
-			hi = optimize.bisect(ts_diff, g0-0.8, g0, xtol=1e-4, rtol=1e-4)
+			hi = optimize.bisect(ts_diff, g0-0.8, g0, xtol=5e-3, rtol=1e-4)
 		except ValueError:
 			hi = g0-1
 		
