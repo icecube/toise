@@ -4,6 +4,7 @@ import numpy
 import itertools
 import healpy
 import warnings
+import copy
 
 from surfaces import get_fiducial_surface
 from energy_resolution import get_energy_resolution
@@ -102,6 +103,8 @@ class HESEishSelectionEfficiency(object):
 		side_padding = spacing/2.
 		top_padding = 100.
 		fiducial = surfaces.ExtrudedPolygon.from_file(surfaces.get_gcd(geometry, spacing), padding=-side_padding)
+		
+		self._fiducial_surface = fiducial
 		
 		self._threshold = energy_threshold
 		self._fiducial_volume = fiducial.get_cap_area()*(fiducial.length + 2*side_padding - top_padding)
@@ -316,6 +319,21 @@ class effective_area(object):
 	
 	def compatible_with(self, other):
 		return self.values.shape == other.values.shape and all(((a==b).all() for a, b in zip(self.bin_edges, other.bin_edges)))
+	
+	def restrict_energy_range(self, emin, emax):
+		
+		# find bins with lower edge >= emin and upper edge <= emax
+		mask = (self.bin_edges[0][1:] <= emax) & (self.bin_edges[0][:-1] >= emin)
+		idx = numpy.arange(mask.size)[mask][[0,-1]]
+		
+		reduced = copy.copy(self)
+		reduced.bin_edges = list(reduced.bin_edges)
+		reduced.bin_edges[0] = reduced.bin_edges[0][idx[0]:idx[1]+2]
+		reduced.bin_edges = tuple(reduced.bin_edges)
+		
+		reduced.values =  self.values[:,idx[0]:idx[1]+1,...]
+		
+		return reduced
 	
 	@property
 	def is_healpix(self):
