@@ -79,6 +79,12 @@ def pretty(*args, **kwargs):
 	import matplotlib.pyplot as plt
 	return plt.rc_context(pretty_style(*args, **kwargs))
 
+def save_all(fname_base):
+	import matplotlib.pyplot as plt
+	plt.savefig(fname_base + '.pdf', transparent=True)
+	plt.savefig(fname_base + '.hires.png', dpi=300)
+	plt.savefig(fname_base + '.png')
+
 # New matplotlib colormaps by Nathaniel J. Smith, Stefan van der Walt,
 # and (in the case of viridis) Eric Firing.
 #
