@@ -410,17 +410,10 @@ class DiffuseAstro(DiffuseNuGen):
 		"""
 		return self.calculate_expectations(gamma=gamma, **kwargs)
 
-class AhlersGZK(DiffuseAstro):
-	"""
-	Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
-	pure protons
-	see: http://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.083010
-	Fig 2. left panel, solid red line (protons with source evolution)
-	"""
-	def __init__(self, *args, **kwargs):
+class AhlersGZKFlux(object):
+	def __init__(self):
 		from scipy import interpolate
 		
-		super(AhlersGZK, self).__init__(*args, **kwargs)
 		logE, logWeight = numpy.log10(numpy.loadtxt(StringIO(
 		    """3.095e5	8.345e-13
 		    4.306e5	1.534e-12
@@ -465,9 +458,23 @@ class AhlersGZK(DiffuseAstro):
 		    """))).T
 
 		self._interpolant = interpolate.interp1d(logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
-		
-	def spectral_weight(self, e_center, **kwargs):
+	def __call__(self, e_center):
 		return 10**self._interpolant(numpy.log10(e_center))
+
+class AhlersGZK(DiffuseAstro):
+	"""
+	Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
+	pure protons
+	see: http://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.083010
+	Fig 2. left panel, solid red line (protons with source evolution)
+	"""
+	def __init__(self, *args, **kwargs):
+		
+		super(AhlersGZK, self).__init__(*args, **kwargs)
+		self._flux_func = AhlersGZKFlux()
+
+	def spectral_weight(e_center, **kwargs):
+		return self._flux_func(e_center)
 
 def transform_map(skymap):
 	"""
