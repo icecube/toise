@@ -326,16 +326,22 @@ class DiffuseAstro(DiffuseNuGen):
 		scaled._invalidate_cache()
 		return scaled
 	
-	def differential_chunks(self, decades=1):
+	def differential_chunks(self, decades=1, exclusive=False):
 		"""
 		Yield copies of self with the neutrino spectrum restricted to *decade*
 		decades in energy
 		"""
 		# now, sum over decades in neutrino energy
-		loge = numpy.log10(self._aeff.bin_edges[0])
+		ebins = self._aeff.bin_edges[0]
+		loge = numpy.log10(ebins)
 		bin_range = int(decades/(loge[1]-loge[0]))+1
 		
-		for i in range(loge.size-1-bin_range):
+		if exclusive:
+			bins = range(0, loge.size-1, bin_range)
+		else:
+			bins = range(0, loge.size-1-bin_range)
+		
+		for i in bins:
 			start = i
 			stop = start + bin_range
 			chunk = copy(self)
@@ -345,6 +351,7 @@ class DiffuseAstro(DiffuseNuGen):
 			chunk._flux[:,:start,...] = 0
 			chunk._flux[:,stop:,...] = 0
 			e_center = 10**(0.5*(loge[start] + loge[stop]))
+			chunk.energy_range = (10**loge[start], 10**loge[stop])
 			yield e_center, chunk
 	
 	def spectral_weight(self, e_center, **kwargs):
