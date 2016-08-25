@@ -388,16 +388,31 @@ class DiffuseAstro(DiffuseNuGen):
 		
 		flux = (self._flux*(specweight[None,:,None]))#[...,None,None,None]
 		
-		if 'e_fraction' in kwargs:
+		if 'e_fraction' in kwargs or 'pgamma_fraction' in kwargs:
 			flavor_weight = 3*numpy.ones(6)
-			e, mu = kwargs['e_fraction'], kwargs['mu_fraction']
-			# assert e+mu <= 1.
-			flavor_weight[0:2] *= e
-			flavor_weight[2:4] *= mu
-			flavor_weight[4:6] *= (1. - e - mu)
+			if 'e_fraction' in kwargs:
+				e, mu = kwargs['e_fraction'], kwargs['mu_fraction']
+				# assert e+mu <= 1.
+				flavor_weight[0:2] *= e
+				flavor_weight[2:4] *= mu
+				flavor_weight[4:6] *= (1. - e - mu)
+				for k in 'e_fraction', 'mu_fraction':
+					self._last_params[k] = kwargs[k]
+			# See
+			# The Glashow resonance at IceCube: signatures, event rates and pp vs. p-gamma interactions
+			# Bhattacharya et al
+			# http://arxiv.org/abs/1108.3163
+			if 'pgamma_fraction' in kwargs:
+				pgamma_fraction = kwargs['pgamma_fraction']
+				assert 'e_fraction' not in kwargs, "flavor fit and pp/pgamma are mutually exclusive"
+				assert pgamma_fraction >= 0 and pgamma_fraction <= 1
+				flavor_weight[0] = 1 - pgamma_fraction*(1 - 0.78/0.5)
+				flavor_weight[1] = 1 - pgamma_fraction*(1 - 0.22/0.5)
+				flavor_weight[2::2] = 1 - pgamma_fraction*(1 - 0.61/0.5)
+				flavor_weight[3::2] = 1 - pgamma_fraction*(1 - 0.39/0.5)
+				self._last_params['pgamma_fraction'] = pgamma_fraction
 			flux *= flavor_weight[:,None,None]
-			for k in 'e_fraction', 'mu_fraction':
-				self._last_params[k] = kwargs[k]
+
 		
 		total = self._apply_flux(self._aeff.values, flux, self._livetime)
 		if not self._with_psi:
