@@ -55,7 +55,8 @@ class PointSpreadFunction(object):
             ct = -numpy.abs(ct)
         ct = numpy.clip(ct, *self._ct_extents)
         
-        return numpy.array([self._spline.eval(coords) for coords in zip(loge.flatten(), ct.flatten(), psi.flatten())]).reshape(psi.shape)
+        evaluates = numpy.array([self._spline.eval(coords) for coords in zip(loge.flatten(), ct.flatten(), psi.flatten())]).reshape(psi.shape)
+        return numpy.where(numpy.isfinite(evaluates), evaluates, 1.)
 
 class PotemkinCascadePointSpreadFunction(object):
     
@@ -68,4 +69,5 @@ class PotemkinCascadePointSpreadFunction(object):
         psi, energy, cos_theta = numpy.broadcast_arrays(psi, energy, cos_theta)
         sigma = self._a/numpy.sqrt(energy) + self._b
         
-        return 1 - numpy.exp(-psi**2/(2*sigma**2))
+        evaluates = 1 - numpy.exp(-psi**2/(2*sigma**2))
+        return numpy.where(numpy.isfinite(evaluates), evaluates, 1.)
