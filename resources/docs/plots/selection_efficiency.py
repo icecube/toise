@@ -6,8 +6,8 @@ from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from icecube.gen2_analysis import plotting, effective_areas
 
 configs = [
-    ('IceCube', None),
-    ('EdgeWeighted', 240),
+    ('IceCube', 125.),
+    # ('EdgeWeighted', 240),
     ('Sunflower', 200),
     ('Sunflower', 240),
     ('Sunflower', 300),
@@ -20,19 +20,19 @@ with plotting.pretty():
     ax1, ax2 = (plt.subplot(griddy[i]) for i in xrange(2))
     for i, (geo, spacing) in enumerate(configs):
         mueff = effective_areas.get_muon_selection_efficiency(geo, spacing)
-        
-        if spacing is None:
+    
+        if geo == 'IceCube':
             kwargs = dict(color='k', label=geo)
         else:
             kwargs = dict(label='%s %dm' % (geo, spacing))
-        
+    
         ax1.semilogx(emu, mueff(emu, 0), **kwargs)
         ax2.semilogx(emu, mueff(emu, -0.5), **kwargs)
 
     ax1.add_artist(AnchoredText(r'$\cos\theta=0$', loc=4, frameon=False))
     ax2.add_artist(AnchoredText(r'$\cos\theta=-0.5$', loc=4, frameon=False))
-        
-    ax1.legend(loc='best')
+    
+    ax1.legend(frameon=True, framealpha=0.8, loc='upper left').get_frame().set_linewidth(0)
     ax1.set_ylabel('Selection efficiency')
     for ax in fig.axes:
         ax.set_ylim((0, 1))
@@ -40,3 +40,4 @@ with plotting.pretty():
         ax.grid()
     plt.tight_layout()
     plt.show()
+
