@@ -22,7 +22,7 @@ with plotting.pretty():
     ax = plt.subplot(griddy[0])
     for i, zc in itertools.islice(enumerate(util.center(edges[1])), 2, 6, 1):
         ax.loglog(*plotting.stepped_path(edges[0], efficiency[:,i]), label='%.1f' % zc)
-    ax.set_ylim((1e-10, 1e-5))
+    ax.set_ylim((1e-10, 1e-6))
     ax.set_xlim(1e3, 1e9)
 
     ax.legend(loc='best', title=r'$\cos\theta$')
