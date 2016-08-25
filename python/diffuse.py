@@ -122,7 +122,7 @@ class AtmosphericNu(DiffuseNuGen):
 		# dimensions of the keys in expectations are now reconstructed energy, sky bin (zenith/healpix pixel)
 		self.expectations = dict(tracks=total.sum(axis=2))
 	
-	def point_source_background(self, zenith_index, livetime=None, with_energy=True):
+	def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
 		"""
 		Convert flux to a form suitable for calculating point source backgrounds.
 		The predictions in **expectations** will be differential in the opening-angle
@@ -132,6 +132,7 @@ class AtmosphericNu(DiffuseNuGen):
 		                     (for single point source searches) or a slice (for
 		                     stacking searches)
 		:param livetime: if not None, the actual livetime to integrate over in seconds
+		:param n_sources: number of search windows in each zenith band
 		:param with_energy: if False, integrate over reconstructed energy. Otherwise,
 		                    provide a differential prediction in reconstructed energy.
 		"""
@@ -145,8 +146,15 @@ class AtmosphericNu(DiffuseNuGen):
 			bin_areas *= (livetime/self._livetime/constants.annum)
 		if isinstance(zenith_index, slice):
 			omega = self._solid_angle[zenith_index,None]
+			bin_areas = bin_areas[None,...]
 		else:
 			omega = self._solid_angle[zenith_index]
+		# scale the area in each bin by the number of search windows
+		if n_sources is not None:
+			expand = [None]*bin_areas.ndim
+			expand[0] = slice(None)
+			bin_areas = bin_areas*n_sources[expand]
+			
 		# dimensions of the keys in expectations are now energy, radial bin
 		background.expectations = {k: (v[zenith_index,:]/omega)[...,None]*bin_areas for k,v in self.expectations.items()}
 		if not with_energy:
@@ -280,14 +288,16 @@ class DiffuseAstro(DiffuseNuGen):
 		self._last_params = dict()
 		self._last_expectations = None
 	
-	def point_source_background(self, zenith_index, livetime=None, with_energy=True):
+	def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
 		__doc__ = AtmosphericNu.point_source_background.__doc__
 		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
 		
 		
 		background = copy(self)
 		psi_bins = self._aeff.bin_edges[-1][:-1]
-		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,None,None,:]
+		expand = [None]*5
+		expand[-1] = slice(None)
+		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[expand]
 		# observation time shorter for triggered transient searches
 		if livetime is not None:
 			background._livetime = livetime/constants.annum
@@ -299,6 +309,13 @@ class DiffuseAstro(DiffuseNuGen):
 			sel = zenith_index
 		else:
 			sel = slice(zenith_index, zenith_index+1)
+		
+		# scale the area in each bin by the number of search windows
+		if n_sources is not None:
+			expand = [None]*bin_areas.ndim
+			expand[2] = slice(None)
+			bin_areas = bin_areas*n_sources[expand]
+		
 		# dimensions of flux are now 1/m^2 sr
 		background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
 		
@@ -326,7 +343,7 @@ class DiffuseAstro(DiffuseNuGen):
 		scaled._invalidate_cache()
 		return scaled
 	
-	def differential_chunks(self, decades=1, exclusive=False):
+	def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):
 		"""
 		Yield copies of self with the neutrino spectrum restricted to *decade*
 		decades in energy
@@ -336,14 +353,17 @@ class DiffuseAstro(DiffuseNuGen):
 		loge = numpy.log10(ebins)
 		bin_range = int(decades/(loge[1]-loge[0]))+1
 		
+		lo = ebins.searchsorted(emin)
+		hi = min((ebins.searchsorted(emax)+1, loge.size))
+		
 		if exclusive:
-			bins = range(0, loge.size-1, bin_range)
+			bins = range(lo, hi-1, bin_range)
 		else:
-			bins = range(0, loge.size-1-bin_range)
+			bins = range(lo, hi-1)
 		
 		for i in bins:
 			start = i
-			stop = start + bin_range
+			stop = min((start + bin_range, hi-1))
 			chunk = copy(self)
 			chunk._invalidate_cache()
 			# zero out the neutrino flux outside the given range
@@ -378,7 +398,6 @@ class DiffuseAstro(DiffuseNuGen):
 			flux *= flavor_weight[:,None,None]
 			for k in 'e_fraction', 'mu_fraction':
 				self._last_params[k] = kwargs[k]
-		
 		
 		total = self._apply_flux(self._aeff.values, flux, self._livetime)
 		if not self._with_psi:

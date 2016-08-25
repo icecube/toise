@@ -15,6 +15,8 @@ class PointSource(object):
 		effective_area = effective_area.values[...,zenith_bin,:,:-1]
 		expand = [None]*effective_area.ndim
 		expand[1] = slice(None)
+		if len(fluence.shape) > 1 and fluence.shape[1] > 1:
+			expand[2] = slice(None)
 		# 1/yr
 		rate = fluence[tuple(expand)]*(effective_area*1e4)
 		
@@ -101,6 +103,63 @@ class SteadyPointSource(PointSource):
 		scaled._livetime = livetime
 		scaled._invalidate_cache()
 		return scaled
+
+# An astrophysics-style powerlaw, with a positive lower limit, no upper limit,
+# and a negative index
+class powerlaw_gen(stats.rv_continuous):
+    def _argcheck(self, gamma):
+        return gamma > 1
+    def _pdf(self, x, gamma):
+        return (gamma-1)*x**-gamma
+    def _cdf(self, x, gamma):
+        return (1. - x**(1.-gamma))
+    def _ppf(self, p, gamma):
+        return (1.-p)**(1./(1.-gamma))
+powerlaw = powerlaw_gen(name='powerlaw', a=1.)
+
+class StackedPopulation(PointSource):
+	@staticmethod
+	def draw_source_strengths(n_sources):
+		# draw relative source strengths
+		scd = powerlaw(gamma=2.5)
+		strengths = scd.rvs(n_sources)
+		# scale strengths so that the median of the maximum is at 1
+		# (the CDF of the maximum of N iid samples is the Nth power of the individual CDF)
+		strengths /= scd.ppf(0.5**(1./n_sources))
+		return strengths
+	
+	@staticmethod
+	def draw_sindec(n_sources):
+		return numpy.random.uniform(-1, 1, n_sources)
+	
+	def __init__(self, effective_area, livetime, fluxes, sindecs, with_energy=True):
+		"""
+		:param n_sources: number of sources
+		:param weighting: If 'flux', distribute the fluxes according to an SCD
+		                  where the median flux from the brightest source is
+		                  1e-12 TeV^2 cm^-2 s^-1. Scaling the normalization of
+		                  the model scales this median linearly. If 'equal',
+		                  assume the same flux from all sources.
+		:param source_sindec: sin(dec) of each of the N sources. If None, draw
+		                      isotropically
+		"""
+		
+		# scatter sources through the zenith bands isotropically
+		zenith_bins = effective_area.bin_edges[1]
+		self.sources_per_band = numpy.histogram(-sindecs, bins=zenith_bins)[0]
+		self.flux_per_band = numpy.histogram(-sindecs, bins=zenith_bins, weights=fluxes)[0]
+		
+		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
+		# remember: fluxes are defined as neutrino + antineutrino, so the flux
+		# per particle (which we need here) is .5e-12
+		def intflux(e, gamma):
+			return (e**(1+gamma))/(1+gamma)
+		tev = effective_area.bin_edges[0]/1e3
+		# 1/cm^2 yr
+		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
+		fluence = numpy.outer(fluence, self.flux_per_band)
+		
+		super(StackedPopulation, self).__init__(effective_area, fluence, slice(None), with_energy)
 
 def nevents(llh, **hypo):
 	"""

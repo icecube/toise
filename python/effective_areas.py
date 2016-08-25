@@ -364,7 +364,7 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     selection_efficiency=MuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
     psf=get_angular_resolution("IceCube"),
-    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 40)),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
 	cos_theta=None,):
 	"""
 	Create an effective area for neutrino-induced, incoming muons
@@ -396,7 +396,6 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	:returns: an effective_area object
 	"""
-	
 	# Ingredients:
 	# 1) Muon production efficiency
 	# 2) Geometric area
