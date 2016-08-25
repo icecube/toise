@@ -102,15 +102,13 @@ angle and muon energy at the detector border as shown in the figure below.
 
 .. plot:: plots/selection_efficiency.py
 
-The IceCube selection efficiency was derived from MuonGun simulation, while the
-Gen2 efficiencies were derived from NuGen simulation, using a mildly shady
-method involving an attempt to run NuGen with the same settings as in the full
-detector simulation and take ratios between injected and selected event rates.
-
-TODO: rederive with MuonGun simulation
+The selection efficiency is defined as the ratio of the muon effective area to
+the geometric area, which can be obtained easily from MuonGun simulation.
 
 Muon energy resolution
 ~~~~~~~~~~~~~~~~~~~~~~
+
+TODO: describe
 
 Muon angular resolution
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -128,46 +126,50 @@ Starting events
 Energy deposition density
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Starting events are a bit more complicated than incoming tracks. 
+.. Starting events are a bit more complicated than incoming tracks.
+..
+.. Instead of having a 1-dimensional final state (muon of some energy), we have at
+.. least a 2-dimensional final state (cascade + track), and instead of detecting
+.. tracks intersecting a surface, we detect neutrino interactions inside a volume.
+..
+.. We approximate the final state as one cascade and one track, at least one of
+.. which must have nonzero energy. For example charged-current :math:`\nu_e`
+.. produce a single cascade with approximately the same energy energy as the
+.. interating neutrino, while NC interactions produce a single cascade with
+.. approximately 1/4 of the neutrino energy. CC :math:`\nu_{\mu}` interactions
+.. produce a cascade and a muon track, with the energy split roughly 1:3 between
+.. them. We approximate CC :math:`\nu_{\tau}` interactions rather poorly, allowing
+.. the :math:`\tau` to propagate for 300 m. If it decays within that length, then
+.. the final state determines the event type. If there is a muon in the final
+.. state, then the track energy equal to the muon energy. Otherwise, the final
+.. state cascades contribute to the cascade energy. Beyond 300 m, the :math:`\tau`
+.. track is considered "infinite," and the track energy is 1/4 of the :math:`\tau`
+.. energy, accounting for the highly suppressed radiative loss rate of
+.. :math:`\tau` wrt :math:`\mu`. This completely ignores the possibility of
+.. resolvable double-bang events. Similarly, the classification of
+.. :math:`\overline{\nu}_e + e^-` interactions depends on the decay of the
+.. :math:`W^-`. If it decays leptonically, then the final state is classified like
+.. the final state of a CC interaction, whereas hadronic final states are
+.. classified as cascades.
+..
+.. For each event, we fill the primary neutrino energy, its zenith angle, the
+.. energy of the cascade in the final state, and the energy of the muon in the
+.. final state into a 4D histogram with weights given by For each event, we
+.. calculate a weight given by
+..
+.. .. math::
+..
+.. 	w = {{\rm OneWeight} \over { {\rm NFiles} \cdot {\rm NEvents/2} \cdot {\rm InjectionAreaCGS} \cdot {\rm TotalInteractionLength}} },
+..
+.. i.e. a contribution to the number of interactions per meter. This is normalized
+.. to the volume of the primary energy and angle bin just as we did for incoming
+.. muons. When multiplied with a flux this will give a volume density that can be
+.. multiplied by the fiducial volume of the detector to obtain an event rate.
 
-Instead of having a 1-dimensional final state (muon of some energy), we have at
-least a 2-dimensional final state (cascade + track), and instead of detecting
-tracks intersecting a surface, we detect neutrino interactions inside a volume.
+.. plot:: plots/cascade_production_density.py
 
-We approximate the final state as one cascade and one track, at least one of
-which must have nonzero energy. For example charged-current :math:`\nu_e`
-produce a single cascade with approximately the same energy energy as the
-interating neutrino, while NC interactions produce a single cascade with
-approximately 1/4 of the neutrino energy. CC :math:`\nu_{\mu}` interactions
-produce a cascade and a muon track, with the energy split roughly 1:3 between
-them. We approximate CC :math:`\nu_{\tau}` interactions rather poorly, allowing
-the :math:`\tau` to propagate for 300 m. If it decays within that length, then
-the final state determines the event type. If there is a muon in the final
-state, then the track energy equal to the muon energy. Otherwise, the final
-state cascades contribute to the cascade energy. Beyond 300 m, the :math:`\tau`
-track is considered "infinite," and the track energy is 1/4 of the :math:`\tau`
-energy, accounting for the highly suppressed radiative loss rate of
-:math:`\tau` wrt :math:`\mu`. This completely ignores the possibility of
-resolvable double-bang events. Similarly, the classification of
-:math:`\overline{\nu}_e + e^-` interactions depends on the decay of the
-:math:`W^-`. If it decays leptonically, then the final state is classified like
-the final state of a CC interaction, whereas hadronic final states are
-classified as cascades.
 
-For each event, we fill the primary neutrino energy, its zenith angle, the
-energy of the cascade in the final state, and the energy of the muon in the
-final state into a 4D histogram with weights given by For each event, we
-calculate a weight given by
+.. plot:: plots/cascade_volume.py
 
-.. math::
-
-	w = {{\rm OneWeight} \over { {\rm NFiles} \cdot {\rm NEvents/2} \cdot {\rm InjectionAreaCGS} \cdot {\rm TotalInteractionLength}} },
-
-i.e. a contribution to the number of interactions per meter. This is normalized
-to the volume of the primary energy and angle bin just as we did for incoming
-muons. When multiplied with a flux this will give a volume density that can be
-multiplied by the fiducial volume of the detector to obtain an event rate.
-
-.. .. plot::
 
 TODO
