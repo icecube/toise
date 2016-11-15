@@ -281,6 +281,7 @@ class DiffuseAstro(DiffuseNuGen):
 		self._with_psi = False
 		
 		self._gamma_name = gamma_name
+		self._suffix = ''
 		self._with_energy = True
 		self._invalidate_cache()
 	
@@ -385,32 +386,39 @@ class DiffuseAstro(DiffuseNuGen):
 		energy = self._aeff.bin_edges[0]
 		centers = 0.5*(energy[1:] + energy[:-1])
 		specweight = self.spectral_weight(centers, **kwargs)
+		if specweight.ndim == 1:
+			specweight = specweight[None,:,None]
+		elif specweight.ndim == 2:
+			specweight = specweight[...,None]
 		
-		flux = (self._flux*(specweight[None,:,None]))#[...,None,None,None]
+		flux = (self._flux*specweight)
 		
-		if 'e_fraction' in kwargs or 'pgamma_fraction' in kwargs:
+		param = lambda k: k+self._suffix
+		
+		if param('mu_fraction') in kwargs or param('pgamma_fraction') in kwargs:
 			flavor_weight = 3*numpy.ones(6)
-			if 'e_fraction' in kwargs:
-				e, mu = kwargs['e_fraction'], kwargs['mu_fraction']
+			if param('mu_fraction') in kwargs:
+				eratio, mu = kwargs[param('e_tau_ratio')], kwargs[param('mu_fraction')]
+				e = eratio*(1-mu)
 				# assert e+mu <= 1.
 				flavor_weight[0:2] *= e
 				flavor_weight[2:4] *= mu
 				flavor_weight[4:6] *= (1. - e - mu)
-				for k in 'e_fraction', 'mu_fraction':
+				for k in param('e_tau_ratio'), param('mu_fraction'):
 					self._last_params[k] = kwargs[k]
 			# See
 			# The Glashow resonance at IceCube: signatures, event rates and pp vs. p-gamma interactions
 			# Bhattacharya et al
 			# http://arxiv.org/abs/1108.3163
-			if 'pgamma_fraction' in kwargs:
-				pgamma_fraction = kwargs['pgamma_fraction']
-				assert 'e_fraction' not in kwargs, "flavor fit and pp/pgamma are mutually exclusive"
+			if param('pgamma_fraction') in kwargs:
+				pgamma_fraction = kwargs[param('pgamma_fraction')]
+				assert param('mu_fraction') not in kwargs, "flavor fit and pp/pgamma are mutually exclusive"
 				assert pgamma_fraction >= 0 and pgamma_fraction <= 1
 				flavor_weight[0] = 1 - pgamma_fraction*(1 - 0.78/0.5)
 				flavor_weight[1] = 1 - pgamma_fraction*(1 - 0.22/0.5)
 				flavor_weight[2::2] = 1 - pgamma_fraction*(1 - 0.61/0.5)
 				flavor_weight[3::2] = 1 - pgamma_fraction*(1 - 0.39/0.5)
-				self._last_params['pgamma_fraction'] = pgamma_fraction
+				self._last_params[param('pgamma_fraction')] = pgamma_fraction
 			flux *= flavor_weight[:,None,None]
 
 		
@@ -443,6 +451,47 @@ class DiffuseAstro(DiffuseNuGen):
 		per neutrino flavor 
 		"""
 		return self.calculate_expectations(gamma=gamma, **kwargs)
+
+class MuonDampedDiffuseAstro(DiffuseAstro):
+	def __init__(self, *args, **kwargs):
+		super(MuonDampedDiffuseAstro, self).__init__(*args, **kwargs)
+		self._oscillate = IncoherentOscillation.create()
+	
+	@staticmethod
+	def pion_decay_flux(e_nu, ecrit_mu=1., ):
+		"""
+		effective parameterization of the neutrino flux from muon-damped pion decay
+		:param e_nu: neutrino energy
+		:param ecrit_mu: critical energy at which the muon decay time
+						 and cooling time are equal (see PRL 95, 181101 (2005))
+		:returns: an e_nu.size x 3 array containing the ratio of neutrino fluxes
+				  with and without muon cooling at the source
+		"""
+	
+		# muon synchrotron cooling (and later, pion cooling) steepens the flux
+		# by two powers above the critical energy
+		# parameterize this slope change like Hoerandel (2003), neglecting the
+		# [probably specious] pile-up effects at the spectral break 
+		e_knee = 0.3*ecrit_mu
+		epsilon = 5.
+		delta_gamma = 2.
+	
+		knee_flux = lambda e, e_knee: (1 + (e/e_knee)**epsilon)**(-delta_gamma/epsilon)
+
+		flux = numpy.zeros(e_nu.shape + (3,))
+	
+		flux[:,:2] = knee_flux(e_nu, e_knee)[:,None]
+		flux[:,1] += knee_flux(e_nu, 15*e_knee)
+	
+		return flux
+	
+	def spectral_weight(self, e_center, **kwargs):
+		emu_crit = kwargs['emu_crit']
+		self._last_params[self._gamma_name] = kwargs[self._gamma_name]
+		self._last_params['emu_crit'] = kwargs['emu_crit']
+		specweight = self._oscillate(*(self.pion_decay_flux(e_center, kwargs['emu_crit']).T))
+		specweight *= ((e_center/1e5)**(kwargs[self._gamma_name]+2))[None,:]
+		return numpy.repeat(specweight, 2, axis=0)
 
 class AhlersGZKFlux(object):
 	def __init__(self):
