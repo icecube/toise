@@ -53,6 +53,23 @@ class Combination(object):
 			for k, v in subex.items():
 				exes[label+'_'+k] = livetime*v
 		return exes
+	
+	def differential_chunks(self, *args, **kwargs):
+		generators = dict()
+		for label, (component, livetime) in self._components.items():
+			generators[label] = (component.differential_chunks(*args, **kwargs), livetime)
+		while True:
+			try:
+				components = dict()
+				for label, (generator, livetime) in generators.items():
+					e_center, component = next(generator)
+					components[label] = (component, livetime)
+				combo = Combination(components)
+				combo.energy_range = component.energy_range
+				combo.energy_center = e_center
+				yield combo
+			except StopIteration:
+				break
 
 class LLHEval:
 	"""
@@ -165,7 +182,7 @@ class LLHEval:
 			llh += numpy.sum(self.data[prop]*log_lambda - self.data[prop])
 			dof += numpy.sum(self.data[prop] != 0)
 		return (llh, dof+1)
-	def fit(self, **fixedparams):
+	def fit(self, minimizer_params=dict(), **fixedparams):
 		"""
 		Return dictionary of best-fit values for all parameters using
 		scipy's L-BFGS-B fitter. Keyword arguments are optional and
@@ -201,7 +218,7 @@ class LLHEval:
 			return -self.llh(**pdict)
 		
 		if len(discrete_params) == 0:
-			bestfit = scipy.optimize.fmin_l_bfgs_b(minllh, seeds, bounds=bounds, approx_grad=True)
+			bestfit = scipy.optimize.fmin_l_bfgs_b(minllh, seeds, bounds=bounds, approx_grad=True, **minimizer_params)
 			#print fixedparams['ice_model'], bestfit[1], bestfit[0]
 			fixedparams.update(dict(zip(freeparams, bestfit[0])))
 			return fixedparams
@@ -219,7 +236,7 @@ class LLHEval:
 					bestllh = bestfit[1]
 			# print '-->', bestparams['ice_model'], bestllh
 			return bestparams
-	def profile1d(self, param, values, **fixedparams):
+	def profile1d(self, param, values, minimizer_params=dict(), **fixedparams):
 		"""
 		Return a named numpy array with best-fit nuisance values and
 		likelihood values for the values of param passed. Additional
@@ -232,7 +249,7 @@ class LLHEval:
 			if len(params) - len(self.components) == 0:
 				fit = params
 			else:
-				fit = self.fit(**params)
+				fit = self.fit(minimizer_params=minimizer_params, **params)
 			mlh = self.llh(**fit)
 			llhpoints.append(tuple(list(fit.values()) + [mlh]))
 		dkeys = list(fit.keys()) + ['LLH']
