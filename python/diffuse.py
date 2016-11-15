@@ -265,8 +265,8 @@ class DiffuseAstro(DiffuseNuGen):
 		:param effective_area: the effective area
 		:param livetime: observation time, in years
 		"""
-		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
-		flux = self._integrate_flux(effective_area.bin_edges, lambda pt, e, ct: 0.5e-18*(e/1e5)**(-2.))
+		flux = self._integral_flux(effective_area)[None,:,None]
+		
 		if isinstance(flavor, int):
 			for i in xrange(flux.shape[0]):
 				if i < 2*flavor or i > 2*flavor+1:
@@ -276,7 +276,7 @@ class DiffuseAstro(DiffuseNuGen):
 		if effective_area.is_healpix:
 			flux *= healpy.nside2pixarea(effective_area.nside)
 		else:
-			flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:]
+			flux = flux*((2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:])
 		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
 		self._with_psi = False
 		
@@ -284,6 +284,14 @@ class DiffuseAstro(DiffuseNuGen):
 		self._suffix = ''
 		self._with_energy = True
 		self._invalidate_cache()
+	
+	@staticmethod
+	def _integral_flux(aeff, gamma=-2):
+		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
+		intflux = lambda e, gamma: ((1e5**-gamma)/(1+gamma))*e**(1+gamma)
+		enu = aeff.bin_edges[0]
+		# 1 / m^2 yr
+		return (0.5e-18*constants.cm2*constants.annum)*(intflux(enu[1:], gamma) - intflux(enu[:-1], gamma))
 	
 	def _invalidate_cache(self):
 		self._last_params = dict()
@@ -377,7 +385,7 @@ class DiffuseAstro(DiffuseNuGen):
 	
 	def spectral_weight(self, e_center, **kwargs):
 		self._last_params[self._gamma_name] = kwargs[self._gamma_name]
-		return (e_center/1e5)**(kwargs[self._gamma_name]+2)
+		return self._integral_flux(self._aeff, kwargs[self._gamma_name])/self._integral_flux(self._aeff)
 	
 	def calculate_expectations(self, **kwargs):
 		if self._last_expectations is not None and all([self._last_params[k] == kwargs[k] for k in self._last_params]):
