@@ -54,17 +54,26 @@ class PointSource(object):
 		self._last_expectations = dict(tracks=total)
 		self._last_gamma = ps_gamma
 		return self._last_expectations
-	
-	def differential_chunks(self, decades=1):
+
+	def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):
 		"""
 		Yield copies of self with the neutrino spectrum restricted to *decade*
 		decades in energy
 		"""
 		# now, sum over decades in neutrino energy
-		loge = numpy.log10(self._edges[0])
+		ebins = self._edges[0]
+		loge = numpy.log10(ebins)
 		bin_range = int(decades/(loge[1]-loge[0]))+1
 		
-		for i in range(loge.size-1-bin_range):
+		lo = ebins.searchsorted(emin)
+		hi = min((ebins.searchsorted(emax)+1, loge.size))
+		
+		if exclusive:
+			bins = range(lo, hi-1, bin_range)
+		else:
+			bins = range(lo, hi-1-bin_range)
+		
+		for i in bins:
 			start = i
 			stop = start + bin_range
 			chunk = copy(self)
@@ -73,6 +82,7 @@ class PointSource(object):
 			chunk._rate[:,:start,...] = 0
 			chunk._rate[:,stop:,...] = 0
 			e_center = 10**(0.5*(loge[start] + loge[stop]))
+			chunk.energy_range = (10**loge[start], 10**loge[stop])
 			yield e_center, chunk
 
 class SteadyPointSource(PointSource):
@@ -95,14 +105,26 @@ class SteadyPointSource(PointSource):
 		
 		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
 		self._livetime = livetime
-	
-	def scale_livetime(self, livetime):
-		scaled = copy(self)
-		scale = livetime / scaled._livetime
-		scaled._rate = scaled._rate*scale
-		scaled._livetime = livetime
-		scaled._invalidate_cache()
-		return scaled
+
+class WBSteadyPointSource(PointSource):
+	def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
+		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
+		# remember: fluxes are defined as neutrino + antineutrino, so the flux
+		# per particle (which we need here) is .5e-12
+		def intflux(e, gamma):
+			return (e**(1+gamma))/(1+gamma)
+		tev = effective_area.bin_edges[0]/1e3
+		# 1/cm^2 yr
+		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
+		
+		# scale by the WB GRB fluence, normalized to the E^-2 flux between 100 TeV and 10 PeV
+		from grb import WaxmannBahcallFluence
+		norm = WaxmannBahcallFluence()(effective_area.bin_edges[0][1:])*effective_area.bin_edges[0][1:]**2
+		norm /= norm.max()
+		fluence *= norm
+		
+		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
+		self._livetime = livetime
 
 # An astrophysics-style powerlaw, with a positive lower limit, no upper limit,
 # and a negative index
