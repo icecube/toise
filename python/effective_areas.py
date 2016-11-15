@@ -162,10 +162,7 @@ class MuonEffectiveArea(object):
 		self.geometry = geometry
 		self.spacing = spacing
 		self._surface = get_fiducial_surface(geometry, spacing)
-		if geometry == "IceCube":
-			self._efficiency = MuonSelectionEfficiency()
-		else:
-			self._efficiency = ZenithDependentMuonSelectionEfficiency('%s_%dm_bdt0_efficiency.fits' % (geometry, spacing))
+		self._efficiency = get_muon_selection_efficiency(geometry, spacing)
 	def __call__(self, muon_energy, cos_theta):
 		geo = self._surface.azimuth_averaged_area(cos_theta)
 		return geo * self._efficiency(muon_energy, cos_theta)
