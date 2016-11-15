@@ -361,8 +361,8 @@ class ExtrudedPolygon(UprightSurface):
             sin_zenith = numpy.sqrt(1.-cos_zenith**2)
             sides = numpy.array(self._distance_to_hull(point, vec))/sin_zenith
             caps = self._distance_to_caps(point, vec)
-            intersections = numpy.concatenate((sides, caps))
-            return [numpy.nanmin(intersections), numpy.nanmax(intersections)] 
+            
+            return numpy.nanmax((sides[0], caps[0])), numpy.nanmin((sides[1], caps[1]))
 
 class Cylinder(UprightSurface):
     def __init__(self, length=1000, radius=587):
