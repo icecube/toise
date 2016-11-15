@@ -593,33 +593,3 @@ class IncoherentOscillation(object):
 		original = numpy.array(numpy.broadcast_arrays(e, mu, tau), dtype=float)
 		oscillated = numpy.asarray(numpy.dot(self.P, original))
 		return oscillated
-
-def starting_diffuse_powerlaw(effective_area, edges, livetime=1.,
-    flavor_ratio=False, veto_threshold=1e2):
-	"""
-	Contruct a likelihood for the istropic 1:1:1 power law hypothesis
-	
-	:param livetime: observation time, in years
-	:param veto_threshold: muon energy threshold for atmospheric self-veto
-	"""
-	llh = multillh.LLHEval(None)
-	llh.add_component('conventional', AtmosphericNu.conventional(effective_area, edges, livetime, veto_threshold=veto_threshold))
-	llh.add_component('prompt', AtmosphericNu.prompt(effective_area, edges, livetime, veto_threshold=veto_threshold))
-	llh.add_component('astro', DiffuseAstro(effective_area, edges, livetime))
-	llh.add_component('gamma', multillh.NuisanceParam(-2, min=-4, max=-1))
-	if flavor_ratio:
-		# we only need two fractions to describe the flavor content
-		for flavor in 'e', 'mu':
-			llh.add_component(flavor+'_fraction', multillh.NuisanceParam(1./3, min=0, max=1))
-	return llh
-
-def throughgoing_diffuse_powerlaw(effective_area, edges, livetime=1.):
-	llh = multillh.LLHEval(None)
-	llh.add_component('conventional', AtmosphericNu.conventional(effective_area, edges, livetime, veto_threshold=None))
-	llh.add_component('prompt', AtmosphericNu.prompt(effective_area, edges, livetime, veto_threshold=None))
-	
-	# TODO: add atmospheric muon component
-	
-	llh.add_component('astro', DiffuseAstro(effective_area, edges, livetime))
-	llh.add_component('gamma', multillh.NuisanceParam(-2, min=-4, max=-1))
-	return llh
