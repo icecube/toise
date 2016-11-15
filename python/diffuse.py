@@ -462,6 +462,7 @@ class DiffuseAstro(DiffuseNuGen):
 
 class MuonDampedDiffuseAstro(DiffuseAstro):
 	def __init__(self, *args, **kwargs):
+		self._fixed_flavor_ratio = kwargs.pop('fixed_flavor_ratio', False)
 		super(MuonDampedDiffuseAstro, self).__init__(*args, **kwargs)
 		self._oscillate = IncoherentOscillation.create()
 	
@@ -498,6 +499,9 @@ class MuonDampedDiffuseAstro(DiffuseAstro):
 		self._last_params[self._gamma_name] = kwargs[self._gamma_name]
 		self._last_params['emu_crit'] = kwargs['emu_crit']
 		specweight = self._oscillate(*(self.pion_decay_flux(e_center, kwargs['emu_crit']).T))
+		if self._fixed_flavor_ratio:
+			avg = specweight.sum(axis=0, keepdims=True)/3.
+			specweight = avg.repeat(3, 0)
 		specweight *= ((e_center/1e5)**(kwargs[self._gamma_name]+2))[None,:]
 		return numpy.repeat(specweight, 2, axis=0)
 
