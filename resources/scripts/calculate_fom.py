@@ -65,13 +65,13 @@ def make_key(opts, kwargs):
 def create_aeff(opts, **kwargs):
 
 	cache_file = os.path.join(data_dir, 'cache', 'throughgoing_aeff')
-	try:
-		cache = pickle.load(open(cache_file))
-	except IOError:
-		cache = dict()
-	key = make_key(opts, kwargs)
-	if key in cache:
-		return cache[key]
+	# try:
+	# 	cache = pickle.load(open(cache_file))
+	# except IOError:
+	# 	cache = dict()
+	# key = make_key(opts, kwargs)
+	# if key in cache:
+	# 	return cache[key]
 
 	if opts.veto_area > 0:
 		kwargs['veto_coverage'] = surface_veto.GeometricVetoCoverage(opts.geometry, opts.spacing, opts.veto_area)
@@ -96,8 +96,8 @@ def create_aeff(opts, **kwargs):
 	    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
 	    **kwargs)
 
-	cache[key] = aeff
-	pickle.dump(cache, open(cache_file, 'w'), 2)
+	# cache[key] = aeff
+	# pickle.dump(cache, open(cache_file, 'w'), 2)
 	return aeff
 
 def create_cascade_aeff(opts, **kwargs):
