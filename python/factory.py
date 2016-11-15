@@ -34,8 +34,8 @@ def create_aeff(opts, **kwargs):
 	if opts.energy_threshold is not None:
 		seleff_kwargs['energy_threshold'] = opts.energy_threshold
 	if opts.psf_class is not None:
-		# assume that there are 4 PSF classes, all with equal effective area
-		seleff_kwargs['scale'] = 1./4
+		# assume that all PSF classes have equal effective area
+		seleff_kwargs['scale'] = 1./opts.psf_class[1]
 	seleff = effective_areas.get_muon_selection_efficiency(opts.geometry, opts.spacing, **seleff_kwargs)
 	
 	if opts.no_cuts:

@@ -7,8 +7,8 @@ def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., psf_clas
 	if channel == 'cascade':
 		return PotemkinCascadePointSpreadFunction()
 	if psf_class is not None:
-		fname = '%s_%s_kingpsf4' % (geometry, spacing)
-		return KingPointSpreadFunction(fname, psf_class=psf_class)
+		fname = '%s_%s_kingpsf%d' % (geometry, spacing, psf_class[1])
+		return KingPointSpreadFunction(fname, psf_class=psf_class, scale=scale)
 	if geometry == "IceCube":
 		fname = "aachen_psf.fits"
 	else:
@@ -79,7 +79,7 @@ class king_gen(stats.rv_continuous):
 king = king_gen(name='king', a=0.)
 
 class KingPointSpreadFunction(object):
-    def __init__(self, fname='Sunflower_240_kingpsf4', psf_class='0'):
+    def __init__(self, fname='Sunflower_240_kingpsf4', psf_class=(0,4), scale=1.):
         import pandas as pd
         import operator
         from scipy import interpolate
@@ -94,8 +94,10 @@ class KingPointSpreadFunction(object):
             del params.sigma[k,0]
             del params.gamma[k,0]
         x, y = map(center, bins)
-        self._sigma = interpolate.RectBivariateSpline(x, y, abs(params.sigma[str(psf_class)]).values.reshape(9,10), s=5e-1)
-        self._gamma = interpolate.RectBivariateSpline(x, y, params.gamma[str(psf_class)].values.reshape(9,10), s=1e1)
+        key = str(psf_class[0])
+        self._sigma = interpolate.RectBivariateSpline(x, y, abs(params.sigma[key]).values.reshape(9,10), s=5e-1)
+        self._gamma = interpolate.RectBivariateSpline(x, y, params.gamma[key].values.reshape(9,10), s=1e1)
+        self._scale = scale
     
     def get_params(self, log_energy, cos_theta):
         """
@@ -106,10 +108,10 @@ class KingPointSpreadFunction(object):
     def get_quantile(self, p, energy, cos_theta):
         p, loge, ct = numpy.broadcast_arrays(p, numpy.log10(energy), cos_theta)
         sigma, gamma = self.get_params(loge, ct)
-        return numpy.radians(king.ppf(p, sigma, gamma))
+        return numpy.radians(king.ppf(p, sigma, gamma))/self._scale
     
     def __call__(self, psi, energy, cos_theta):
-        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi), numpy.log10(energy), cos_theta)
+        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi)/self._scale, numpy.log10(energy), cos_theta)
         sigma, gamma = self.get_params(loge, ct)
         return king.cdf(psi, sigma, gamma)
 
