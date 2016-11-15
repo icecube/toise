@@ -1,11 +1,14 @@
-from scipy import interpolate
+from scipy import interpolate, stats
 import pickle, os, numpy
 
-from .util import data_dir
+from .util import data_dir, center
 
-def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., channel='muon'):
+def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., psf_class=None, channel='muon'):
 	if channel == 'cascade':
 		return PotemkinCascadePointSpreadFunction()
+	if psf_class is not None:
+		fname = '%s_%s_kingpsf4' % (geometry, spacing)
+		return KingPointSpreadFunction(fname, psf_class=psf_class)
 	if geometry == "IceCube":
 		fname = "aachen_psf.fits"
 	else:
@@ -57,6 +60,58 @@ class PointSpreadFunction(object):
         
         evaluates = numpy.array([self._spline.eval(coords) for coords in zip(loge.flatten(), ct.flatten(), psi.flatten())]).reshape(psi.shape)
         return numpy.where(numpy.isfinite(evaluates), evaluates, 1.)
+
+class king_gen(stats.rv_continuous):
+    """
+    King function, used to parameterize the PSF in XMM and Fermi
+    
+    See: http://fermi.gsfc.nasa.gov/ssc/data/analysis/documentation/Cicerone/Cicerone_LAT_IRFs/IRF_PSF.html
+    """
+    def _argcheck(self, sigma, gamma):
+        return (gamma > 1).all() and (sigma > 0).all()
+    def _pdf(self, x, sigma, gamma):
+        return x/(sigma**2)*(1.-1./gamma)*(1 + 1./(2.*gamma) * (x/sigma)**2)**-gamma
+    def _cdf(self, x, sigma, gamma):
+        x2 = x**2
+        a = 2*gamma*(sigma**2)
+        b = 2*sigma**2
+        return (1.-1./gamma)/(a-b)*(a - (a + x2)*(x2/a + 1)**-gamma)
+king = king_gen(name='king', a=0.)
+
+class KingPointSpreadFunction(object):
+    def __init__(self, fname='Sunflower_240_kingpsf4', psf_class='0'):
+        import pandas as pd
+        import operator
+        from scipy import interpolate
+        
+        if not fname.startswith('/'):
+            fname = os.path.join(data_dir, 'psf', fname)
+        params = pd.read_pickle(fname+'.pickle')
+        bins = pd.read_pickle(fname+'.bins.pickle')
+        params = pd.DataFrame({k: params.apply(operator.itemgetter(k)) for k in ('sigma', 'gamma')})
+        # remove energy underflow bin
+        for k in params.index.levels[0]:
+            del params.sigma[k,0]
+            del params.gamma[k,0]
+        x, y = map(center, bins)
+        self._sigma = interpolate.RectBivariateSpline(x, y, abs(params.sigma[str(psf_class)]).values.reshape(9,10), s=5e-1)
+        self._gamma = interpolate.RectBivariateSpline(x, y, params.gamma[str(psf_class)].values.reshape(9,10), s=1e1)
+    
+    def get_params(self, log_energy, cos_theta):
+        """
+        Interpolate for sigma and gamma
+        """
+        return self._sigma(log_energy, cos_theta, grid=False), self._gamma(log_energy, cos_theta, grid=False)
+    
+    def get_quantile(self, p, energy, cos_theta):
+        p, loge, ct = numpy.broadcast_arrays(p, numpy.log10(energy), cos_theta)
+        sigma, gamma = self.get_params(loge, ct)
+        return numpy.radians(king.ppf(p, sigma, gamma))
+    
+    def __call__(self, psi, energy, cos_theta):
+        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi), numpy.log10(energy), cos_theta)
+        sigma, gamma = self.get_params(loge, ct)
+        return king.cdf(psi, sigma, gamma)
 
 class PotemkinCascadePointSpreadFunction(object):
     

@@ -73,17 +73,21 @@ class MuonSelectionEfficiency(object):
 			w[~numpy.isfinite(w)] = 1
 	
 			self.interp = interpolate.UnivariateSpline(loge, v, w=w)
-		self.energy_threshold = energy_threshold
+		if energy_threshold is None:
+			self.energy_threshold = 0.
+		else:
+			self.energy_threshold = energy_threshold
 
 	def __call__(self, muon_energy, cos_theta):
 		return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.interp(numpy.log10(muon_energy)), 0, 1), 0.)
 
 class ZenithDependentMuonSelectionEfficiency(object):
-	def __init__(self, filename='sunflower_200m_bdt0_efficiency.fits', energy_threshold=0):
+	def __init__(self, filename='sunflower_200m_bdt0_efficiency.fits', energy_threshold=0, scale=1.):
 		from icecube.photospline import I3SplineTable
 		if not filename.startswith('/'):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
 		self._spline = I3SplineTable(filename)
+		self.scale = scale
 		self.eval = numpy.vectorize(self._eval)
 		# cut off no lower than 500 GeV
 		self.energy_threshold = max((energy_threshold, 5e2))
@@ -91,7 +95,7 @@ class ZenithDependentMuonSelectionEfficiency(object):
 		return self._spline.eval([loge, cos_theta])
 	def __call__(self, muon_energy, cos_theta):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
-		return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
+		return self.scale*numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
 
 class HESEishSelectionEfficiency(object):
 	"""
@@ -113,14 +117,14 @@ class HESEishSelectionEfficiency(object):
 	def __call__(self, deposited_energy, cos_theta):
 		return numpy.where(deposited_energy >= self._threshold, self._efficiency, 0.)
 
-def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0):
+def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0, scale=1.):
 	"""
 	:param energy_threshold: artificial energy threshold in GeV
 	"""
 	if geometry == "IceCube":
 		return MuonSelectionEfficiency(energy_threshold=energy_threshold)
 	else:
-		return ZenithDependentMuonSelectionEfficiency("11900_MUONGUN_%s_%sm_efficiency_cut.fits" % (geometry.lower(), spacing), energy_threshold=energy_threshold)
+		return ZenithDependentMuonSelectionEfficiency("11900_MUONGUN_%s_%sm_efficiency_cut.fits" % (geometry.lower(), spacing), energy_threshold=energy_threshold, scale=scale)
 
 class VetoThreshold(object):
 	"""
