@@ -30,10 +30,14 @@ def create_aeff(opts, **kwargs):
 	if opts.veto_area > 0:
 		kwargs['veto_coverage'] = surface_veto.GeometricVetoCoverage(opts.geometry, opts.spacing, opts.veto_area)
 	
+	seleff_kwargs = dict()
 	if opts.energy_threshold is not None:
-		seleff = effective_areas.get_muon_selection_efficiency(opts.geometry, opts.spacing, opts.energy_threshold)
-	else:
-		seleff = effective_areas.get_muon_selection_efficiency(opts.geometry, opts.spacing)
+		seleff_kwargs['energy_threshold'] = opts.energy_threshold
+	if opts.psf_class is not None:
+		# assume that there are 4 PSF classes, all with equal effective area
+		seleff_kwargs['scale'] = 1./4
+	seleff = effective_areas.get_muon_selection_efficiency(opts.geometry, opts.spacing, **seleff_kwargs)
+	
 	if opts.no_cuts:
 		selection_efficiency = lambda emu, cos_theta: seleff(emu, cos_theta=0)
 		# selection_efficiency = lambda emu, cos_theta: numpy.ones(emu.shape)
@@ -52,7 +56,7 @@ def create_aeff(opts, **kwargs):
 	    selection_efficiency=selection_efficiency,
 	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
 	    energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
-	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale),
+	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale, opts.psf_class),
 	    **kwargs)
 
 	# cache[key] = aeff
@@ -150,6 +154,7 @@ def make_options(**kwargs):
 	import argparse
 	defaults = dict(geometry='Sunflower', spacing=240, veto_area=75., angular_resolution_scale=1.,
 	                cascade_energy_threshold=None, veto_threshold=1e5, energy_threshold=0, no_cuts=False,
+	                psf_class=None,
 	                livetime=1.)
 	# icecube has no veto...yet
 	if kwargs.get('geometry') == 'IceCube':
