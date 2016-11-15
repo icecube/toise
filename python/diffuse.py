@@ -549,6 +549,51 @@ class FermiGalacticEmission(DiffuseNuGen):
 		# dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
 		self.expectations = dict(tracks=total)
 
+def pmns_matrix(theta12, theta23, theta13, delta):
+	"""
+	Construct a 3-flavor PMNS mixing matrix, given 3 angles and a CP-violating phase
+	"""
+	comps = lambda angle: (numpy.sin(angle), numpy.cos(angle))
+	s12,c12 = comps(theta12)
+	s13,c13 = comps(theta13)
+	s23,c23 = comps(theta23)
+	phase = numpy.exp(complex(0, delta))
+	U = numpy.matrix([
+	    [c12*c13,                    s12*c13,                   s13/phase],
+	    [-s12*c23-c12*s13*s23*phase, c12*c23-s12*s13*s23*phase, c13*s23],
+	    [s12*s23-c12*s13*c23*phase, -c12*s23-s12*s13*c23*phase, c13*c23],
+	])
+	return U
+
+def transfer_matrix(U):
+	"""
+	Construct a matrix that transforms a flavor composition at the source to one at Earth
+	"""
+	prob = lambda alpha,beta: sum(abs(U[alpha,i])**2 * abs(U[beta,i])**2 for i in range(3))
+	return numpy.matrix([[prob(i,j) for j in range(3)] for i in range(3)])
+
+class IncoherentOscillation(object):
+	"""
+	Functor to apply astronomical-baseline oscillations
+	"""
+	@classmethod
+	def create(cls, label='nufit_inverted'):
+		# taken from NuFit 2.0
+		# http://arxiv.org/abs/1409.5439
+		if label.lower() == 'nufit_inverted':
+			params = (33.48, 49.5, 8.51, 254)
+		elif label.lower() == 'nufit_normal':
+			params = (33.48, 42.3, 8.50, 306)
+		else:
+			raise ValueError("Unknown oscillation parameters '{}'".format(label))
+		return cls(*map(numpy.radians, params))
+	def __init__(self, theta12, theta23, theta13, delta):
+		self.P = transfer_matrix(pmns_matrix(theta12, theta23, theta13, delta))
+	def __call__(self, e, mu, tau):
+		original = numpy.array(numpy.broadcast_arrays(e, mu, tau), dtype=float)
+		oscillated = numpy.asarray(numpy.dot(self.P, original))
+		return oscillated
+
 def starting_diffuse_powerlaw(effective_area, edges, livetime=1.,
     flavor_ratio=False, veto_threshold=1e2):
 	"""
