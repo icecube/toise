@@ -17,7 +17,7 @@ class NuisanceParam:
 		self.uncertainty = gauserror
 		self.min = min
 		self.max = max
-	def prior(self, value):
+	def prior(self, value, **kwargs):
 		if self.uncertainty == None:
 			return 0
 		return -(value - self.seed)**2/(2.*self.uncertainty**2)
@@ -36,10 +36,10 @@ class Combination(object):
 			if hasattr(component, 'seed'):
 				self.seed = component.seed
 	
-	def prior(self, value):
+	def prior(self, value, **kwargs):
 		v = self._components.values()[0][0]
 		if hasattr(v, 'prior'):
-			return v.prior(value)
+			return v.prior(value, **kwargs)
 		else:
 			return 0.
 	
@@ -137,7 +137,7 @@ class LLHEval:
 		llh = 0
 		for param in kwargs:
 			if hasattr(self.components[param], 'prior'):
-				llh += self.components[param].prior(kwargs[param])
+				llh += self.components[param].prior(kwargs[param], **kwargs)
 
 		for prop in lamb:
 			log_lambda = numpy.log(lamb[prop])
