@@ -66,7 +66,7 @@ def fit_muon_selection_efficiency(efficiency, error, binedges, smoothing=1):
     centers = [util.center(np.log10(binedges[0])), util.center(binedges[1])]
     knots = [pad_knots(np.log10(binedges[0]), 2), pad_knots(binedges[1], 2)]
     order = [2,2]
-    penalties = {2:[10*smoothing,1*smoothing]}
+    penalties = {2:[5*smoothing,10*smoothing]}
     spline = glam.fit(z, w, centers, knots, order, penalties=penalties)
     
     return spline
@@ -80,6 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('-g', '--geometry', type=str, default='IceCube')
     parser.add_argument('-s', '--spacing', type=int, default=None)
     parser.add_argument('-n', '--nfiles', type=int, default=1, help='Number of generated files')
+    parser.add_argument('--cuts', type=str, default=None, help='e.g. (LineFit.speed < 2*I3Constants.c)&(SplineMPE_recommendedDirectHitsC.dir_track_length > 120)&(SplineMPE_recommendedDirectHitsC.n_dir_doms > 6)&(SplineMPE_recommendedFitParams.rlogl<8.5)&(SplineMPEMuEXDifferential.exists==1)&(SplineMPEMuEXDifferential.SubEvent==0)')
     parser.add_argument('--smoothing', type=float, default=1., help='Smoothing strength to apply in spline fit')
     parser.add_argument('--plot', action='store_true', default=False, help='Plot efficiencies after fitting')
 
@@ -90,8 +91,14 @@ if __name__ == "__main__":
     import tables
     
     with tables.open_file(opts.infile[0]) as hdf:
+        if opts.cuts is not None:
+            from cubicle.hdfweights import HDFScanner
+            q = HDFScanner(hdf, type='unweighted', primary='/MCMuon')(opts.cuts)
+            mask = q()
+        else:
+            mask = slice(None)
         efficiency, error, binedges = get_muon_selection_efficiency(hdf,
-            fiducial_surface=surfaces.get_fiducial_surface(opts.geometry, opts.spacing),)
+            fiducial_surface=surfaces.get_fiducial_surface(opts.geometry, opts.spacing),nfiles=opts.nfiles, mask=mask)
     
     spline = fit_muon_selection_efficiency(efficiency, error, binedges, opts.smoothing)
     if os.path.exists(opts.outfile):
@@ -116,9 +123,10 @@ if __name__ == "__main__":
                 ct = cos_theta[i]
                 label='%.2f' % ct
                 ax.errorbar(energy, efficiency[:,i], yerr=error[:,i], ls='None', marker='o', label=label)
+                # ax.semilogx()
                 ax.semilogx(10**x, evaluates[:,i], color=ax.lines[-1].get_color())
             ax.legend()
-            ax.set_ylim((0, 1))
+            # ax.set_ylim((0, 1))
             ax.set_xlabel('Muon energy [GeV]')
             ax.set_ylabel('Selection efficiency')
             ax.set_title('%s %sm' % (opts.geometry, opts.spacing))
