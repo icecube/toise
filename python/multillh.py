@@ -323,5 +323,22 @@ def asimov_llh(components, **nominal):
 	
 	return _pseudo_llh(components, False, **nominal)
 
+def get_expectations(llh, **nominal):
+	exes = dict()
+	for k, comp in llh.components.items():
+		if k in nominal:
+			continue
+		if hasattr(comp, 'seed'):
+			nominal[k] = comp.seed
+		else:
+			nominal[k] = 1
+	for k, comp in llh.components.items():
+		if hasattr(comp, 'expectations'):
+			if callable(comp.expectations):
+				ex = comp.expectations(**nominal)
+			else:
+				ex = comp.expectations
+			exes[k] = {klass: nominal[k]*values for klass, values in ex.items()}
+	return exes
 
 
