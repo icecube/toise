@@ -22,6 +22,8 @@ class DiffuseNuGen(object):
 		:param livetime: observation time in years
 		"""
 		self._aeff = effective_area
+		idx = [self._aeff.dimensions.index(k)-1 for k in  ('true_zenith_band', 'reco_energy')]
+		self.bin_edges = [self._aeff.bin_edges[i] for i in idx]
 		self._livetime = livetime
 		# dimensions of flux should be: nu type (6),
 		# nu energy, cos(nu zenith), reco energy, cos(reco zenith),
