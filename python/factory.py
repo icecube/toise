@@ -110,9 +110,17 @@ class aeff_factory(object):
 	
 		
 	def _create(self, opts, **kwargs):
-		aeffs = dict(tracks=create_aeff(opts,**kwargs))
-		if opts.cascade_energy_threshold is not None:
-			aeffs['cascades']=create_cascade_aeff(opts,**kwargs)
+		if opts.geometry == 'ARA':
+			for k in 'psi_bins', 'cos_theta':
+				if k in kwargs:
+					kwargs[k] = numpy.asarray(kwargs[k])
+				elif hasattr(opts, k):
+					kwargs[k] = numpy.asarray(getattr(opts, k))
+			aeffs = dict(events=effective_areas.create_ara_aeff(**kwargs))
+		else:
+			aeffs = dict(tracks=create_aeff(opts,**kwargs))
+			if opts.cascade_energy_threshold is not None:
+				aeffs['cascades']=create_cascade_aeff(opts,**kwargs)
 		return aeffs
 	
 	def __call__(self, name):
