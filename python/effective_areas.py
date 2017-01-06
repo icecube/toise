@@ -454,7 +454,7 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	response = energy_resolution.get_response_matrix(e_mu, e_mu)
 	total_aeff = numpy.apply_along_axis(numpy.inner, 3, total_aeff, response)
 	
-	edges = (e_nu, cos_theta, e_mu, cos_theta, psi_bins)
+	edges = (e_nu, cos_theta, e_mu, psi_bins)
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 

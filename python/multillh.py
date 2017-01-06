@@ -54,6 +54,15 @@ class Combination(object):
 				exes[label+'_'+k] = livetime*v
 		return exes
 	
+	@property
+	def bin_edges(self):
+		edges = dict()
+		for label, (component, livetime) in self._components.items():
+			# everything returns a dict with 1 entry, 'tracks'. ew.
+			edges[label+'_tracks'] = component.bin_edges
+
+		return edges
+
 	def differential_chunks(self, *args, **kwargs):
 		generators = dict()
 		for label, (component, livetime) in self._components.items():
