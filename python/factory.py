@@ -97,18 +97,21 @@ class aeff_factory(object):
 	Create effective areas, lazily
 	"""
 	def __init__(self):
+		# arguments for creating effective areas
+		self._recipes = dict()
+		# cached effective areas
 		self._aeffs = dict()
-		self._names = dict()
+	
+	def set_kwargs(self, **kwargs):
+		self._aeffs.clear()
+		for opts, kw in self._recipes.values():
+			kw.update(**kwargs)
 	
 	def add(self, name, opts, **kwargs):
-		opt_dict = dict(opts.__dict__)
-		opt_dict.update(kwargs)
-		key = hash(tuple(opt_dict.items()))
-		
-		self._names[name] = key
-		self._aeffs[key] = (opts, kwargs)
+		self._recipes[name] = (opts, kwargs)
+		if name in self._aeffs:
+			del self._aeffs[name]
 	
-		
 	def _create(self, opts, **kwargs):
 		if opts.geometry == 'ARA':
 			for k in 'psi_bins', 'cos_theta':
@@ -116,6 +119,7 @@ class aeff_factory(object):
 					kwargs[k] = numpy.asarray(kwargs[k])
 				elif hasattr(opts, k):
 					kwargs[k] = numpy.asarray(getattr(opts, k))
+			kwargs['nstations'] = opts.nstations
 			aeffs = dict(events=effective_areas.create_ara_aeff(**kwargs))
 		else:
 			aeffs = dict(tracks=create_aeff(opts,**kwargs))
@@ -124,13 +128,12 @@ class aeff_factory(object):
 		return aeffs
 	
 	def __call__(self, name):
-		if not name in self._names:
+		if not name in self._recipes:
 			raise KeyError("Unknown configuration '{}'".format(name))
-		key = self._names[name]
-		if isinstance(self._aeffs[key], tuple):
-			opts, kwargs = self._aeffs[key]
-			self._aeffs[key] = self._create(opts, **kwargs)
-		return self._aeffs[key]
+		if not name in self._aeffs:
+			opts, kwargs = self._recipes[name]
+			self._aeffs[name] = self._create(opts, **kwargs)
+		return self._aeffs[name]
 	
 	@classmethod
 	def get(cls):
@@ -176,3 +179,13 @@ def add_configuration(name, opts, **kwargs):
 	Add an effective area calculation to the cache
 	"""
 	aeff_factory.get().add(name, opts, **kwargs)
+
+set_kwargs = aeff_factory.get().set_kwargs
+
+default_configs = {
+	'IceCube' : dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
+	'Sunflower_240' : dict(geometry='Sunflower', spacing=240, cascade_energy_threshold=2e5, veto_area=75., veto_threshold=1e5),
+	'ARA_37' : dict(geometry='ARA', nstations=37),
+}
+for k, config in default_configs.items():
+	add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1, 1, 20))
