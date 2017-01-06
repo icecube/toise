@@ -521,4 +521,119 @@ def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resoluti
 	edges = (e_nu, cos_theta, e_shower, psi_bins)
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+
+
+def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37./2):
+        """
+	Get the aeff for a neutrino of energy E_nu from zenith angle
+	ct_edges for ARA (values from mlu ARAsim). Assumes flavor-independence.
 	
+	:param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
+	    at the centers of these bins. If an integer, interpret as the NSide of
+	    a HEALpix map
+
+	:returns: a tuple edges, aeff. *edges* is a 2-element tuple giving the
+	    edges in E_nu, cos_theta, while *aeff* is a 2D array
+	    with the same axes.
+	"""
+	from scipy import interpolate
+	
+	if ct_edges is None:
+		ct_edges = numpy.linspace(-1, 1, 11)
+	elif isinstance(ct_edges, int):
+		nside = ct_edges
+		ct_edges = _ring_range(nside)
+
+        fpath = os.path.join(data_dir, 'aeff', 'cosZenDepAeff_z{}.txt'.format(depth))
+
+        with open(fpath) as fara:
+                # parse file and strip out empty lines
+                lines = itertools.ifilter(None, (line.rstrip() for line in fara))
+
+                energy = []
+                cos_theta = []
+                aeff = []
+                paeff = [] # partial aeff over a single energy range
+                for fline in lines:
+                    if 'EXPONENT' in fline:
+                        energy.append(float(fline.split('=')[-1]))
+                        if paeff:
+                            aeff.append(paeff)
+                            paeff = []
+                            cos_theta = []
+                    else:
+                        cos_theta.append(float(fline.split()[0]))
+                        paeff.append(float(fline.split()[1]))
+                aeff.append(paeff)
+
+        aeff = numpy.asarray(aeff) * nstations
+
+        # convert energy from exponent to GeV
+        energy = 10**edge(numpy.asarray(energy))*1e-9
+        cos_theta = edge(numpy.asarray(cos_theta))
+
+        edges = np.array([energy, cos_theta])
+        centers = map(center, edges)
+	newcenters = [centers[0], numpy.clip(center(ct_edges), centers[1].min(), centers[1].max())]
+	xi = numpy.vstack(map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
+	assert numpy.isfinite(xi).all()
+
+	interpolant = interpolate.RegularGridInterpolator(centers,
+	                                                  aeff,
+                                                          bounds_error=True,
+	                                                  fill_value=-numpy.inf)
+	# NB: we use nearest-neighbor interpolation here because
+	# n-dimensional linear interpolation has the unfortunate side-effect
+	# of dropping the highest-energy muon energy bin in each neutrino
+	# energy bin, in turn because the next-highest-energy bin is zero
+	# (-inf in log space). Ignoring that bin significantly
+	# underestimates the muon flux from steeply falling neutrino spectra. 
+	v = interpolant(xi,  method='nearest').reshape(map(lambda x: x.size, newcenters))
+
+        # assume flavor-independence for ARA by extending same aeff across all flavors
+        return (energy, ct_edges), numpy.repeat(v[None,...], 6, axis=0)
+
+
+def create_ara_aeff(depth=200,
+                    nstations=37./2,
+                    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
+	            cos_theta=None,):
+	"""
+	Create an effective area for ARA
+	
+	:param depth: depth in m (100 or 200)
+	:type: int
+		
+	:param cos_theta: sky binning to use. If cos_theta is an integer,
+	    bin in a HEALpix map with this NSide, otherwise bin in cosine of
+	    zenith angle. If None, use the native binning of the muon production
+	    efficiency histogram.
+	:param psi_bins: edges of bins in muon/reconstruction opening angle (radians)
+	
+	:returns: an effective_area object
+	"""		
+	nside = None
+	if isinstance(cos_theta, int):
+		nside = cos_theta
+
+	# Step 1: ARA aeff for a neutrino to produce a muon that reaches the
+	#         detector with a given energy
+	(e_nu, cos_theta), aeff = _interpolate_ara_aeff(cos_theta, depth, nstations)
+		
+	# Step 2: for now, assume no energy smearing
+        e_reco = numpy.copy(e_nu)
+        aeff = numpy.repeat(aeff[...,None], aeff.shape[1], axis=-1)
+        for i, j in itertools.product(xrange(aeff.shape[1]),repeat=2):
+                if i != j:
+                        aeff[:,i,:,j] = 0
+
+	# Step 3: dummy angular resolution smearing
+	if numpy.isfinite(psi_bins[-1]):
+		psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
+	total_aeff = numpy.zeros(aeff.shape + (psi_bins.size-1,))
+	# put everything in first psi_bin for perfect angular resolution
+	total_aeff[...,0] = aeff[...]
+	
+	edges = (e_nu, cos_theta, e_reco, psi_bins)
+	
+	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
