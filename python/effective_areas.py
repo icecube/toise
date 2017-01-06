@@ -620,12 +620,10 @@ def create_ara_aeff(depth=200,
 	#         detector with a given energy
 	(e_nu, cos_theta), aeff = _interpolate_ara_aeff(cos_theta, depth, nstations)
 		
-	# Step 2: for now, assume no energy smearing
+	# Step 2: for now, assume no energy resolution
         e_reco = numpy.copy(e_nu)
         aeff = numpy.repeat(aeff[...,None], aeff.shape[1], axis=-1)
-        for i, j in itertools.product(xrange(aeff.shape[1]),repeat=2):
-                if i != j:
-                        aeff[:,i,:,j] = 0
+        aeff /= aeff.shape[1]
 
 	# Step 3: dummy angular resolution smearing
 	if numpy.isfinite(psi_bins[-1]):
