@@ -38,7 +38,7 @@ class DiffuseNuGen(object):
 	def is_healpix(self):
 		return self._aeff.is_healpix
 		
-	def prior(self, value):
+	def prior(self, value, **kwargs):
 		if self.uncertainty is None:
 			return 0.
 		else:
@@ -427,7 +427,7 @@ class DiffuseAstro(DiffuseNuGen):
 				flavor_weight[2::2] = 1 - pgamma_fraction*(1 - 0.61/0.5)
 				flavor_weight[3::2] = 1 - pgamma_fraction*(1 - 0.39/0.5)
 				self._last_params[param('pgamma_fraction')] = pgamma_fraction
-			flux *= flavor_weight[:,None,None]
+			flux = flux*flavor_weight[:,None,None]
 
 		
 		total = self._apply_flux(self._aeff.values, flux, self._livetime)

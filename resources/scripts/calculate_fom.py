@@ -43,104 +43,15 @@ import numpy
 
 
 from icecube.gen2_analysis import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
+from icecube.gen2_analysis import factory
 from icecube.gen2_analysis.util import data_dir, center
 
 import cPickle as pickle
 from clint.textui import progress
+from functools import partial
 
 import warnings
 warnings.filterwarnings("ignore")
-
-def make_key(opts, kwargs):
-	key = dict(opts.__dict__)
-	key.update(kwargs)
-	for k, v in kwargs.items():
-		if isinstance(v, numpy.ndarray):
-			key[k] = (v[0], v[-1], len(v))
-		else:
-			key[k] = v
-	
-	return tuple(key.items())
-
-def create_aeff(opts, **kwargs):
-
-	cache_file = os.path.join(data_dir, 'cache', 'throughgoing_aeff')
-	# try:
-	# 	cache = pickle.load(open(cache_file))
-	# except IOError:
-	# 	cache = dict()
-	# key = make_key(opts, kwargs)
-	# if key in cache:
-	# 	return cache[key]
-
-	if opts.veto_area > 0:
-		kwargs['veto_coverage'] = surface_veto.GeometricVetoCoverage(opts.geometry, opts.spacing, opts.veto_area)
-	
-	if opts.energy_threshold is not None:
-		seleff = effective_areas.get_muon_selection_efficiency(opts.geometry, opts.spacing, opts.energy_threshold)
-	else:
-		seleff = effective_areas.get_muon_selection_efficiency(opts.geometry, opts.spacing)
-	if opts.no_cuts:
-		selection_efficiency = lambda emu, cos_theta: seleff(emu, cos_theta=0)
-		# selection_efficiency = lambda emu, cos_theta: numpy.ones(emu.shape)
-		# selection_efficiency = effective_areas.get_muon_selection_efficiency("IceCube", None)
-	else:
-		selection_efficiency = seleff
-
-	aeff = effective_areas.create_throughgoing_aeff(
-	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing),
-	    selection_efficiency=selection_efficiency,
-	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
-	    energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
-	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale),
-	    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
-	    **kwargs)
-
-	# cache[key] = aeff
-	# pickle.dump(cache, open(cache_file, 'w'), 2)
-	return aeff
-
-def create_cascade_aeff(opts, **kwargs):
-
-	cache_file = os.path.join(data_dir, 'cache', 'cascade_aeff')
-	try:
-		cache = pickle.load(open(cache_file))
-	except IOError:
-		cache = dict()
-	key = make_key(opts, kwargs)
-	if key in cache:
-		return cache[key]
-
-	aeff = effective_areas.create_throughgoing_aeff(
-	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing, channel='cascade'),
-	    selection_efficiency=effective_areas.HESEishSelectionEfficiency(opts.geometry, opts.spacing, opts.cascade_energy_threshold),
-	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
-	    # energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
-	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale, channel='cascade'),
-	    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 2)),
-	    **kwargs)
-
-	cache[key] = aeff
-	pickle.dump(cache, open(cache_file, 'w'), 2)
-	return aeff
-
-class aeff_bundle(object):
-	def __init__(self, component_factory, **kwargs):
-		aeffs = dict(tracks=create_aeff(opts,**kwargs))
-		if opts.cascade_energy_threshold is not None:
-			aeffs['cascades']=create_cascade_aeff(opts,**kwargs)
-		components = dict()
-		for k, aeff in aeffs.items():
-			components[k] = component_factory(aeff)
-		self.components = components
-		self.aeffs = aeffs
-	def get_component(self, key):
-		return multillh.Combination({k: (self.components[k][key], opts.livetime) for k in self.components})
-	def get_components(self):
-		keys = set()
-		for v in self.components.values():
-			keys.update(v.keys())
-		return {key : self.get_component(key) for key in keys}
 
 def intflux(e, gamma=-2):
 	return (e**(1+gamma))/(1+gamma)
@@ -198,33 +109,47 @@ def get_expectations(llh, **nominal):
 
 if opts.figure_of_merit == 'survey_volume':
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
-	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
-	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-	astro = diffuse.DiffuseAstro(aeff, opts.livetime)
-	astro.seed = 2
-	gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+	cos_theta = tuple(numpy.linspace(-1, 1, 21))
+	opts.cos_theta = cos_theta
+	factory.add_configuration('IceCube', factory.make_options(geometry='IceCube', spacing=125., cos_theta=cos_theta))
+	factory.add_configuration('Gen2', factory.make_options(**opts.__dict__))
 	
-	dp = []
-	sindec = numpy.linspace(-1, 1, 21)
-	for zi in xrange(20):
+	def make_components(aeff, zi):
+		energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
+		atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+		prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+		astro = diffuse.DiffuseAstro(aeff, opts.livetime)
+		astro.seed = 2
+		
 		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi)
 		bkg = atmo.point_source_background(zenith_index=zi)
 		astro_bkg = astro.point_source_background(zenith_index=zi)
 		
-		diffuse = dict(atmo=bkg, astro=astro_bkg, gamma=gamma)
-		fixed = dict(atmo=1, gamma=gamma.seed, astro=2)
-		atmo.seed = 1
-		dp.append(1e-12*pointsource.discovery_potential(ps, diffuse, **fixed))
-		s = ps.expectations(**fixed)['tracks'].sum(axis=0)
-		b = bkg.expectations['tracks'].sum(axis=0)
-		if (~numpy.isnan(s/b)).any():
-			pass
-			# print s.cumsum()/s.sum()
-			# print s/b
-		# bkgs.append(bkg.expectations['tracks'][:,:20].sum())
+		return dict(atmo=bkg, astro=astro_bkg, ps=ps)
+	
+	dp = []
+	
+	sindec = numpy.linspace(-1, 1, 21)
+	for zi in xrange(20):
+		bundle = factory.component_bundle({'IceCube': 0., 'Gen2': opts.livetime}, partial(make_components, zi=zi))
+		
+		components = bundle.get_components()
+		ps = components.pop('ps')
+		components['gamma'] = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+	
+		fixed = dict(atmo=1, gamma=components['gamma'].seed, astro=2)
+		
+		dp.append(1e-12*pointsource.discovery_potential(ps, components, **fixed))
+		print dp[-1]
+		# s = ps.expectations(**fixed)['tracks'].sum(axis=0)
+		# b = bkg.expectations['tracks'].sum(axis=0)
+		# if (~numpy.isnan(s/b)).any():
+		# 	pass
+		# 	# print s.cumsum()/s.sum()
+		# 	# print s/b
+		# # bkgs.append(bkg.expectations['tracks'][:,:20].sum())
 	dp = numpy.array(dp)[::-1]
+	print dp
 	
 	volume = survey_volume(sindec, dp)
 	
