@@ -568,7 +568,7 @@ class AhlersGZK(DiffuseAstro):
 		super(AhlersGZK, self).__init__(*args, **kwargs)
 		self._flux_func = AhlersGZKFlux()
 
-	def spectral_weight(e_center, **kwargs):
+	def spectral_weight(self, e_center, **kwargs):
 		return self._flux_func(e_center)
 
 def transform_map(skymap):
