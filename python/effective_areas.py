@@ -523,7 +523,7 @@ def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resoluti
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 
 
-def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37./2):
+def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
         """
 	Get the aeff for a neutrino of energy E_nu from zenith angle
 	ct_edges for ARA (values from mlu ARAsim). Assumes flavor-independence.
@@ -595,7 +595,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37./2):
 
 
 def create_ara_aeff(depth=200,
-                    nstations=37./2,
+                    nstations=37,
                     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
 	            cos_theta=None,):
 	"""
