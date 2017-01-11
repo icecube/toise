@@ -591,7 +591,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 	v = interpolant(xi,  method='nearest').reshape(map(lambda x: x.size, newcenters))
 
         # assume flavor-independence for ARA by extending same aeff across all flavors
-        return (energy, ct_edges), numpy.repeat(v[None,...], 6, axis=0)
+        return (energy, ct_edges), numpy.repeat(v[None,...]/6., 6, axis=0)
 
 
 def create_ara_aeff(depth=200,

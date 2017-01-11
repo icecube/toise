@@ -247,7 +247,7 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		return numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
-		actual = optimize.fsolve(f, baseline, xtol=tolerance)
+		actual = optimize.fsolve(f, baseline, xtol=tolerance, factor=1, epsfcn=1)
 		allh = asimov_llh(components, ps=actual, **fixed)
 		total = nevents(allh, ps=actual, **fixed)
 		nb = nevents(allh, ps=0, **fixed)
