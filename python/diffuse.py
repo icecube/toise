@@ -12,6 +12,7 @@ import cPickle as pickle
 import logging
 
 from util import *
+from .pointsource import is_zenith_weight
 
 class DiffuseNuGen(object):
 	def __init__(self, effective_area, flux, livetime=1.):
@@ -115,7 +116,6 @@ class AtmosphericNu(DiffuseNuGen):
 		# sum over neutrino flavors, energies, and zenith angles
 		total = self._apply_flux(self._aeff.values, flux, self._livetime)
 
-		
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
@@ -146,7 +146,9 @@ class AtmosphericNu(DiffuseNuGen):
 		# observation time shorter for triggered transient searches
 		if livetime is not None:
 			bin_areas *= (livetime/self._livetime/constants.annum)
-		if isinstance(zenith_index, slice):
+		if is_zenith_weight(zenith_index, self._aeff):
+			omega = self._solid_angle[:,None]
+		elif isinstance(zenith_index, slice):
 			omega = self._solid_angle[zenith_index,None]
 			bin_areas = bin_areas[None,...]
 		else:
@@ -158,7 +160,10 @@ class AtmosphericNu(DiffuseNuGen):
 			bin_areas = bin_areas*n_sources[expand]
 			
 		# dimensions of the keys in expectations are now energy, radial bin
-		background.expectations = {k: (v[zenith_index,:]/omega)[...,None]*bin_areas for k,v in self.expectations.items()}
+		if is_zenith_weight(zenith_index, self._aeff):
+			background.expectations = {k: numpy.nansum((v*zenith_index[:,None])/omega, axis=0)[...,None]*bin_areas for k,v in self.expectations.items()}
+		else:
+			background.expectations = {k: (v[zenith_index,:]/omega)[...,None]*bin_areas for k,v in self.expectations.items()}
 		if not with_energy:
 			# just radial bins
 			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
