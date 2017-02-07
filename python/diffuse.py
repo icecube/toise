@@ -79,6 +79,18 @@ def detect(sequence, pred):
 	except StopIteration:
 		return None
 
+def _import_NewNuFlux():
+	"""
+	Try to find NewNuFlux, either standalone or as part of IceTray
+	
+	http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
+	"""
+	try:
+		import NewNuFlux
+	except ImportError:
+		from icecube import NewNuFlux
+	return NewNuFlux
+
 class AtmosphericNu(DiffuseNuGen):
 	"""
 	The diffuse atmospheric neutrino flux. :meth:`.point_source_background`
@@ -201,12 +213,12 @@ class AtmosphericNu(DiffuseNuGen):
 		                            veto. This assumes that an energy threshold
 		                            has been applied to the effective area. 
 		"""
-		from icecube import NewNuFlux, AtmosphericSelfVeto
+		from icecube import AtmosphericSelfVeto
 		cache = cls._fluxes['conventional']
 		shape_key = effective_area.values.shape[:4]
 		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
 		if flux is None:
-			flux = NewNuFlux.makeFlux('honda2006')
+			flux = _import_NewNuFlux().makeFlux('honda2006')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
 			flux = (flux, pf)
@@ -233,12 +245,12 @@ class AtmosphericNu(DiffuseNuGen):
 		
 		The parameters have the same meanings as in :meth:`.conventional`
 		"""
-		from icecube import NewNuFlux, AtmosphericSelfVeto
+		from icecube import AtmosphericSelfVeto
 		cache = cls._fluxes['prompt']
 		shape_key = effective_area.values.shape[:4]
 		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
 		if flux is None:
-			flux = NewNuFlux.makeFlux('sarcevic_std')
+			flux = _import_NewNuFlux().makeFlux('sarcevic_std')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = None if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
 			flux = (flux, pf)
