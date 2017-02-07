@@ -6,11 +6,11 @@ from .util import data_dir, center
 def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., psf_class=None, channel='muon'):
 	if channel == 'cascade':
 		return PotemkinCascadePointSpreadFunction()
-	if psf_class is not None:
-		fname = '%s_%s_kingpsf%d' % (geometry, spacing, psf_class[1])
-		return KingPointSpreadFunction(fname, psf_class=psf_class, scale=scale)
 	if geometry == "IceCube":
 		fname = "aachen_psf.fits"
+	elif psf_class is not None:
+		fname = '%s_%s_kingpsf%d' % (geometry, spacing, psf_class[1])
+		return KingPointSpreadFunction(fname, psf_class=psf_class, scale=scale)
 	else:
 		fname = "11900_MUONGUN_%s_%sm_recos.fits" % (geometry.lower(), spacing)
 	return PointSpreadFunction(fname, scale)
