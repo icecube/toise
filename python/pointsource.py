@@ -252,7 +252,7 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		total = nevents(allh, ps=actual, **fixed)
 		nb = nevents(allh, ps=0, **fixed)
 		ns = total-nb
-		logging.getLogger().info("baseline: %.2g actual %.2g ns: %.2g nb: %.2g" % (baseline, actual, ns, nb))
+		logging.getLogger().info("baseline: %.2g actual %.2g ns: %.2g nb: %.2g ts: %.2g" % (baseline, actual, ns, nb, ts(actual)))
 		return actual[0]
 
 def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
