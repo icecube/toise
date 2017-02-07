@@ -165,7 +165,7 @@ def make_options(**kwargs):
 	import argparse
 	defaults = dict(geometry='Sunflower', spacing=240, veto_area=75., angular_resolution_scale=1.,
 	                cascade_energy_threshold=None, veto_threshold=1e5, energy_threshold=0, no_cuts=False,
-	                psf_class=None,
+	                psf_class=(0,1),
 	                livetime=1.)
 	# icecube has no veto...yet
 	if kwargs.get('geometry') == 'IceCube':
