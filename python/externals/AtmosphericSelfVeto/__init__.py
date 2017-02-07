@@ -1,7 +1,4 @@
 
-from icecube.load_pybindings import load_pybindings
-load_pybindings(__name__,__path__)
-from icecube import photospline
 import numpy
 
 class CKNWPassingFraction(object):
@@ -29,7 +26,7 @@ class CKNWPassingFraction(object):
 		return ratio
 
 from . import selfveto
-from icecube.dataclasses import I3Particle
+from ...util import PDGCode
 class AnalyticPassingFraction(object):
 	"""
 	A combination of the Schoenert et al calculation and an approximate treatment of uncorrelated muons from the rest of the shower.
@@ -57,22 +54,19 @@ class AnalyticPassingFraction(object):
 			nue = numu
 		
 		self._eval = dict()
-		self._eval[I3Particle.NuMu] = numpy.vectorize(lambda enu, ct, depth: numu.eval([enu, ct, depth]))
-		self._eval[I3Particle.NuE] = numpy.vectorize(lambda enu, ct, depth: nue.eval([enu, ct, depth]))
+		self._eval[PDGCode.NuMu] = numpy.vectorize(lambda enu, ct, depth: numu.eval([enu, ct, depth]))
+		self._eval[PDGCode.NuE] = numpy.vectorize(lambda enu, ct, depth: nue.eval([enu, ct, depth]))
 	
 	def _create_spline(self, kind, veto_threshold):
 		"""
 		Parameterize the uncorrelated veto probability as a function of
 		neutrino energy, zenith angle, and vertical depth, and cache the result.
 		"""
-		from icecube import photospline
+		import photospline
 		import os
-		fname = os.path.expandvars('$I3_BUILD/AtmosphericSelfVeto/resources/tables/uncorrelated_veto_prob.%s.%.1e.fits' % (kind, veto_threshold))
+		fname = os.path.expandvars('$I3_BUILD/gen2_analysis/resources/data/cache/uncorrelated_veto_prob.%s.%.1e.fits' % (kind, veto_threshold))
 		if os.path.exists(fname):
-			return photospline.I3SplineTable(fname)
-		
-		from icecube.photospline import spglam as glam
-		from icecube.photospline import splinefitstable
+			return photospline.SplineTable(fname)
 		
 		def pad_knots(knots, order=2):
 			"""
@@ -100,9 +94,11 @@ class AnalyticPassingFraction(object):
 		centers = [log_enu, ct, depth]
 		knots = map(pad_knots, map(edges, centers))
 		
-		spline = glam.fit(pr, numpy.ones(pr.shape), centers, knots, 2, 1e-16)
-		splinefitstable.write(spline, fname)
-		return photospline.I3SplineTable(fname)
+		z, w = photospline.ndsparse.from_data(pr)
+		ndim = pr.ndim
+		spline = photospline.glam_fit(z, w, centers, knots, [2]*ndim, [2]*ndim, [1e-16]*ndim)
+		spline.write(fname)
+		return spline
 	
 	def __call__(self, particleType, enu, ct, depth, spline=True):
 		"""
@@ -110,7 +106,7 @@ class AnalyticPassingFraction(object):
 		accompanying muons from the same air shower.
 		
 		:param particleType: neutrino type for which to evaluate the veto
-		:type particleType: icecube.dataclasses.I3Particle.ParticleType
+		:type particleType: PDGCode
 		:param enu: neutrino energy [GeV]
 		:param ct: cosine of the zenith angle
 		:param depth: vertical depth [m]
@@ -123,16 +119,16 @@ class AnalyticPassingFraction(object):
 		emu = selfveto.minimum_muon_energy(selfveto.overburden(ct, depth), self.veto_threshold)
 		
 		# Verify that we're using a sane encoding scheme
-		assert(abs(I3Particle.NuMuBar) == I3Particle.NuMu)
+		assert(abs(PDGCode.NuMuBar) == PDGCode.NuMu)
 		particleType = abs(numpy.asarray(particleType))
 		if spline:
-			pr = numpy.where(particleType==I3Particle.NuMu, self._eval[I3Particle.NuMu](numpy.log10(enu), ct, depth),
-				numpy.where(particleType==I3Particle.NuE, self._eval[I3Particle.NuE](numpy.log10(enu), ct, depth), 1))
+			pr = numpy.where(particleType==PDGCode.NuMu, self._eval[PDGCode.NuMu](numpy.log10(enu), ct, depth),
+				numpy.where(particleType==PDGCode.NuE, self._eval[PDGCode.NuE](numpy.log10(enu), ct, depth), 1))
 		else:
 			enu, ct, depth = numpy.broadcast_arrays(enu, ct, depth)
 			if self.kind == 'conventional':
-				pr = numpy.where(particleType==I3Particle.NuMu, selfveto.uncorrelated_passing_rate(enu, emu, ct, kind='numu'),
-					numpy.where(particleType==I3Particle.NuE, selfveto.uncorrelated_passing_rate(enu, emu, ct, kind='nue'), 1))
+				pr = numpy.where(particleType==PDGCode.NuMu, selfveto.uncorrelated_passing_rate(enu, emu, ct, kind='numu'),
+					numpy.where(particleType==PDGCode.NuE, selfveto.uncorrelated_passing_rate(enu, emu, ct, kind='nue'), 1))
 			elif self.kind == 'charm':
 				pr = selfveto.uncorrelated_passing_rate(enu, emu, ct, kind=self.kind)
 		
@@ -143,6 +139,6 @@ class AnalyticPassingFraction(object):
 		# decays of pions and kaons, but is at least a conservative estimate
 		# for 3-body decays of D mesons.
 		direct = selfveto.correlated_passing_rate(enu, emu, ct)
-		pr *= numpy.where(particleType==I3Particle.NuMu, direct, 1)
+		pr *= numpy.where(particleType==PDGCode.NuMu, direct, 1)
 		
 		return numpy.where(ct > self.ct_min, numpy.where(pr <= 1, numpy.where(pr >= self.floor, pr, self.floor), 1), 1)
