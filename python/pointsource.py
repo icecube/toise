@@ -292,9 +292,14 @@ def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
 	if baseline > 1e4:
 		return numpy.inf
 	else:
-		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
-		actual = optimize.fsolve(f, baseline/10, xtol=1e-2)
+		# actual = optimize.bisect(f, 0, baseline*100, xtol=baseline*1e-2)
+		actual = optimize.fsolve(f, baseline*10, xtol=1e-4)
 		logging.getLogger().debug("baseline: %.2g actual %.2g" % (baseline, actual))
+		allh = asimov_llh(components, ps=actual, **fixed)
+		total = nevents(allh, ps=actual, **fixed)
+		nb = nevents(allh, ps=0, **fixed)
+		ns = total-nb
+		logging.getLogger().info("ns: %.2g nb: %.2g" % (ns, nb))
 		return actual[0]
 
 
