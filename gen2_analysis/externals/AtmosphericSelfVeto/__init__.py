@@ -1,32 +1,8 @@
 
 import numpy
 
-class CKNWPassingFraction(object):
-	"""
-	The calculation used in the first two HESE papers.
-	"""
-	def __init__(self, base, muon_threshold=1e4, floor=1e-1):
-		import os
-		tabledir = os.environ['I3_BUILD'] + "/AtmosphericSelfVeto/resources/tables/"
-		self.spline = photospline.I3SplineTable(tabledir + '/cknw-atmuprobtable.fits')
-		self.base = base
-		self.floor = floor
-		self.threshold = muon_threshold
-	
-	def __call__(self, particleType, energy, cos_theta):
-		zenith = 180*numpy.arccos(cos_theta)/numpy.pi
-		
-		E_nu = numpy.where(energy > 5e6, 5e6, numpy.where(energy < 2e4, 2e4, energy))
-		slope_threshold = self.threshold/E_nu
-		ratio = numpy.array([self.spline.eval([z, s]) for z, s in zip(*numpy.broadcast_arrays(numpy.where(zenith > 80, 80, zenith), slope_threshold))])
-		ratio = numpy.where((~(ratio<1))|(zenith>85)|(energy<2e4), 1, ratio)
-		# trust nothing.
-		ratio = numpy.where(ratio < self.floor, self.floor, ratio)
-		
-		return ratio
-
 from . import selfveto
-from ...util import PDGCode
+from ...util import PDGCode, data_dir
 class AnalyticPassingFraction(object):
 	"""
 	A combination of the Schoenert et al calculation and an approximate treatment of uncorrelated muons from the rest of the shower.
@@ -64,7 +40,7 @@ class AnalyticPassingFraction(object):
 		"""
 		import photospline
 		import os
-		fname = os.path.expandvars('$I3_BUILD/gen2_analysis/resources/data/cache/uncorrelated_veto_prob.%s.%.1e.fits' % (kind, veto_threshold))
+		fname = os.path.join(data_dir, 'cache', 'uncorrelated_veto_prob.%s.%.1e.fits' % (kind, veto_threshold))
 		if os.path.exists(fname):
 			return photospline.SplineTable(fname)
 		
