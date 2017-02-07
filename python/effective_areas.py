@@ -83,26 +83,25 @@ class MuonSelectionEfficiency(object):
 
 class ZenithDependentMuonSelectionEfficiency(object):
 	def __init__(self, filename='sunflower_200m_bdt0_efficiency.fits', energy_threshold=0, scale=1.):
-		from icecube.photospline import I3SplineTable
+		from pyphotospline import SplineTable
 		if not filename.startswith('/'):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
-		self._spline = I3SplineTable(filename)
+		self._spline = SplineTable(filename)
 		self.scale = scale
-		self.eval = numpy.vectorize(self._eval)
 		# cut off no lower than 500 GeV
 		self.energy_threshold = max((energy_threshold, 5e2))
 	def _eval(self, loge, cos_theta):
 		return self._spline.eval([loge, cos_theta])
 	def __call__(self, muon_energy, cos_theta):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
-		return self.scale*numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.eval(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
+		return self.scale*numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self._spline.evaluate_simple(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
 
 class HESEishSelectionEfficiency(object):
 	"""
 	Imitate the efficiency one would get from a HESE-like selection
 	"""
 	def __init__(self, geometry="IceCube", spacing=125, energy_threshold=1e5):
-		from icecube.gen2_analysis import surfaces
+		from . import surfaces
 		outer = get_fiducial_surface(geometry, spacing)
 		side_padding = spacing/2.
 		top_padding = 100.

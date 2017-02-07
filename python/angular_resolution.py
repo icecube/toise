@@ -43,8 +43,8 @@ class PointSpreadFunction(object):
         """
         if not fname.startswith('/'):
             fname = os.path.join(data_dir, 'psf', fname)
-        from icecube.photospline import I3SplineTable
-        self._spline = I3SplineTable(fname)
+        from pyphotospline import SplineTable
+        self._spline = SplineTable(fname)
         self._loge_extents, self._ct_extents = self._spline.extents[:2]
         if self._ct_extents == (-1, 0):
             self._mirror = True
@@ -58,7 +58,7 @@ class PointSpreadFunction(object):
             ct = -numpy.abs(ct)
         ct = numpy.clip(ct, *self._ct_extents)
         
-        evaluates = numpy.array([self._spline.eval(coords) for coords in zip(loge.flatten(), ct.flatten(), psi.flatten())]).reshape(psi.shape)
+        evaluates = self._spline.evaluate_simple([loge, ct, psi])
         return numpy.where(numpy.isfinite(evaluates), evaluates, 1.)
 
 class king_gen(stats.rv_continuous):

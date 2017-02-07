@@ -1,5 +1,5 @@
 
-from icecube.gen2_analysis import factory, diffuse, pointsource, multillh
+from . import factory, diffuse, pointsource, multillh
 import numpy
 
 class GZK(object):
