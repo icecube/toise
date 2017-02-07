@@ -213,7 +213,7 @@ class AtmosphericNu(DiffuseNuGen):
 		                            veto. This assumes that an energy threshold
 		                            has been applied to the effective area. 
 		"""
-		from icecube import AtmosphericSelfVeto
+		from .externals import AtmosphericSelfVeto
 		cache = cls._fluxes['conventional']
 		shape_key = effective_area.values.shape[:4]
 		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
@@ -245,7 +245,7 @@ class AtmosphericNu(DiffuseNuGen):
 		
 		The parameters have the same meanings as in :meth:`.conventional`
 		"""
-		from icecube import AtmosphericSelfVeto
+		from .externals import AtmosphericSelfVeto
 		cache = cls._fluxes['prompt']
 		shape_key = effective_area.values.shape[:4]
 		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
