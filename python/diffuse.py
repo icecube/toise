@@ -48,10 +48,10 @@ class DiffuseNuGen(object):
 	
 	@staticmethod
 	def _integrate_flux(edges, flux, passing_fraction=lambda *args, **kwargs: 1.):
-		from icecube import dataclasses
+		from .util import PDGCode
 		intflux = numpy.empty((6, len(edges[0])-1, len(edges[1])-1))
 		for i, (flavor, anti) in enumerate(itertools.product(('E', 'Mu', 'Tau'), ('', 'Bar'))): 
-			pt = getattr(dataclasses.I3Particle, 'Nu'+flavor+anti)
+			pt = getattr(PDGCode, 'Nu'+flavor+anti)
 			for j in range(len(edges[1])-1):
 				ct_hi = edges[1][j+1]
 				ct_lo = edges[1][j]

@@ -9,8 +9,6 @@ import scipy.stats
 import scipy.interpolate
 from util import *
 
-from icecube import NewNuFlux
-
 class PSLikelihood(object):
 	def __init__(self, psi, sigma, E, cos_theta, signal_energy_pdf, background_energy_pdf):
 		pass
