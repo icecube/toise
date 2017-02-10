@@ -83,7 +83,7 @@ class MuonSelectionEfficiency(object):
 
 class ZenithDependentMuonSelectionEfficiency(object):
 	def __init__(self, filename='sunflower_200m_bdt0_efficiency.fits', energy_threshold=0, scale=1.):
-		from pyphotospline import SplineTable
+		from photospline import SplineTable
 		if not filename.startswith('/'):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
 		self._spline = SplineTable(filename)
