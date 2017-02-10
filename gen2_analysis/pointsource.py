@@ -7,12 +7,32 @@ from multillh import LLHEval, asimov_llh
 from util import *
 import logging
 
+def is_zenith_weight(zenith_weight, aeff):
+	zenith_dim = aeff.dimensions.index('true_zenith_band')
+	# print issubclass(numpy.asarray(zenith_weight).dtype.type, numpy.floating), len(zenith_weight), aeff.values.shape[zenith_dim]
+	return issubclass(numpy.asarray(zenith_weight).dtype.type, numpy.floating) and len(zenith_weight) == aeff.values.shape[zenith_dim]
+
 class PointSource(object):
-	def __init__(self, effective_area, fluence, zenith_bin, with_energy=True):
+	def __init__(self, effective_area, fluence, zenith_selection, with_energy=True):
+		"""
+		
+		:param effective_area: an effective area
+		:param fluence: flux integrated over the energy bins of `effective_area`, in 1/cm^2 s
+		:param zenith_selection: if an integer or slice, select only these zenith bins. If a
+		    sequence of floats of the same length as the number of zenith angle bins, average
+		    over zenith bins with the given weights (for example, to account for motion of a
+		    source in local coordinates when the detector is not at Pole)
+		"""
 
 		self._edges = effective_area.bin_edges
 		
-		effective_area = effective_area.values[...,zenith_bin,:,:-1]
+		if is_zenith_weight(zenith_selection, effective_area):
+			zenith_dim = effective_area.dimensions.index('true_zenith_band')
+			expand = [None]*effective_area.values.ndim
+			expand[zenith_dim] = slice(None)
+			effective_area = (effective_area.values[...,:-1] * zenith_selection[expand]).sum(axis=zenith_dim)
+		else:
+			effective_area = effective_area.values[...,zenith_selection,:,:-1]
 		expand = [None]*effective_area.ndim
 		expand[1] = slice(None)
 		if len(fluence.shape) > 1 and fluence.shape[1] > 1:
@@ -26,6 +46,7 @@ class PointSource(object):
 		
 		self._rate = rate
 		self._invalidate_cache()
+		
 	
 	def _invalidate_cache(self):
 		self._last_gamma = None
@@ -182,6 +203,33 @@ class StackedPopulation(PointSource):
 		fluence = numpy.outer(fluence, self.flux_per_band)
 		
 		super(StackedPopulation, self).__init__(effective_area, fluence, slice(None), with_energy)
+
+from scipy.optimize import bisect
+from functools import partial
+def source_to_local_zenith(declination, latitude, ct_bins):
+    """
+    Return the fraction of the day that a source at a given declination spends in each zenith bin
+    
+    :param declination: source declination in degrees
+    :param latitude: observer latitude in degrees
+    :param ct_bins: edges of bins in cos(zenith), in ascending order
+    """
+    dec = numpy.radians(declination)
+    lat = numpy.radians(latitude)
+    def offset(hour_angle, ct=0):
+        "difference between source elevation and bin edge at given hour angle"
+        return (numpy.cos(hour_angle)*numpy.cos(dec)*numpy.cos(lat) + numpy.sin(dec)*numpy.sin(lat)) - ct
+    # find minimum and maximum elevation
+    lo = numpy.searchsorted(ct_bins[1:], offset(numpy.pi))
+    hi = numpy.searchsorted(ct_bins[:-1], offset(0))
+    hour_angle = numpy.empty(len(ct_bins))
+    # source never crosses the band
+    hour_angle[:lo+1] = numpy.pi
+    hour_angle[hi:] = 0
+    # source enters or exits
+    hour_angle[lo+1:hi] = map(partial(bisect, offset, 0, numpy.pi), ct_bins[lo+1:hi])
+
+    return abs(numpy.diff(hour_angle))/numpy.pi
 
 def nevents(llh, **hypo):
 	"""
