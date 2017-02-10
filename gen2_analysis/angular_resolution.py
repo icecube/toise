@@ -43,7 +43,7 @@ class PointSpreadFunction(object):
         """
         if not fname.startswith('/'):
             fname = os.path.join(data_dir, 'psf', fname)
-        from pyphotospline import SplineTable
+        from photospline import SplineTable
         self._spline = SplineTable(fname)
         self._loge_extents, self._ct_extents = self._spline.extents[:2]
         if self._ct_extents == (-1, 0):
