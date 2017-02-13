@@ -1,7 +1,7 @@
 from enum import Enum
-from . import factory, diffuse, pointsource, multillh
 from functools import partial
 import numpy
+from . import factory, diffuse, pointsource, multillh
 
 TOT = Enum('TOT', ['ul', 'dp', 'fc'])
 DIFF = Enum('DIFF', ['ul', 'dp', 'fc'])
@@ -14,6 +14,8 @@ class GZK(object):
     def benchmark(self, fom, **kwargs):
         components = self.bundle.get_components()
         components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+        components['uhe_gamma'] =  multillh.NuisanceParam(-2, 0.5, min=-2.7, max=-1.7)
+
         gzk = components.pop('gzk')
         uhe = components.pop('uhe')
         if 'uhe_gamma' not in kwargs:

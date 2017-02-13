@@ -87,6 +87,8 @@ class Combination(object):
                                 components[label] = (component, livetime)
                                 eranges.append(component.energy_range)
                                 ecenters.append(e_center)
+                                # @DEBUG
+                                # print label, e_center
                         if not components:
                                 all_done = True
                         else:
@@ -138,9 +140,6 @@ class LLHEval:
 		"""
 		lamb = dict()
 		for param in kwargs:
-                        if param not in self.components:
-                                continue
-                        
 			c = self.components[param]
 			if not hasattr(c, 'expectations'):
 				continue
@@ -163,8 +162,6 @@ class LLHEval:
 		lamb = self.expectations(**kwargs)
 		llh = 0
 		for param in kwargs:
-                        if param not in self.components:
-                                continue
 			if hasattr(self.components[param], 'prior'):
 				llh += self.components[param].prior(kwargs[param], **kwargs)
 
