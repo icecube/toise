@@ -3,7 +3,7 @@ import numpy
 import os
 import cPickle as pickle
 from . import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
-from . import data_dir, center
+from .util import data_dir, center
 
 def make_key(opts, kwargs):
 	key = dict(opts.__dict__)
