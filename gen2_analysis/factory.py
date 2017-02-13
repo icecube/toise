@@ -120,10 +120,12 @@ class aeff_factory(object):
 				elif hasattr(opts, k):
 					kwargs[k] = numpy.asarray(getattr(opts, k))
 			kwargs['nstations'] = opts.nstations
+			kwargs['depth'] = opts.depth
 			aeffs = dict(events=effective_areas.create_ara_aeff(**kwargs))
 		else:
 			aeffs = dict(tracks=create_aeff(opts,**kwargs))
 			if opts.cascade_energy_threshold is not None:
+                                print 'making cascades'
 				aeffs['cascades']=create_cascade_aeff(opts,**kwargs)
 		return aeffs
 	
@@ -185,7 +187,9 @@ set_kwargs = aeff_factory.get().set_kwargs
 default_configs = {
 	'IceCube' : dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
 	'Sunflower_240' : dict(geometry='Sunflower', spacing=240, cascade_energy_threshold=2e5, veto_area=75., veto_threshold=1e5),
-	'ARA_37' : dict(geometry='ARA', nstations=37),
+	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
+	'IceCube_NoCasc' : dict(geometry='IceCube', spacing=125, veto_area=1., veto_threshold=1e5),
+	'Sunflower_240_NoCasc' : dict(geometry='Sunflower', spacing=240, veto_area=75., veto_threshold=1e5),
 }
 for k, config in default_configs.items():
-	add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1, 1, 20))
+	add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1, 1, 21))

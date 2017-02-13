@@ -14,7 +14,7 @@ def get_energy_resolution(geometry="Sunflower", spacing=200, channel='muon'):
 		# right shape at threshold. why?
 		overdispersion = 1.5
 	else:
-		fname = "11900_MUONGUN_%s_%sm_recos.hd5_cut.npz" % (geometry.lower(), spacing)
+		fname = "11900_MUONGUN_%s_%sm_recos.hd5_cut.npz" % (geometry, spacing)
 		overdispersion = 1
 	return MuonEnergyResolution(fname, overdispersion=overdispersion)
 

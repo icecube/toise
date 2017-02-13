@@ -379,10 +379,14 @@ class DiffuseAstro(DiffuseNuGen):
 		# now, sum over decades in neutrino energy
 		ebins = self._aeff.bin_edges[0]
 		loge = numpy.log10(ebins)
-		bin_range = int(decades/(loge[1]-loge[0]))+1
-		
-		lo = ebins.searchsorted(emin)
-		hi = min((ebins.searchsorted(emax)+1, loge.size))
+		bin_range = int(round(decades/(loge[1]-loge[0])))
+                
+                # when emin is "equal" to an edge in ebins
+                # searchsorted sometimes returns inconsistent indices
+                # (wrong side). subtract a little fudge factor to ensure
+                # we're on the correct side
+		lo = ebins.searchsorted(emin-1e-4) 
+		hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
 		
 		if exclusive:
 			bins = range(lo, hi-1, bin_range)
@@ -409,7 +413,6 @@ class DiffuseAstro(DiffuseNuGen):
 	def calculate_expectations(self, **kwargs):
 		if self._last_expectations is not None and all([self._last_params[k] == kwargs[k] for k in self._last_params]):
 			return self._last_expectations
-		
 		energy = self._aeff.bin_edges[0]
 		centers = 0.5*(energy[1:] + energy[:-1])
 		specweight = self.spectral_weight(centers, **kwargs)
@@ -572,8 +575,11 @@ class AhlersGZKFlux(object):
 		    """))).T
 
 		self._interpolant = interpolate.interp1d(logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
-	def __call__(self, e_center):
-		return 10**self._interpolant(numpy.log10(e_center))
+	def __call__(self, e_center, absolute=False):
+                if absolute:
+                        return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
+                else:
+		        return 10**self._interpolant(numpy.log10(e_center))
 
 class AhlersGZK(DiffuseAstro):
 	"""
@@ -587,8 +593,14 @@ class AhlersGZK(DiffuseAstro):
 		super(AhlersGZK, self).__init__(*args, **kwargs)
 		self._flux_func = AhlersGZKFlux()
 
+
 	def spectral_weight(self, e_center, **kwargs):
-		return self._flux_func(e_center)
+                enu = self._aeff.bin_edges[0]
+                integrated = np.asarray([quad(self._flux_func, enu[i], enu[i+1],
+                                              args=(True))[0] for i, e in enumerate(enu[:-1])])
+                # Ahlers flux is for all flavors when we want the flux per flavor
+                return integrated*constants.cm2*constants.annum/(6*self._integral_flux(self._aeff))
+
 
 def transform_map(skymap):
 	"""

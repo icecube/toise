@@ -94,7 +94,8 @@ class ZenithDependentMuonSelectionEfficiency(object):
 		return self._spline.eval([loge, cos_theta])
 	def __call__(self, muon_energy, cos_theta):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
-		return self.scale*numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self._spline.evaluate_simple(numpy.log10(muon_energy), cos_theta), 0, 1), 0.)
+
+		return self.scale*numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self._spline.evaluate_simple([numpy.log10(muon_energy), cos_theta]), 0, 1), 0.)
 
 class HESEishSelectionEfficiency(object):
 	"""
@@ -123,7 +124,7 @@ def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0, scale=1
 	if geometry == "IceCube":
 		return MuonSelectionEfficiency(energy_threshold=energy_threshold)
 	else:
-		return ZenithDependentMuonSelectionEfficiency("11900_MUONGUN_%s_%sm_efficiency_cut.fits" % (geometry.lower(), spacing), energy_threshold=energy_threshold, scale=scale)
+		return ZenithDependentMuonSelectionEfficiency("11900_MUONGUN_%s_%sm_efficiency_cut.fits" % (geometry, spacing), energy_threshold=energy_threshold, scale=scale)
 
 class VetoThreshold(object):
 	"""
@@ -590,7 +591,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 	v = interpolant(xi,  method='nearest').reshape(map(lambda x: x.size, newcenters))
 
         # assume flavor-independence for ARA by extending same aeff across all flavors
-        return (energy, ct_edges), numpy.repeat(v[None,...]/6., 6, axis=0)
+        return (energy, ct_edges), numpy.repeat(v[None,...], 6, axis=0)
 
 
 def create_ara_aeff(depth=200,

@@ -3,7 +3,7 @@ import numpy
 from scipy import optimize, stats
 import itertools
 from copy import copy
-from multillh import LLHEval, asimov_llh
+from multillh import LLHEval, asimov_llh, get_expectations
 from util import *
 import logging
 
@@ -84,10 +84,14 @@ class PointSource(object):
 		# now, sum over decades in neutrino energy
 		ebins = self._edges[0]
 		loge = numpy.log10(ebins)
-		bin_range = int(decades/(loge[1]-loge[0]))+1
+		bin_range = int(round(decades/(loge[1]-loge[0])))
 		
-		lo = ebins.searchsorted(emin)
-		hi = min((ebins.searchsorted(emax)+1, loge.size))
+                # when emin is "equal" to an edge in ebins
+                # searchsorted sometimes returns inconsistent indices
+                # (wrong side). subtract a little fudge factor to ensure
+                # we're on the correct side
+		lo = ebins.searchsorted(emin-1e-4) 
+		hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
 		
 		if exclusive:
 			bins = range(lo, hi-1, bin_range)
@@ -115,7 +119,7 @@ class SteadyPointSource(PointSource):
 	
 	"""
 	def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
-		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
+		# reference flux is E^2 Phi = 1e-12 TeV cm^-2 s^-1
 		# remember: fluxes are defined as neutrino + antineutrino, so the flux
 		# per particle (which we need here) is .5e-12
 		def intflux(e, gamma):
@@ -271,7 +275,7 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		"""
 		Test statistic of flux_norm against flux norm=0
 		"""
-		allh = asimov_llh(components, ps=flux_norm)
+		allh = asimov_llh(components, ps=flux_norm, **fixed)
 		if len(fixed) == len(diffuse_components):
 			return -2*(allh.llh(ps=0, **fixed)-allh.llh(ps=flux_norm, **fixed))
 		else:
@@ -303,7 +307,36 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		logging.getLogger().info("baseline: %.2g actual %.2g ns: %.2g nb: %.2g ts: %.2g" % (baseline, actual, ns, nb, ts(actual)))
 		return actual[0]
 
-def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
+
+def events_above(observables, edges, ecutoff):
+        n = 0
+        for k, edge_k in edges.items():
+                cut = numpy.where(edge_k[1][1:] > ecutoff)[0][0]
+                n += observables[k].sum(axis=0)[cut:].sum()
+
+        return n
+
+
+def fc_upper_limit(point_source, diffuse_components, ecutoff=0,
+                   cl=0.9, **fixed):
+        import ROOT as rt
+	components = dict(ps=point_source)
+	components.update(diffuse_components)
+
+        llh = asimov_llh(components, ps=1, **fixed)
+
+        exes = get_expectations(llh, ps=1, **fixed)
+        ntot = sum([events_above(exes[k], components[k].bin_edges, ecutoff) for k in exes.keys()])
+        ns = events_above(exes['ps'], components['ps'].bin_edges, ecutoff)
+        nb = ntot - ns
+
+        print 'ns: {}, nb: {}'.format(ns, nb)
+
+        tfc = rt.TFeldmanCousins(cl)
+        return tfc.CalculateUpperLimit(nb, nb)/ns
+
+
+def upper_limit(point_source, diffuse_components, cl=0.9, baseline=None, tolerance=1e-2, **fixed):
 	"""
 	Calculate the median upper limit on *point_source* given the background
 	*diffuse_components*.
@@ -313,7 +346,6 @@ def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
 	The remaining arguments are the same as :func:`discovery_potential`
 	"""
 	critical_ts = stats.chi2.ppf(cl, 1)
-
 	
 	components = dict(ps=point_source)
 	components.update(diffuse_components)
@@ -321,7 +353,7 @@ def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
 		"""
 		Test statistic of flux_norm against flux norm=0
 		"""
-		allh = asimov_llh(components, ps=0)
+		allh = asimov_llh(components, ps=0, **fixed)
 		if len(fixed) == len(diffuse_components):
 			return -2*(allh.llh(ps=0, **fixed)-allh.llh(ps=flux_norm, **fixed))
 		else:
@@ -329,19 +361,22 @@ def upper_limit(point_source, diffuse_components, cl=0.9, **fixed):
 	def f(flux_norm):
 		# NB: minus sign, because now the null hypothesis is no source
 		return -ts(flux_norm)-critical_ts
-	# estimate significance as signal/sqrt(background)
-	allh = asimov_llh(components, ps=1, **fixed)
-	total = nevents(allh, ps=1, **fixed)
-	nb = nevents(allh, ps=0, **fixed)
-	ns = total-nb
-	baseline = numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))
-	logging.getLogger().debug('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
-	
+
+	if baseline is None:
+		# estimate significance as signal/sqrt(background)
+		allh = asimov_llh(components, ps=1, **fixed)
+		total = nevents(allh, ps=1, **fixed)
+		nb = nevents(allh, ps=0, **fixed)
+		ns = total-nb
+		baseline = min((1000, numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))))/10
+		baseline = max(((numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb)))/10, 0.3/ns))
+                logging.getLogger().debug('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
+
 	if baseline > 1e4:
 		return numpy.inf
 	else:
-		# actual = optimize.bisect(f, 0, baseline*100, xtol=baseline*1e-2)
-		actual = optimize.fsolve(f, baseline*10, xtol=1e-4)
+		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
+		actual = optimize.fsolve(f, baseline, xtol=tolerance, factor=1, epsfcn=1)
 		logging.getLogger().debug("baseline: %.2g actual %.2g" % (baseline, actual))
 		allh = asimov_llh(components, ps=actual, **fixed)
 		total = nevents(allh, ps=actual, **fixed)
@@ -360,6 +395,37 @@ def differential_discovery_potential(point_source, diffuse_components, sigma=5, 
 	sensitivities = []
 	for energy, pschunk in point_source.differential_chunks(decades=decades):
 		energies.append(energy)
-		sensitivities.append(discovery_potential(pschunk, diffuse_components, **fixed))
-	return energies, sensitivities
+		sensitivities.append(discovery_potential(pschunk,
+		                                         diffuse_components, sigma, baseline,
+		                                         tolerance, **fixed))
+	return numpy.asarray(energies), numpy.asarray(sensitivities)
+
+
+def differential_upper_limit(point_source, diffuse_components,
+                             cl=0.9, baseline=None, tolerance=1e-2, decades=0.5, **fixed):
+	"""
+	Calculate the discovery potential in the same way as :func:`discovery_potential`,
+	but with the *decades*-wide chunks of the flux due to *point_source*.
+	"""
+	energies = []
+	sensitivities = []
+	for energy, pschunk in point_source.differential_chunks(decades=decades):
+		energies.append(energy)
+		sensitivities.append(upper_limit(pschunk,
+		                                 diffuse_components, cl, baseline, tolerance,
+		                                 **fixed))
+	return numpy.asarray(energies), numpy.asarray(sensitivities)
+
+
+def differential_fc_upper_limit(point_source, diffuse_components, ecutoff=0,
+                                cl=0.9, decades=0.5, **fixed):
+	energies = []
+	sensitivities = []
+	for energy, pschunk in point_source.differential_chunks(decades=decades):
+		energies.append(energy)
+		sensitivities.append(fc_upper_limit(pschunk,
+		                                    diffuse_components,
+		                                    ecutoff, cl,
+		                                    **fixed))
+	return numpy.asarray(energies), numpy.asarray(sensitivities)
 

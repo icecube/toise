@@ -65,20 +65,35 @@ class Combination(object):
 
 	def differential_chunks(self, *args, **kwargs):
 		generators = dict()
+                # due to how the differential ranges are stepped
+                # through, need to specify emin and set for all components
+                emin = max([edges[1][0] for edges in self.bin_edges.viewvalues()])
 		for label, (component, livetime) in self._components.items():
-			generators[label] = (component.differential_chunks(*args, **kwargs), livetime)
-		while True:
-			try:
-				components = dict()
-				for label, (generator, livetime) in generators.items():
-					e_center, component = next(generator)
-					components[label] = (component, livetime)
-				combo = Combination(components)
-				combo.energy_range = component.energy_range
-				combo.energy_center = e_center
-				yield combo
-			except StopIteration:
-				break
+			generators[label] = (component.
+                                             differential_chunks(*args,
+                                                                 emin=emin,
+                                                                 exclusive=True,
+                                                                 **kwargs), livetime)
+                all_done = False
+		while not all_done:
+                        components = dict()
+                        eranges = []
+                        ecenters = []
+                        for label, (generator, livetime) in generators.items():
+                                try:
+                                        e_center, component = next(generator)
+                                except StopIteration:
+                                        continue
+                                components[label] = (component, livetime)
+                                eranges.append(component.energy_range)
+                                ecenters.append(e_center)
+                        if not components:
+                                all_done = True
+                        else:
+                                combo = Combination(components)
+                                combo.energy_range = eranges[numpy.argmax(ecenters)]
+                                combo.energy_center = max(ecenters)
+                                yield max(ecenters), combo
 
 class LLHEval:
 	"""
@@ -123,6 +138,9 @@ class LLHEval:
 		"""
 		lamb = dict()
 		for param in kwargs:
+                        if param not in self.components:
+                                continue
+                        
 			c = self.components[param]
 			if not hasattr(c, 'expectations'):
 				continue
@@ -145,6 +163,8 @@ class LLHEval:
 		lamb = self.expectations(**kwargs)
 		llh = 0
 		for param in kwargs:
+                        if param not in self.components:
+                                continue
 			if hasattr(self.components[param], 'prior'):
 				llh += self.components[param].prior(kwargs[param], **kwargs)
 
