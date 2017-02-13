@@ -13,6 +13,7 @@ parser.add_argument("--veto-threshold", type=float, default=1e4)
 parser.add_argument("--no-cuts", default=False, action="store_true")
 parser.add_argument("--livetime", type=float, default=10.)
 parser.add_argument("--energy-threshold", type=float, default=None)
+parser.add_argument("--psf-class", type=int, default=None)
 parser.add_argument("--cascade-energy-threshold", type=float, default=None, help='Energy threshold for cascade detection. If None, no cascades.')
 parser.add_argument("--sin-dec", type=float, default=None)
 parser.add_argument("--livetimes", type=float, default=None, nargs=3)
@@ -159,7 +160,7 @@ elif opts.figure_of_merit == 'ps_time_evolution':
 	
 	livetime = opts.livetimes[0]
 	cos_theta=numpy.linspace(-1, 1, 21)
-	aeff = create_aeff(opts, cos_theta=cos_theta)
+	aeff = factory.create_aeff(opts, cos_theta=cos_theta)
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, livetime, hard_veto_threshold=energy_threshold)
@@ -202,7 +203,7 @@ elif opts.figure_of_merit == 'differential_discovery_potential':
 	if opts.outfile is None:
 		parser.error("You must supply an output file name")
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 20))
+	aeff = factory.create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 20))
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
@@ -242,7 +243,7 @@ elif opts.figure_of_merit == 'differential_discovery_potential':
 		pickle.dump(values, f, 2)
 
 elif opts.figure_of_merit == 'grb':
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+	aeff = factory.create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
@@ -312,7 +313,7 @@ elif opts.figure_of_merit == 'differential_diffuse':
 	if opts.outfile is None:
 		parser.error("You must supply an output file name")
 	
-	aeff = create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+	aeff = factory.create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
@@ -403,7 +404,7 @@ elif opts.figure_of_merit == 'diffuse_index':
 
 elif opts.figure_of_merit == 'galactic_diffuse':
 	
-	aeff = create_aeff(opts, cos_theta=16)
+	aeff = factory.create_aeff(opts, cos_theta=16)
 	energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
 	atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
 	# atmo.prior = lambda v: -(v-1)**2/(2*0.1**2)
