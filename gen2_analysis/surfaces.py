@@ -128,6 +128,28 @@ class UprightSurface(object):
         """
         return self.get_cap_area()*abs(cos_theta) + self.get_side_area()*numpy.sqrt(1-cos_theta**2)
     
+    def get_maximum_area(self):
+        ct_max = numpy.cos(numpy.arctan(self.get_side_area()/self.get_cap_area()))
+        return self.azimuth_averaged_area(ct_max)
+    
+    def sample_direction(self, cos_min=-1, cos_max=1, size=1):
+        max_area = self.get_maximum_area()
+        blocksize = min((size*4, 65535))
+        accepted = 0
+        directions = numpy.empty((size, 3))
+        while accepted < size:
+            ct = numpy.random.uniform(cos_min, cos_max, blocksize)
+            st = numpy.sqrt((1-ct)*(1+ct))
+            azi = numpy.random.uniform(0, 2*numpy.pi, blocksize)
+            candidates = numpy.vstack((numpy.cos(azi)*st, numpy.sin(azi)*st, ct)).T
+            candidates = candidates[numpy.random.uniform(0, max_area, blocksize) <= self.projected_area(candidates),:]
+            if accepted + len(candidates) > size:
+                candidates = candidates[:size-accepted]
+            directions[accepted:accepted+len(candidates)] = candidates
+            accepted += len(candidates)
+        
+        return directions
+    
     @staticmethod
     def _integrate_area(a, b, cap, sides):
         return (cap*(b**2-a**2) + sides*(numpy.arccos(a) - numpy.arccos(b) - numpy.sqrt(1-a**2)*a + numpy.sqrt(1-b**2)*b))/2.
@@ -210,6 +232,72 @@ class ExtrudedPolygon(UprightSurface):
         # passes through the normal, is
         # A*\int_0^\pi \Theta(\sin\alpha)\sin\alpha d\alpha / 2\pi = A/\pi
         return self._side_lengths.sum()*self.length/numpy.pi
+    
+    def projected_area(self, direction):
+        inner = numpy.dot(direction, self._normals.T)
+        areas = numpy.where(inner < 0, -inner*self._areas, 0)
+        return areas.sum(axis=areas.ndim-1)
+    
+    def _sample_on_caps(self, directions, bottom, offset, scale):
+        """
+        :param directions: direction unit vectors
+        :param top: boolean mask; False if top, True if bottom
+        """
+        size = len(directions)
+        accepted = 0
+        blocksize = min((size*4, 65535))
+        positions = numpy.empty((len(directions), 3))
+        while accepted < size:
+            cpos = numpy.random.uniform(size=(blocksize,2))*scale + offset
+            mask = numpy.array(map(self._point_in_hull, cpos))
+            cpos = cpos[mask]
+            if len(cpos) + accepted > size:
+                cpos = cpos[:size-accepted]
+            positions[accepted:accepted+len(cpos),:-1] = cpos
+            accepted += len(cpos)
+        
+        positions[bottom,-1] = self._z_range[0]
+        positions[~bottom,-1] = self._z_range[1]
+        
+        return positions
+    
+    def sample_impact_ray(self, cos_min=-1, cos_max=1, size=1):
+        directions = numpy.empty((size, 3))
+        positions = numpy.empty((size, 3))
+        accepted = 0
+        blocksize = min((size*4, 65535))
+        
+        bbox_offset = self._x.min(axis=0)
+        bbox_scale = self._x.max(axis=0) - bbox_offset
+        
+        while accepted < size:
+            block = min((blocksize, size-accepted))
+            cdir = self.sample_direction(cos_min, cos_max, block)
+            directions[accepted:accepted+block] = cdir
+            inner = numpy.dot(cdir, self._normals.T)
+            areas = numpy.where(inner < 0, -inner*self._areas, 0)
+            prob = areas.cumsum(axis=1)
+            prob /= prob[:,-1:]
+            p = numpy.random.uniform(size=block)
+            target = numpy.array([prob[i,:].searchsorted(p[i]) for i in xrange(block)])
+            
+            # first, handle sides
+            sides = target < len(self._areas) - 2
+            side_target = target[sides]
+            nsides = sides.sum()
+            xy =  self._x[side_target] + numpy.random.uniform(size=nsides)[:,None]*self._dx[side_target]
+            xyz = numpy.concatenate((xy, (self._z_range[0] + numpy.random.uniform(size=nsides)*self.length)[:,None]), axis=1)
+            positions[accepted:accepted+block][sides] = xyz
+            
+            # now, the caps
+            caps = ~sides
+            cap_target = target[caps]
+            positions[accepted:accepted+block][caps] = \
+                self._sample_on_caps(cdir[caps], cap_target == self._areas.size-1, bbox_offset, bbox_scale)
+            
+            accepted += block
+        
+        return directions, positions
     
     def expand(self, padding):
         """
@@ -386,4 +474,47 @@ class Cylinder(UprightSurface):
     
     def area(self, cos_zenith, azimuth=numpy.nan):
         return self.azimuth_averaged_area(cos_zenith)
+    
+    def projected_area(self, direction):
+        ct = direction[...,-1]
+        st = numpy.sqrt((1+ct)*(1-ct))
+        return self.get_cap_area()*abs(ct) + self.get_side_area()*st
 
+    def sample_impact_ray(self, cos_min=-1, cos_max=1, size=1):
+        directions = numpy.empty((size, 3))
+        positions = numpy.empty((size, 3))
+        accepted = 0
+        blocksize = min((size*4, 65535))
+        
+        while accepted < size:
+            block = min((blocksize, size-accepted))
+            cdir = self.sample_direction(cos_min, cos_max, block)
+            directions[accepted:accepted+block] = cdir
+            ct = -cdir[:,-1]
+            st = numpy.sqrt((1+ct)*(1-ct))
+            
+            areas = numpy.array([self.get_side_area()*st,
+                                 self.get_cap_area()*numpy.where(ct > 0, ct, 0),
+                                 self.get_cap_area()*numpy.where(ct < 0, abs(ct), 0)]).T
+
+            prob = areas.cumsum(axis=1)
+            prob /= prob[:,-1:]
+            p = numpy.random.uniform(size=block)
+            target = numpy.array([prob[i,:].searchsorted(p[i]) for i in xrange(block)])
+            
+            # first, handle sides
+            sides = target == 0
+            nsides = sides.sum()
+            beta = numpy.arcsin(numpy.random.uniform(-1, 1, size=nsides)) + numpy.arctan2(-cdir[sides,1], -cdir[sides,0])
+            positions[accepted:accepted+block][sides] = numpy.stack((self.radius*numpy.cos(beta)*st[sides], self.radius*numpy.sin(beta)*st[sides], numpy.random.uniform(-self.length/2, self.length/2, size=nsides))).T
+            
+            # now, the caps
+            caps = ~sides
+            ncaps = caps.sum()
+            cap_target = target[caps]
+            beta = numpy.random.uniform(0, 2*numpy.pi, size=ncaps)
+            r = numpy.sqrt(numpy.random.uniform(size=ncaps))*self.radius
+            positions[accepted:accepted+block][caps] = numpy.stack((r*numpy.cos(beta), r*numpy.sin(beta), numpy.where(cap_target==1, self.length/2, -self.length/2))).T
+            accepted += block
+        
+        return directions, positions
