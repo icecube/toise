@@ -16,6 +16,8 @@ f.close()
 
 geo = []
 for key, omgeo in fr['I3Geometry'].omgeo:
+    if omgeo.omtype == omgeo.IceTop:
+        continue
     pos = omgeo.position
     geo.append([key.string, key.om, pos.x, pos.y, pos.z])
 
