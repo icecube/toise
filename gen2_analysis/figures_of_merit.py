@@ -57,6 +57,9 @@ class GZK(object):
                                                            components,
                                                            gamma=-2.3,
                                                            **kwargs)
+        else:
+            raise RuntimeError('No such fom')
+
 
     def event_numbers(self, sigma=5):
         """ Returns event numbers from ahlers flux needed to reject null
@@ -118,6 +121,8 @@ class PointSource(object):
                                               components,
                                               gamma=-2.3,
                                               **kwargs)
+        else:
+            raise RuntimeError('No such fom')
 
 
     @staticmethod
