@@ -66,19 +66,10 @@ def get_geometric_coverage_for_area(geometry, spacing, area, ct_bins=numpy.linsp
     :returns: an array of length len(ct_bins)-1 containing the coverage fraction
               in each bin
     """
-    # SamplingSurfaces from MuonGun
-    from icecube import MuonGun, phys_services
-    rng = phys_services.I3GSLRandomService(numpy.random.randint(numpy.iinfo(numpy.uint32).max))
     
     ref_surface = surfaces.get_fiducial_surface(geometry, spacing)
     margin = margin_for_area(ref_surface, area)
     veto_surface = ref_surface.expand(margin)
-    
-    if geometry == 'IceCube':
-        deep_surface = MuonGun.Cylinder(ref_surface.length, ref_surface.radius)
-    else:
-        gcdfile = surfaces.get_gcd(geometry, spacing)
-        deep_surface = MuonGun.ExtrudedPolygon.from_file(gcdfile, 60.)
     
     coverage = numpy.zeros(ct_bins.size-1)
     
@@ -90,16 +81,13 @@ def get_geometric_coverage_for_area(geometry, spacing, area, ct_bins=numpy.linsp
         if ct_hi < 0:
             continue
         inside = 0
-        for dummy in xrange(nsamples):
-            pos, direction = deep_surface.sample_impact_ray(rng, ct_lo, ct_hi)
-            # project up the to the surface
-            pos += ((1950-pos.z)/direction.z)*direction
-            # catch stupid sign errors
-            assert abs(pos.z - 1950) < 1
-            # did the shower cross the surface array?
-            if veto_surface.point_in_footprint(tuple(pos)):
-                inside += 1
-        coverage[i] = inside/float(nsamples)
+        dirs, pos = ref_surface.sample_impact_ray(ct_lo, ct_hi, nsamples)
+        # project up the to the surface
+        pos += ((1950-pos[:,-1:])/dirs[:,-1:])*dirs
+        # catch stupid sign errors
+        assert (abs(pos[:,-1] - 1950) < 1).all()
+        # did the shower cross the surface array?
+        coverage[i] = sum(map(veto_surface.point_in_footprint, pos))/float(nsamples)
     return coverage
 
 class GeometricVetoCoverage(object):
