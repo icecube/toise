@@ -17,11 +17,24 @@ def get_gcd(geometry="Sunflower", spacing=200):
         raise ValueError("Unknown geometry %s" % geometry)
     return os.path.join(data_dir, 'geometries', gcd)
 
+def get_geometry_file(geometry="Sunflower", spacing=200):
+    if geometry == "EdgeWeighted":
+        gcd='IceCubeHEX_{geometry}_spacing{spacing}m_ExtendedDepthRange.GCD.txt.gz'.format(**locals())
+    elif geometry == "Sunflower":
+        gcd='IceCubeHEX_{geometry}_{spacing}m_v3_ExtendedDepthRange.GCD.txt.gz'.format(**locals())
+    elif geometry == "Banana":
+        gcd='IceCubeHEX_bananaLayout_v2.0_ExtendedDepthRange.GCD.txt.gz'
+    elif geometry == "IceCube":
+        gcd='GeoCalibDetectorStatus_IC86_Merged.txt.gz'
+    else:
+        raise ValueError("Unknown geometry %s" % geometry)
+    return os.path.join(data_dir, 'geometries', gcd)
+
 def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
     if geometry == "IceCube":
         return Cylinder()
     else:
-        gcd = get_gcd(geometry, spacing)
+        gcd = get_geometry_file(geometry, spacing)
     
     return ExtrudedPolygon.from_file(gcd, padding=padding)
 
@@ -338,6 +351,7 @@ class ExtrudedPolygon(UprightSurface):
         mean_xy = [numpy.mean(positions, axis=0)[0:2] for positions in strings.values()]
         zmax = max(max(p[2] for p in positions) for positions in strings.values())
         zmin = min(min(p[2] for p in positions) for positions in strings.values())
+        print numpy.array(mean_xy)
         
         self = cls(mean_xy, [zmin, zmax])
         if padding != 0:
@@ -347,6 +361,19 @@ class ExtrudedPolygon(UprightSurface):
     
     @classmethod
     def from_file(cls, fname, padding=0):
+        dats = numpy.loadtxt(fname)
+        zmax = dats[:,-1].max()
+        zmin = dats[:,-1].min()
+        mean_xy = [dats[dats[:,0]==i].mean(axis=0)[2:4] for i in numpy.unique(dats[:,0])]
+        
+        self = cls(mean_xy, [zmin, zmax])
+        if padding != 0:
+            return self.expand(padding)
+        else:
+            return self
+    
+    @classmethod
+    def from_i3file(cls, fname, padding=0):
         """
         Create from a GCD file
         
