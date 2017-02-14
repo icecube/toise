@@ -25,6 +25,7 @@ class PointSource(object):
 		"""
 
 		self._edges = effective_area.bin_edges
+                self.bin_edges = self._edges
 		
 		if is_zenith_weight(zenith_selection, effective_area):
 			zenith_dim = effective_area.dimensions.index('true_zenith_band')
@@ -330,7 +331,7 @@ def fc_upper_limit(point_source, diffuse_components, ecutoff=0,
         ns = events_above(exes['ps'], components['ps'].bin_edges, ecutoff)
         nb = ntot - ns
 
-        print 'ns: {}, nb: {}'.format(ns, nb)
+        logging.getLogger().info('ns: %.2g, nb: %.2g' % (ns, nb))
 
         tfc = rt.TFeldmanCousins(cl)
         return tfc.CalculateUpperLimit(nb, nb)/ns
@@ -386,7 +387,7 @@ def upper_limit(point_source, diffuse_components, cl=0.9, baseline=None, toleran
 		return actual[0]
 
 
-def differential_discovery_potential(point_source, diffuse_components, sigma=5, decades=0.5, **fixed):
+def differential_discovery_potential(point_source, diffuse_components, sigma=5, baseline=None, tolerance=1e-2, decades=0.5, **fixed):
 	"""
 	Calculate the discovery potential in the same way as :func:`discovery_potential`,
 	but with the *decades*-wide chunks of the flux due to *point_source*.
@@ -428,4 +429,3 @@ def differential_fc_upper_limit(point_source, diffuse_components, ecutoff=0,
 		                                    ecutoff, cl,
 		                                    **fixed))
 	return numpy.asarray(energies), numpy.asarray(sensitivities)
-

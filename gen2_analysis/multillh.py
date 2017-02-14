@@ -1,3 +1,4 @@
+import logging
 import numpy, scipy.optimize
 
 class NuisanceParam:
@@ -87,8 +88,7 @@ class Combination(object):
                                 components[label] = (component, livetime)
                                 eranges.append(component.energy_range)
                                 ecenters.append(e_center)
-                                # @DEBUG
-                                # print label, e_center
+                                logging.getLogger().info('label: %s, enu: %.2g' % (label, e_center))
                         if not components:
                                 all_done = True
                         else:
