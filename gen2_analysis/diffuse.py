@@ -348,7 +348,8 @@ class DiffuseAstro(DiffuseNuGen):
 		if isinstance(sel, slice):
 			background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
 		else:
-			background._flux = ((self._flux/self._solid_angle)*sel).sum(axis=2, keepdims=True)
+			assert (abs(self._flux[:,:,:1] - self._flux[:,:,1:]) < 1e-12).all(), "Diffuse flux must be independent of zenith angle for this weighting to work out"
+			background._flux = (self._flux[:,:,:1]/self._solid_angle[0])
 		
 		# replace reconstructed zenith with opening angle
 		# dimensions of aeff are now m^2 sr
