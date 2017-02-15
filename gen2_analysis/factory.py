@@ -50,7 +50,7 @@ def create_aeff(opts, **kwargs):
 			kwargs[k] = numpy.asarray(kwargs[k])
 		elif hasattr(opts, k):
 			kwargs[k] = numpy.asarray(getattr(opts, k))
-	
+
 	aeff = effective_areas.create_throughgoing_aeff(
 	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing),
 	    selection_efficiency=selection_efficiency,
@@ -190,6 +190,7 @@ default_configs = {
 	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
 	'IceCube_NoCasc' : dict(geometry='IceCube', spacing=125, veto_area=1., veto_threshold=1e5),
 	'Sunflower_240_NoCasc' : dict(geometry='Sunflower', spacing=240, veto_area=75., veto_threshold=1e5),
+	'KM3NeT' : dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.5),
 }
 for k, config in default_configs.items():
 	add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1, 1, 21))

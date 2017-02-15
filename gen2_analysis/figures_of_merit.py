@@ -128,7 +128,6 @@ class PointSource(object):
     @staticmethod
     def make_components(zi, aeff):
         energy_threshold = numpy.inf
-        # cascade_energy_threshold
         atmo = diffuse.AtmosphericNu.conventional(aeff, 1., hard_veto_threshold=energy_threshold)
         atmo.uncertainty = 0.1
         prompt = diffuse.AtmosphericNu.prompt(aeff, 1., hard_veto_threshold=energy_threshold)
