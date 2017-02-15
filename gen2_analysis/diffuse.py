@@ -333,7 +333,7 @@ class DiffuseAstro(DiffuseNuGen):
 		
 		# cut flux down to a single zenith band
 		# dimensions of self._flux are flavor, energy, zenith
-		if isinstance(zenith_index, slice):
+		if is_zenith_weight(zenith_index, self._aeff) or isinstance(zenith_index, slice):
 			sel = zenith_index
 		else:
 			sel = slice(zenith_index, zenith_index+1)
@@ -345,12 +345,18 @@ class DiffuseAstro(DiffuseNuGen):
 			bin_areas = bin_areas*n_sources[expand]
 		
 		# dimensions of flux are now 1/m^2 sr
-		background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
+		if isinstance(sel, slice):
+			background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
+		else:
+			background._flux = ((self._flux/self._solid_angle)*sel).sum(axis=2, keepdims=True)
 		
 		# replace reconstructed zenith with opening angle
 		# dimensions of aeff are now m^2 sr
 		background._aeff = copy(self._aeff)
-		background._aeff.values = self._aeff.values[:,:,sel,:,:].sum(axis=4)[...,None]*bin_areas
+		if isinstance(sel, slice):
+			background._aeff.values = self._aeff.values[:,:,sel,:,:].sum(axis=4)[...,None]*bin_areas
+		else:
+			background._aeff.values = ((self._aeff.values*sel[None,None,:,None,None]).sum(axis=2, keepdims=True).sum(axis=4))[...,None]*bin_areas
 		background._with_psi = True
 		
 		background._with_energy = with_energy
