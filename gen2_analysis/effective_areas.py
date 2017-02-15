@@ -572,7 +572,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
         energy = 10**edge(numpy.asarray(energy))*1e-9
         cos_theta = edge(numpy.asarray(cos_theta))
 
-        edges = np.array([energy, cos_theta])
+        edges = numpy.array([energy, cos_theta])
         centers = map(center, edges)
 	newcenters = [centers[0], numpy.clip(center(ct_edges), centers[1].min(), centers[1].max())]
 	xi = numpy.vstack(map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
@@ -596,7 +596,6 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 
 def create_ara_aeff(depth=200,
                     nstations=37,
-                    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2)**2, 100)),
 	            cos_theta=None,):
 	"""
 	Create an effective area for ARA
@@ -626,10 +625,9 @@ def create_ara_aeff(depth=200,
         aeff /= aeff.shape[1]
 
 	# Step 3: dummy angular resolution smearing
-	if numpy.isfinite(psi_bins[-1]):
-		psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
+        psi_bins=numpy.asarray([0, numpy.inf])
 	total_aeff = numpy.zeros(aeff.shape + (psi_bins.size-1,))
-	# put everything in first psi_bin for perfect angular resolution
+	# put everything in first psi_bin for no angular resolution
 	total_aeff[...,0] = aeff[...]
 	
 	edges = (e_nu, cos_theta, e_reco, psi_bins)
