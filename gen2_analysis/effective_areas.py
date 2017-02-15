@@ -106,7 +106,7 @@ class HESEishSelectionEfficiency(object):
 		outer = get_fiducial_surface(geometry, spacing)
 		side_padding = spacing/2.
 		top_padding = 100.
-		fiducial = surfaces.ExtrudedPolygon.from_file(surfaces.get_gcd(geometry, spacing), padding=-side_padding)
+		fiducial = surfaces.ExtrudedPolygon.from_file(surfaces.get_geometry_file(geometry, spacing), padding=-side_padding)
 		
 		self._fiducial_surface = fiducial
 		
