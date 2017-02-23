@@ -190,7 +190,7 @@ default_configs = {
 	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
 	'IceCube_NoCasc' : dict(geometry='IceCube', spacing=125, veto_area=1., veto_threshold=1e5),
 	'Sunflower_240_NoCasc' : dict(geometry='Sunflower', spacing=240, veto_area=75., veto_threshold=1e5),
-	'KM3NeT' : dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.5),
+	'KM3NeT' : dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.2),
 }
 for k, config in default_configs.items():
 	add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1, 1, 21))
