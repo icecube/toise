@@ -582,13 +582,67 @@ class AhlersGZKFlux(object):
 		    """))).T
 
 		self._interpolant = interpolate.interp1d(logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
-	def __call__(self, e_center, absolute=False):
-                if absolute:
-                        return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
-                else:
-		        return 10**self._interpolant(numpy.log10(e_center))
+	def __call__(self, e_center):
+                return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
 
-class AhlersGZK(DiffuseAstro):
+
+def atmos_flux(enu, model):
+    """Returns the atmospheric diff flux at enu, averaged
+    over zenith for all flavors
+    """
+    import NewNuFlux
+    flux = NewNuFlux.makeFlux(model)
+    flux.knee_reweighting_model = 'gaisserH3a_elbert'
+    cos_theta = np.linspace(-1, 1, 100)
+    fluxes = []
+    for ct in center(cos_theta):        
+        fluxes.append(
+            sum([flux.getFlux(
+                getattr(PDGCode, ''.join(combo)), enu, ct)
+                 for combo in itertools.product(('NuE', 'NuMu', 'NuTau'),
+                                                ('', 'Bar'))]))
+
+    return np.mean(fluxes, axis=0)
+
+
+def astro_powerlaw_cutoff(enu, norm=4.11e-6, spec=-2.46):
+    """Returns the all-flavor astro diff flux at enu, for some
+    normalization and spectral index with cutoff at 3PeV. Default
+    values from: http://dx.doi.org/10.1088/0954-3899/43/8/084001
+    """
+    return 3*norm*enu**spec*np.exp(-enu/3e6)
+
+
+def astro_gzk_flux(enu):
+    """returns the all-flavor differential flux summed over atmos, astro, and ahlers gzk
+    """
+    ahlers_flux = AhlersGZKFlux()
+    return astro_powerlaw_cutoff(enu)+ahlers_flux(enu)
+
+
+def total_flux(enu):
+    """returns the all-flavor differential flux summed over atmos, astro, and ahlers gzk
+    """
+    ahlers_flux = AhlersGZKFlux()
+    return atmos_flux(enu, 'honda2006')+atmos_flux(enu, 'sarcevic_std')+astro_powerlaw_cutoff(enu)+ahlers_flux(enu)
+
+
+class ArbitraryFluxBase(DiffuseAstro):
+        def __init__(self, *args, **kwargs):
+                """ Base class for defining arbitrary diffuse fluxes which can be spectral-weighted
+                """
+                super(ArbitraryFluxBase, self).__init__(*args, **kwargs)
+                self._flux_func = None
+
+                
+	def spectral_weight(self, e_center, **kwargs):
+                enu = self._aeff.bin_edges[0]
+                integrated = np.asarray([quad(self._flux_func, enu[i], enu[i+1])[0] for i, e in enumerate(enu[:-1])])
+                # Ahlers flux is for all flavors when we want the flux per flavor
+                return integrated*constants.cm2*constants.annum/(6*self._integral_flux(self._aeff))
+
+
+class AhlersGZK(ArbitraryFluxBase):
 	"""
 	Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
 	pure protons
@@ -601,12 +655,24 @@ class AhlersGZK(DiffuseAstro):
 		self._flux_func = AhlersGZKFlux()
 
 
-	def spectral_weight(self, e_center, **kwargs):
-                enu = self._aeff.bin_edges[0]
-                integrated = np.asarray([quad(self._flux_func, enu[i], enu[i+1],
-                                              args=(True))[0] for i, e in enumerate(enu[:-1])])
-                # Ahlers flux is for all flavors when we want the flux per flavor
-                return integrated*constants.cm2*constants.annum/(6*self._integral_flux(self._aeff))
+class AstroGZK(ArbitraryFluxBase):
+	"""
+        Sum over atmos, astro, and gzk
+	"""
+	def __init__(self, *args, **kwargs):
+		
+		super(AstroGZK, self).__init__(*args, **kwargs)
+		self._flux_func = astro_gzk_flux
+
+
+class TotalDiffuse(ArbitraryFluxBase):
+	"""
+        Sum over atmos, astro, and gzk
+	"""
+	def __init__(self, *args, **kwargs):
+		
+		super(TotalDiffuse, self).__init__(*args, **kwargs)
+		self._flux_func = total_flux
 
 
 def transform_map(skymap):

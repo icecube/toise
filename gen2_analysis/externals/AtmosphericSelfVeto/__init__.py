@@ -30,8 +30,8 @@ class AnalyticPassingFraction(object):
 			nue = numu
 		
 		self._eval = dict()
-		self._eval[PDGCode.NuMu] = numpy.vectorize(lambda enu, ct, depth: numu.eval([enu, ct, depth]))
-		self._eval[PDGCode.NuE] = numpy.vectorize(lambda enu, ct, depth: nue.eval([enu, ct, depth]))
+		self._eval[PDGCode.NuMu] = numpy.vectorize(lambda enu, ct, depth: numu.evaluate_simple([enu, ct, depth]))
+		self._eval[PDGCode.NuE] = numpy.vectorize(lambda enu, ct, depth: nue.evaluate_simple([enu, ct, depth]))
 	
 	def _create_spline(self, kind, veto_threshold):
 		"""
