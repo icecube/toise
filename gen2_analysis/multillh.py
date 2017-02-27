@@ -71,7 +71,7 @@ class Combination(object):
                 tempmin = kwargs['emin'] if kwargs.has_key('emin') else -numpy.inf
                 emin = max([edges[1][0] for edges in self.bin_edges.viewvalues()]+[tempmin])
                 if emin != tempmin and kwargs.has_key('emin'):
-                        logging.getLogger.warn('emin used for differential chunks has been changed from {} to {}'.format(kwargs['emin'], emin))
+                        logging.getLogger().info('emin used for differential chunks has been changed from {} to {}'.format(kwargs['emin'], emin))
 
                 kwargs['emin'] = emin
 		for label, (component, livetime) in self._components.items():
