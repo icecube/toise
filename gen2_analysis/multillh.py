@@ -68,11 +68,15 @@ class Combination(object):
 		generators = dict()
                 # due to how the differential ranges are stepped
                 # through, need to specify emin and set for all components
-                emin = max([edges[1][0] for edges in self.bin_edges.viewvalues()])
+                tempmin = kwargs['emin'] if kwargs.has_key('emin') else -numpy.inf
+                emin = max([edges[1][0] for edges in self.bin_edges.viewvalues()]+[tempmin])
+                if emin != tempmin and kwargs.has_key('emin'):
+                        logging.getLogger.warn('emin used for differential chunks has been changed from {} to {}'.format(kwargs['emin'], emin))
+
+                kwargs['emin'] = emin
 		for label, (component, livetime) in self._components.items():
 			generators[label] = (component.
                                              differential_chunks(*args,
-                                                                 emin=emin,
                                                                  exclusive=True,
                                                                  **kwargs), livetime)
                 all_done = False
