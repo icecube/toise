@@ -1,8 +1,10 @@
 
 from scipy import interpolate
 import pickle, os, numpy
-import surfaces
-from util import *
+from copy import copy
+from . import surfaces
+from .util import *
+from .pointsource import is_zenith_weight
 
 # hobo-costing!
 def surface_area(theta_max, volume):
@@ -219,13 +221,15 @@ def bundle_energy_at_depth(eprim, a=1, cos_theta=1., depth=1950.):
     :param depth: vertical depth of detector
     """
     ob = overburden(cos_theta, depth)
-    emin = minimum_muon_energy(ob, 1e2)
+    emin = minimum_muon_energy(ob, 7.5e3)
     # slant depth in g/cm^2
     X = ob*1e2*0.921
     et = 14.5
     alpha = 1.757
     beta = 5.25
-    bmu = 4e-6
+    # NB: effective muon energy loss rate reduced by a factor 4 to better model
+    # flux just above the horizon
+    bmu = 1e-6
     
     surface_energy = et*a/cos_theta*alpha/(alpha-1.)*(1*emin/eprim)**(-alpha+1)
     # assume that constant energy loss term is negligible
@@ -274,6 +278,9 @@ def bundle_flux_at_depth(emu, cos_theta):
     contrib = numpy.zeros(shape+(5, 1000))
     
     penergy = numpy.logspace(2, 12, 1000)
+    if (cos_theta <= 0):
+        return contrib, penergy
+    
     logstep = numpy.unique(numpy.diff(numpy.log10(penergy)))[0]
     de = (10**(numpy.log10(penergy) + logstep/2.) - 10**(numpy.log10(penergy) - logstep/2.))
     
@@ -305,3 +312,75 @@ def untagged_fraction(eprim, **kwargs):
     """
     """
     return 1.-trigger_efficiency(eprim, **kwargs)
+
+class MuonBundleBackground(object):
+	def __init__(self, effective_area, livetime=1.):
+		self._aeff = effective_area
+		
+		emu, cos_theta = effective_area.bin_edges[:2]
+		# FIXME: account for healpix binning
+		self._solid_angle = 2*numpy.pi*numpy.diff(self._aeff.bin_edges[1])
+		
+		flux = numpy.stack([bundle_flux_at_depth(emu, ct)[0][:,:4,:].sum(axis=(1,2)) for ct in center(cos_theta)]).T
+		
+		# from icecube import MuonGun
+		# model = MuonGun.load_model('GaisserH4a_atmod12_SIBYLL')
+		# flux, edist = numpy.vectorize(model.flux), numpy.vectorize(model.energy)
+		# emuc, ct = numpy.meshgrid(center(cos_theta), center(emu))
+		# flux = flux(MuonGun.depth(0), ct, 1)*edist(MuonGun.depth(0), ct, 1, 0, emuc)
+		
+		flux *= numpy.diff(emu)[:,None]
+		flux *= self._solid_angle[None,:]
+		
+		self._rate = (flux[...,None]*self._aeff.values).sum(axis=0)*(constants.annum*livetime)
+		self._livetime = livetime
+		
+		self.seed = 1.
+		self.uncertainty = None
+		
+		self.expectations = dict(tracks=self._rate)
+	
+	def point_source_background(self, zenith_index, psi_bins, livetime=None, n_sources=None, with_energy=True):
+		"""
+		Convert flux to a form suitable for calculating point source backgrounds.
+		The predictions in **expectations** will be differential in the opening-angle
+		bins `psi` instead of being integrated over them.
+		
+		:param zenith_index: index of the sky bin to use. May be either an integer
+		                     (for single point source searches) or a slice (for
+		                     stacking searches)
+		:param livetime: if not None, the actual livetime to integrate over in seconds
+		:param n_sources: number of search windows in each zenith band
+		:param with_energy: if False, integrate over reconstructed energy. Otherwise,
+		                    provide a differential prediction in reconstructed energy.
+		"""
+		assert not self._aeff.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
+		
+		background = copy(self)
+		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,...]
+		# observation time shorter for triggered transient searches
+		if livetime is not None:
+			bin_areas *= (livetime/self._livetime/constants.annum)
+		if is_zenith_weight(zenith_index, self._aeff):
+			omega = self._solid_angle[:,None]
+		elif isinstance(zenith_index, slice):
+			omega = self._solid_angle[zenith_index,None]
+			bin_areas = bin_areas[None,...]
+		else:
+			omega = self._solid_angle[zenith_index]
+		# scale the area in each bin by the number of search windows
+		if n_sources is not None:
+			expand = [None]*bin_areas.ndim
+			expand[0] = slice(None)
+			bin_areas = bin_areas*n_sources[expand]
+			
+		# dimensions of the keys in expectations are now energy, radial bin
+		if is_zenith_weight(zenith_index, self._aeff):
+			background.expectations = {k: numpy.nansum((v*zenith_index[:,None])/omega, axis=0)[...,None]*bin_areas for k,v in self.expectations.items()}
+		else:
+			background.expectations = {k: (v[zenith_index,:]/omega)[...,None]*bin_areas for k,v in self.expectations.items()}
+		if not with_energy:
+			# just radial bins
+			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
+		return background
+
