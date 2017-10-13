@@ -112,19 +112,23 @@ class PointSource(object):
         components['ps_gamma'] =  multillh.NuisanceParam(gamma, 0.5, min=-2.7, max=-1.7)
                 
         if fom == TOT.ul:
-            return pointsource.upper_limit(ps,
+            ul = pointsource.upper_limit(ps,
                                            components,
                                            tolerance=1e-4,
                                            gamma=-2.3,
                                            ps_gamma=gamma,
                                            **kwargs)
+            ns = sum([v.sum() for v in ps.expectations().values()])*ul
+            return ul, ns
         elif fom == TOT.dp:
-            return pointsource.discovery_potential(ps,
+            dp = pointsource.discovery_potential(ps,
                                                    components,
                                                    tolerance=1e-4,
                                                    gamma=-2.3,
                                                    ps_gamma=gamma,
                                                    **kwargs)
+            ns = sum([v.sum() for v in ps.expectations().values()])*dp
+            return dp, ns
         elif fom == TOT.fc:
             return pointsource.fc_upper_limit(ps,
                                               components,
