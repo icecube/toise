@@ -89,7 +89,11 @@ class KingPointSpreadFunctionBase(object):
         return numpy.radians(king.ppf(p, sigma, gamma))/self._scale
     
     def __call__(self, psi, energy, cos_theta):
-        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi)/self._scale, numpy.log10(energy), cos_theta)
+        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi), numpy.log10(energy), cos_theta)
+        if hasattr(self._scale, '__call__'):
+            psi /= self._scale(10**loge)
+        else:
+            psi /= self._scale
         sigma, gamma = self.get_params(loge, ct)
         return king.cdf(psi, sigma, gamma)
 
