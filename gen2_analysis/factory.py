@@ -36,6 +36,10 @@ def create_aeff(opts, **kwargs):
 	if opts.psf_class is not None:
 		# assume that all PSF classes have equal effective area
 		seleff_kwargs['scale'] = 1./opts.psf_class[1]
+	if opts.efficiency_scale != 1:
+		if seleff_kwargs.get('scale', 1) != 1:
+			raise ValueError('psf_class and efficiency_scale are mutually exclusive')
+		seleff_kwargs['scale'] = opts.efficiency_scale
 	seleff = effective_areas.get_muon_selection_efficiency(opts.geometry, opts.spacing, **seleff_kwargs)
 	
 	if opts.no_cuts:
@@ -169,7 +173,7 @@ class component_bundle(object):
 
 def make_options(**kwargs):
 	import argparse
-	defaults = dict(geometry='Sunflower', spacing=240, veto_area=75., angular_resolution_scale=1.,
+	defaults = dict(geometry='Sunflower', spacing=240, veto_area=75., angular_resolution_scale=1., efficiency_scale=1.,
 	                cascade_energy_threshold=None, veto_threshold=1e5, energy_threshold=0, no_cuts=False,
 	                psf_class=(0,1),
 	                livetime=1.)
