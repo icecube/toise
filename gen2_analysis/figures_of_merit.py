@@ -100,26 +100,31 @@ class PointSource(object):
         self.bundle = factory.component_bundle(exposures, partial(self.make_components, zi))
 
 
-    def benchmark(self, fom, **kwargs):
+    def benchmark(self, fom, gamma=-2.3, **kwargs):
         components = self.bundle.get_components()
         components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+        components['ps_gamma'] =  multillh.NuisanceParam(gamma, 0.5, min=-2.7, max=-1.7)
+        
         ps = components.pop('ps')
         if fom == TOT.ul:
             return pointsource.upper_limit(ps,
                                            components,
                                            tolerance=1e-4,
                                            gamma=-2.3,
+                                           ps_gamma=gamma,
                                            **kwargs)
         elif fom == TOT.dp:
             return pointsource.discovery_potential(ps,
                                                    components,
                                                    tolerance=1e-4,
                                                    gamma=-2.3,
+                                                   ps_gamma=gamma,
                                                    **kwargs)
         elif fom == TOT.fc:
             return pointsource.fc_upper_limit(ps,
                                               components,
-                                              gamma=-2.3,
+                                              gamma=gamma,
+                                              ps_gamma=gamma,
                                               **kwargs)
         else:
             raise RuntimeError('No such fom')
