@@ -85,17 +85,21 @@ class KingPointSpreadFunctionBase(object):
     
     def get_quantile(self, p, energy, cos_theta):
         p, loge, ct = numpy.broadcast_arrays(p, numpy.log10(energy), cos_theta)
+        if hasattr(self._scale, '__call__'):
+            scale = self._scale(10**loge)
+        else:
+            scale = self._scale
         sigma, gamma = self.get_params(loge, ct)
-        return numpy.radians(king.ppf(p, sigma, gamma))/self._scale
+        return numpy.radians(king.ppf(p, sigma, gamma))/scale
     
     def __call__(self, psi, energy, cos_theta):
         psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi), numpy.log10(energy), cos_theta)
         if hasattr(self._scale, '__call__'):
-            psi /= self._scale(10**loge)
+            scale = self._scale(10**loge)
         else:
-            psi /= self._scale
+            scale = self._scale
         sigma, gamma = self.get_params(loge, ct)
-        return king.cdf(psi, sigma, gamma)
+        return king.cdf(psi/scale, sigma, gamma)
 
 class KingPointSpreadFunction(KingPointSpreadFunctionBase):
     def __init__(self, fname='Sunflower_240_kingpsf4', psf_class=(0,4), **kwargs):
