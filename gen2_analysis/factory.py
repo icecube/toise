@@ -60,7 +60,14 @@ def create_aeff(opts, **kwargs):
 	else:
 		kwargs['psf'] = angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale, opts.psf_class)
 	
-	aeff = effective_areas.create_throughgoing_aeff(
+	neutrino_aeff = effective_areas.create_throughgoing_aeff(
+	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing),
+	    selection_efficiency=selection_efficiency,
+	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
+	    energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
+	    **kwargs)
+	
+	bundle_aeff = effective_areas.create_bundle_aeff(
 	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing),
 	    selection_efficiency=selection_efficiency,
 	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
@@ -69,7 +76,7 @@ def create_aeff(opts, **kwargs):
 
 	# cache[key] = aeff
 	# pickle.dump(cache, open(cache_file, 'w'), 2)
-	return aeff
+	return neutrino_aeff, bundle_aeff
 
 def create_cascade_aeff(opts, **kwargs):
 
@@ -131,10 +138,13 @@ class aeff_factory(object):
 			kwargs['depth'] = opts.depth
 			aeffs = dict(events=effective_areas.create_ara_aeff(**kwargs))
 		else:
-			aeffs = dict(tracks=create_aeff(opts,**kwargs))
+			aeffs = {}
+			nu, mu = create_aeff(opts,**kwargs)
+			aeffs['shadowed_tracks'] = (nu[0], mu[0])
+			aeffs['unshadowed_tracks'] = (nu[1], mu[1])
 			if opts.cascade_energy_threshold is not None:
                                 print 'making cascades'
-				aeffs['cascades']=create_cascade_aeff(opts,**kwargs)
+				aeffs['cascades']=(create_cascade_aeff(opts,**kwargs), None)
 		return aeffs
 	
 	def __call__(self, name):

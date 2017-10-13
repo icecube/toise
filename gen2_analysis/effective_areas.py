@@ -315,7 +315,7 @@ class effective_area(object):
 	"""
 	Effective area with metadata
 	"""
-	def __init__(self, edges, aeff, sky_binning='cos_theta'):
+	def __init__(self, edges, aeff, sky_binning='cos_theta', source='neutrino'):
 		self.bin_edges = edges
 		self.values = aeff
 		self.sky_binning = sky_binning
@@ -344,6 +344,10 @@ class effective_area(object):
 		return self.sky_binning == 'healpix'
 	
 	@property
+	def is_neutrino(self):
+		return self.source == 'neutrino'
+	
+	@property
 	def nside(self):
 		assert self.is_healpix
 		return self.nring/4 + 1
@@ -368,7 +372,7 @@ def create_bundle_aeff(energy_resolution=get_energy_resolution("IceCube"),
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
     selection_efficiency=MuonSelectionEfficiency(),
     surface=get_fiducial_surface("IceCube"),
-	cos_theta=None,):
+	cos_theta=None,**kwargs):
 	"""
 	Create an effective area for atmospheric muon bundles
 	
@@ -439,7 +443,7 @@ def create_bundle_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	edges = (e_mu, cos_theta, e_mu)
 	
-	return [effective_area(edges, aeff*w[...,None], 'cos_theta' if nside is None else 'healpix') for w in weights]
+	return [effective_area(edges, aeff*w[...,None], 'cos_theta' if nside is None else 'healpix', source='muon') for w in weights]
 	
 	
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
@@ -508,19 +512,6 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	
 	aeff *= selection_efficiency[None,None,:,:]
 	
-	# Step 3.1: reduce the geometric area in the southern hemisphere to the
-	#           portion shadowed by the surface veto (if it exists)
-	# NB: assumes that the selection efficiency and energy resolution are the
-	# same both in and out of the shadow of the surface veto
-	acceptance = numpy.where(center(cos_theta) < 0.05, 1, veto_coverage(cos_theta))
-	aeff *= acceptance[None,None,:,None]
-	
-	# Step 3.2: apply an energy threshold in the southern hemisphere
-	# NB: this is in units of true muon energy. While this isn't realizable, it
-	# avoids the mess of different E_true -> E_reco mappings for different
-	# detector geometries
-	aeff *= energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T[None,None,...]
-	
 	# Step 4: apply smearing for angular resolution
 	# Add an overflow bin if none present
 	if numpy.isfinite(psi_bins[-1]):
@@ -537,9 +528,14 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	response = energy_resolution.get_response_matrix(e_mu, e_mu)
 	total_aeff = numpy.apply_along_axis(numpy.inner, 3, total_aeff, response)
 	
+	# Step 6: split the effective area in into a portion shadowed by the
+	#         surface veto (if it exists) and one that is not
+	shadowed_fraction = veto_coverage(cos_theta)[None,None,:,None,None]
+	weights = [shadowed_fraction, 1-shadowed_fraction]
+	
 	edges = (e_nu, cos_theta, e_mu, psi_bins)
 	
-	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+	return [effective_area(edges, total_aeff*w, 'cos_theta' if nside is None else 'healpix') for w in weights]
 
 def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resolution(channel='cascade'),
     energy_threshold=StepFunction(numpy.inf),
