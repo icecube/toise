@@ -87,15 +87,18 @@ class ZenithDependentMuonSelectionEfficiency(object):
 		if not filename.startswith('/'):
 			filename = os.path.join(data_dir, 'selection_efficiency', filename)
 		self._spline = SplineTable(filename)
-		self.scale = scale
+		self._scale = scale
 		# cut off no lower than 500 GeV
 		self.energy_threshold = max((energy_threshold, 5e2))
 	def _eval(self, loge, cos_theta):
 		return self._spline.eval([loge, cos_theta])
 	def __call__(self, muon_energy, cos_theta):
 		loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
-
-		return self.scale*numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self._spline.evaluate_simple([numpy.log10(muon_energy), cos_theta]), 0, 1), 0.)
+		if hasattr(self._scale, '__call__'):
+			scale = self._scale(10**loge)
+		else:
+			scale = self._scale
+		return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(scale*self._spline.evaluate_simple([numpy.log10(muon_energy), cos_theta]), 0, 1), 0.)
 
 class HESEishSelectionEfficiency(object):
 	"""
