@@ -61,7 +61,7 @@ class PointSpreadFunction(object):
         evaluates = self._spline.evaluate_simple([loge, ct, psi])
         return numpy.where(numpy.isfinite(evaluates), evaluates, 1.)
 
-class king_gen(stats.rv_continuous):
+class _king_gen(stats.rv_continuous):
     """
     King function, used to parameterize the PSF in XMM and Fermi
     
@@ -76,7 +76,19 @@ class king_gen(stats.rv_continuous):
         a = 2*gamma*(sigma**2)
         b = 2*sigma**2
         return (1.-1./gamma)/(a-b)*(a - (a + x2)*(x2/a + 1)**-gamma)
-king = king_gen(name='king', a=0.)
+king = _king_gen(name='king', a=0.)
+
+class _fm_gen(stats.rv_continuous):
+    """
+    Fisher-von Mises distribution of cos(alpha), the equivalent of a normal
+    distribution for distances between points on a 2-sphere
+    """
+    def _argcheck(self, kappa):
+        return numpy.all(kappa >= 0)
+    def _pdf(self, x, kappa):
+        return numpy.exp(kappa*x)*kappa/(2*numpy.pi*numpy.sinh(kappa))
+
+fisher = _fm_gen(name='fisher', a=-1, b=1)
 
 class KingPointSpreadFunctionBase(object):
     
