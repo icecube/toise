@@ -362,6 +362,86 @@ def eval_psf(point_spread_function, mu_energy, ct, psi_bins):
 	ct, mu_energy, psi_bins = numpy.meshgrid(ct, mu_energy, psi_bins, indexing='ij')
 	return point_spread_function(psi_bins, mu_energy, ct)
 	
+
+def create_bundle_aeff(energy_resolution=get_energy_resolution("IceCube"),
+    energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
+    selection_efficiency=MuonSelectionEfficiency(),
+    surface=get_fiducial_surface("IceCube"),
+	cos_theta=None,):
+	"""
+	Create an effective area for atmospheric muon bundles
+	
+	:param selection_efficiency: an energy- and zenith-dependent muon selection efficiency
+	:type: MuonSelectionEfficiency
+	
+	:param surface: the fiducial surface surrounding the detector
+	:type surface: surfaces.UprightSurface
+	
+	:param veto_coverage: a callable f(cos_theta), returning the fraction of
+	    the fiducial area that is in the shadow of a surface veto
+	:type veto_coverate: surface_veto.GeometricVetoCoverage
+	
+	:param energy_threshold: the energy-dependent veto passing fraction
+	:type energy_threshold: VetoThreshold
+	
+	:param energy_resolution: the muon energy resolution for events that pass the selection
+	:type energy_resolution: energy_resolution.MuonEnergyResolution
+	
+	:param cos_theta: sky binning to use. If cos_theta is an integer,
+	    bin in a HEALpix map with this NSide, otherwise bin in cosine of
+	    zenith angle. If None, use the native binning of the muon production
+	    efficiency histogram.
+	
+	:returns: a tuple of effective_area objects
+	"""
+	# Ingredients:
+	# 1) Geometric area
+	# 2) Selection efficiency
+	# 3) Veto coverage
+	
+	import tables, dashi
+	from scipy.special import erf
+	
+	nside = None
+	if isinstance(cos_theta, int):
+		nside = cos_theta
+	
+	# Step 1: Get binning
+	(e_nu, cos_theta, e_mu), efficiency = get_muon_production_efficiency(cos_theta)
+	
+	# Step 2: Geometric muon effective area (no selection effects yet)
+	# NB: assumes cylindrical symmetry.
+	aeff = (numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[None,:])
+	
+	# Step 3: apply selection efficiency
+	# selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
+	selection_efficiency = selection_efficiency(*numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij'))
+	aeff = aeff*selection_efficiency
+	
+	# Step 4: apply smearing for energy resolution
+	response = energy_resolution.get_response_matrix(e_mu, e_mu)
+	aeff = numpy.apply_along_axis(numpy.inner, 2, aeff[...,None]*numpy.eye(response.shape[0])[:,None,:], response)
+	
+	# Step 5.1: split the geometric area in the southern hemisphere into a
+	#           portion shadowed by the surface veto (if it exists) and one that
+	#           is not
+	shadowed_fraction = veto_coverage(cos_theta)[None,:]
+	
+	# Step 5.2: apply an energy threshold in the southern hemisphere
+	# NB: this is in units of true muon energy. While this isn't realizable, it
+	# avoids the mess of different E_true -> E_reco mappings for different
+	# detector geometries
+	veto_suppression = 1-energy_threshold.accept(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij'))
+	
+	# combine into an energy- and zenith-dependent acceptance for muon bundles
+	weights = [shadowed_fraction*veto_suppression, 1-shadowed_fraction]
+	
+	edges = (e_mu, cos_theta, e_mu)
+	
+	return [effective_area(edges, aeff*w[...,None], 'cos_theta' if nside is None else 'healpix') for w in weights]
+	
+	
 def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
