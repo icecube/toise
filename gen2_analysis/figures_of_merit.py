@@ -102,10 +102,15 @@ class PointSource(object):
 
     def benchmark(self, fom, gamma=-2.3, **kwargs):
         components = self.bundle.get_components()
+        ps = components.pop('ps')
+        
+        if len(kwargs) != 0:
+            raise ValueError("Can't take kwargs")
+        # assume all backgrounds known perfectly
+        kwargs = {k:v.seed for k,v in components.items()}
         components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
         components['ps_gamma'] =  multillh.NuisanceParam(gamma, 0.5, min=-2.7, max=-1.7)
-        
-        ps = components.pop('ps')
+                
         if fom == TOT.ul:
             return pointsource.upper_limit(ps,
                                            components,
