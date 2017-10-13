@@ -130,3 +130,178 @@ class EulerVetoProbability(object):
         p[logE < self.log_emin] = 0
         p[cos_theta < self.ct_min] = 0
         return p
+
+def overburden(cos_theta, depth=1950, elevation=2400):
+	"""
+	Overburden for a detector buried underneath a flat surface.
+	
+	:param cos_theta: cosine of zenith angle (in detector-centered coordinates)
+	:param depth:     depth of detector (in meters below the surface)
+	:param elevation: elevation of the surface above sea level
+	
+	:returns: an overburden [meters]
+	"""
+	# curvature radius of the surface (meters)
+	r = 6371315 + elevation
+	# this is secrety a translation in polar coordinates
+	return (numpy.sqrt(2*r*depth + (cos_theta*(r-depth))**2 - depth**2) - (r-depth)*cos_theta)
+
+def minimum_muon_energy(distance, emin=1e3):
+	"""
+	Minimum muon energy required to survive the given thickness of ice with at
+	least emin GeV 50% of the time.
+	
+	:returns: minimum muon energy at the surface [GeV]
+	"""
+	def polynomial(x, coefficients):
+		return sum(c*x**i for i, c in enumerate(coefficients))
+	coeffs = [[2.793, -0.476, 0.187],
+			  [2.069, -0.201, 0.023],
+			  [-2.689, 3.882]]
+	a, b, c = (polynomial(numpy.log10(emin), c) for c in coeffs)
+	return 10**polynomial(distance, (a,b/1e4,c/1e10))
+
+class ParticleType(object):
+	PPlus       =   14
+	He4Nucleus  =  402
+	N14Nucleus  = 1407
+	Al27Nucleus = 2713
+	Fe56Nucleus = 5626
+
+def gaisser_flux(energy, ptype):
+	"""
+	Evaluate the [Gaisser]_ H3a parameterization of the cosmic ray flux.
+	
+	:param energy: total energy of primary nucleus [GeV]
+	:param ptype: particle type code 
+	
+	:returns: particle flux [particles/(GeV m^2 sr s)]
+	
+	.. [Gaisser] T. K. Gaisser. Spectrum of cosmic-ray nucleons, kaon production, and the atmospheric muon charge ratio. Astroparticle Physics, 35(12):801--806, 2012. ISSN 0927-6505. doi: 10.1016/j.astropartphys.2012.02.010.
+	"""
+	if ptype < 100:
+		z = 1
+	else:
+		z = ptype % 100
+	
+	codes = sorted(filter(lambda v: isinstance(v, int), ParticleType.__dict__.values()))
+	idx = codes.index(ptype)
+	
+	# normalizations for each element
+	norm = [
+		[7860., 3550., 2200., 1430., 2120.],
+		[20]*2 + [13.4]*3,
+		[1.7]*2 + [1.14]*3,
+	]
+	# spectral indices
+	gamma = [
+		[2.66, 2.58, 2.63, 2.67, 2.63],
+		[2.4]*5,
+		[2.4]*5
+	]
+	# cutoff rigitity
+	rigidity = [
+		4e6, 30e6, 2e9
+	]
+	
+	return sum(n[idx]*energy**(-g[idx])*numpy.exp(-energy/(r*z)) for n, g, r in zip(norm, gamma, rigidity))
+
+def bundle_energy_at_depth(eprim, a=1, cos_theta=1., depth=1950.):
+    """
+    Mean bundle energy at depth, assuming Elbert yields and energy loss rate
+    proportional to total bundle energy
+    
+    See: http://www.ppl.phys.chiba-u.jp/research/IceCube/EHE/muon_model/atm_muon_model.pdf
+    
+    :param eprim: primary energy
+    :param a: primary mass number
+    :param cos_theta: cosine of zenith angle
+    :param depth: vertical depth of detector
+    """
+    ob = overburden(cos_theta, depth)
+    emin = minimum_muon_energy(ob, 1e2)
+    # slant depth in g/cm^2
+    X = ob*1e2*0.921
+    et = 14.5
+    alpha = 1.757
+    beta = 5.25
+    bmu = 4e-6
+    
+    surface_energy = et*a/cos_theta*alpha/(alpha-1.)*(1*emin/eprim)**(-alpha+1)
+    # assume that constant energy loss term is negligible
+    return surface_energy, numpy.exp(-bmu*X)
+
+from scipy.special import erf, erfc
+def bundle_energy_distribution(emu_edges, eprim, a=1, cos_theta=1., depth=1950.):
+    """
+    Approximate the distribution of bundle energies at depth from a given primary
+    
+    :param eprim: primary energy
+    :param a: primary mass number
+    :param cos_theta: cosine of zenith angle
+    :param depth: vertical depth of detector
+    """
+    surface_energy, mean_loss = bundle_energy_at_depth(eprim, a, cos_theta, depth)
+    mu = numpy.log10(mean_loss*surface_energy)
+    # don't allow bundles to have more energy at the surface than the parent shower
+    hi = numpy.log10(numpy.minimum(emu_edges[1:], surface_energy))
+    lo = numpy.log10(emu_edges[:-1])
+    # width of log-normal distribution fit to (surface bundle energy / primary
+    # energy) See:
+    # https://wiki.icecube.wisc.edu/index.php/The_optimization_of_the_empirical_model_(IC22)
+    sigma = numpy.minimum(1.25 - 0.16*numpy.log10(eprim) + 0.00563*numpy.log10(eprim)**2, 1.)
+    dist = numpy.maximum((erf((hi-mu)/sigma)-erf((lo-mu)/sigma))/2., 0.)
+    
+    # compensate for truncating the gaussian at the surface energy
+    upper_tail = erfc((numpy.log10(surface_energy)-mu)/sigma)/2.
+    return dist / (1.-upper_tail)
+
+def bundle_flux_at_depth(emu, cos_theta):
+    """
+    Approximate the muon bundle flux at depth
+    
+    :param emu: total bundle energy
+    :param cos_theta: cosine of zenith angle
+    :returns: (flux, primary_energy), where flux is in 1/GeV m^2 sr s and
+        primary_energy is the primary energy associated with each emu, for
+        H/He/CNO/MgAlSi/Fe
+    """
+    # make everything an array
+    emu, cos_theta = map(numpy.asarray, (emu, cos_theta))
+    emu_center = 10**(center(numpy.log10(emu)))
+    shape = numpy.broadcast(emu_center, cos_theta).shape
+    # primary spectrum for each element
+    contrib = numpy.zeros(shape+(5, 1000))
+    
+    penergy = numpy.logspace(2, 12, 1000)
+    logstep = numpy.unique(numpy.diff(numpy.log10(penergy)))[0]
+    de = (10**(numpy.log10(penergy) + logstep/2.) - 10**(numpy.log10(penergy) - logstep/2.))
+    
+    ptypes = [getattr(ParticleType, pt) for pt in 'PPlus', 'He4Nucleus', 'N14Nucleus', 'Al27Nucleus', 'Fe56Nucleus']
+    A = [[pt/100, 1][pt == ParticleType.PPlus] for pt in ptypes]
+    for i, (ptype, a) in enumerate(zip(ptypes, A)):
+        # hobo-integrate the flux over primary energy bins
+        weights = gaisser_flux(penergy, int(ptype))*de
+        # distribute it across muon bundle energy bins
+        c = bundle_energy_distribution(emu[:,None], penergy[None,:], a, cos_theta=cos_theta)
+        contrib[...,i,:] = weights*c
+    # convert to differential flux
+    contrib /= numpy.diff(emu)[:,None,None]
+    return contrib, penergy
+
+def trigger_efficiency(eprim, threshold=10**5.5, sharpness=7):
+    """
+    Trigger efficiency fit to IT73 data
+    
+    https://wiki.icecube.wisc.edu/index.php/IceTop-73_Spectrum_Analysis
+    
+    :param threshold: energy at which 50% of events trigger
+    :param sharpness: speed of transition. 0 makes a flat line at 0.5, infinity
+                      a step function
+    """
+    return 1/(1+numpy.exp(-(numpy.log10(eprim)-numpy.log10(threshold))*sharpness))
+
+def untagged_fraction(eprim, **kwargs):
+    """
+    """
+    return 1.-trigger_efficiency(eprim, **kwargs)
