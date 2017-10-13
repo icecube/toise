@@ -51,12 +51,16 @@ def create_aeff(opts, **kwargs):
 		elif hasattr(opts, k):
 			kwargs[k] = numpy.asarray(getattr(opts, k))
 
+	if hasattr(opts, 'psf'):
+		kwargs['psf'] = getattr(opts, 'psf')
+	else:
+		kwargs['psf'] = angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale, opts.psf_class)
+	
 	aeff = effective_areas.create_throughgoing_aeff(
 	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing),
 	    selection_efficiency=selection_efficiency,
 	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
 	    energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
-	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale, opts.psf_class),
 	    **kwargs)
 
 	# cache[key] = aeff
