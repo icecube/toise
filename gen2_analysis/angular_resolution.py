@@ -78,8 +78,24 @@ class king_gen(stats.rv_continuous):
         return (1.-1./gamma)/(a-b)*(a - (a + x2)*(x2/a + 1)**-gamma)
 king = king_gen(name='king', a=0.)
 
-class KingPointSpreadFunction(object):
-    def __init__(self, fname='Sunflower_240_kingpsf4', psf_class=(0,4), scale=1.):
+class KingPointSpreadFunctionBase(object):
+    
+    def __init__(self, scale=1.):
+        self._scale = scale
+    
+    def get_quantile(self, p, energy, cos_theta):
+        p, loge, ct = numpy.broadcast_arrays(p, numpy.log10(energy), cos_theta)
+        sigma, gamma = self.get_params(loge, ct)
+        return numpy.radians(king.ppf(p, sigma, gamma))/self._scale
+    
+    def __call__(self, psi, energy, cos_theta):
+        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi)/self._scale, numpy.log10(energy), cos_theta)
+        sigma, gamma = self.get_params(loge, ct)
+        return king.cdf(psi, sigma, gamma)
+
+class KingPointSpreadFunction(KingPointSpreadFunctionBase):
+    def __init__(self, fname='Sunflower_240_kingpsf4', psf_class=(0,4), **kwargs):
+        super(KingPointSpreadFunction, self).__init__(**kwargs)
         import pandas as pd
         import operator
         from scipy import interpolate
@@ -104,16 +120,31 @@ class KingPointSpreadFunction(object):
         Interpolate for sigma and gamma
         """
         return self._sigma(log_energy, cos_theta, grid=False), self._gamma(log_energy, cos_theta, grid=False)
+
+class SplineKingPointSpreadFunction(KingPointSpreadFunctionBase):
+    def __init__(self, fname='Sunflower_240_kingpsf1', **kwargs):
+        super(SplineKingPointSpreadFunction, self).__init__(**kwargs)
+        from icecube.photospline import I3SplineTable
+        
+        if not fname.startswith('/'):
+            fname = os.path.join(data_dir, 'psf', fname)
+        
+        self._splines = dict(sigma=I3SplineTable(fname + '.sigma.fits'), gamma=I3SplineTable(fname + '.gamma.fits'))
     
-    def get_quantile(self, p, energy, cos_theta):
-        p, loge, ct = numpy.broadcast_arrays(p, numpy.log10(energy), cos_theta)
-        sigma, gamma = self.get_params(loge, ct)
-        return numpy.radians(king.ppf(p, sigma, gamma))/self._scale
+    @staticmethod
+    @numpy.vectorize
+    def _eval(spline, log_energy, cos_theta):
+        return spline.eval([log_energy, cos_theta])
     
-    def __call__(self, psi, energy, cos_theta):
-        psi, loge, ct = numpy.broadcast_arrays(numpy.degrees(psi)/self._scale, numpy.log10(energy), cos_theta)
-        sigma, gamma = self.get_params(loge, ct)
-        return king.cdf(psi, sigma, gamma)
+    def get_params(self, log_energy, cos_theta):
+        """
+        Interpolate for sigma and gamma
+        """
+        
+        sigma = 10**self._eval(self._splines['sigma'], log_energy, cos_theta)
+        gamma = 10**self._eval(self._splines['gamma'], log_energy, cos_theta) + 1
+        
+        return sigma, gamma
 
 class PotemkinCascadePointSpreadFunction(object):
     
