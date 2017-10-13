@@ -114,7 +114,7 @@ class KingPointSpreadFunctionBase(object):
         return king.cdf(psi/scale, sigma, gamma)
 
 class KingPointSpreadFunction(KingPointSpreadFunctionBase):
-    def __init__(self, fname='Sunflower_240_kingpsf4', psf_class=(0,4), **kwargs):
+    def __init__(self, fname='Sunflower_240_kingpsf4', psf_class=(0,4), scale=1., **kwargs):
         super(KingPointSpreadFunction, self).__init__(**kwargs)
         import pandas as pd
         import operator
