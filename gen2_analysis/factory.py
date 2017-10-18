@@ -128,6 +128,7 @@ class aeff_factory(object):
 			del self._aeffs[name]
 	
 	def _create(self, opts, **kwargs):
+		aeffs = {}
 		if opts.geometry == 'ARA':
 			for k in 'psi_bins', 'cos_theta':
 				if k in kwargs:
@@ -136,9 +137,8 @@ class aeff_factory(object):
 					kwargs[k] = numpy.asarray(getattr(opts, k))
 			kwargs['nstations'] = opts.nstations
 			kwargs['depth'] = opts.depth
-			aeffs = dict(events=effective_areas.create_ara_aeff(**kwargs))
+			aeffs['events'] = (effective_areas.create_ara_aeff(**kwargs), None)
 		else:
-			aeffs = {}
 			nu, mu = create_aeff(opts,**kwargs)
 			aeffs['shadowed_tracks'] = (nu[0], mu[0])
 			aeffs['unshadowed_tracks'] = (nu[1], mu[1])

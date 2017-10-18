@@ -81,7 +81,8 @@ class GZK(object):
 
 
     @staticmethod
-    def make_components(aeff):
+    def make_components(aeffs):
+        aeff, muon_aeff = aeffs
         energy_threshold = numpy.inf
         atmo = diffuse.AtmosphericNu.conventional(aeff, 1., hard_veto_threshold=energy_threshold)
         atmo.uncertainty = 0.1
