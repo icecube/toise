@@ -637,12 +637,15 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
                     if 'EXPONENT' in fline:
                         energy.append(float(fline.split('=')[-1]))
                         if paeff:
+                            paeff.reverse()
                             aeff.append(paeff)
                             paeff = []
                             cos_theta = []
                     else:
                         cos_theta.append(float(fline.split()[0]))
                         paeff.append(float(fline.split()[1]))
+                # ara aeffs have zenith pointing in neutrino direction
+                paeff.reverse()
                 aeff.append(paeff)
 
         aeff = numpy.asarray(aeff) * nstations
