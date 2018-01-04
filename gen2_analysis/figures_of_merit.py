@@ -3,8 +3,18 @@ from functools import partial
 import numpy
 from . import factory, diffuse, surface_veto, pointsource, multillh
 
+# Enum has no facility for setting docstrings inline. Do it by hand.
 TOT = Enum('TOT', ['ul', 'dp', 'fc'])
+TOT.__doc__ = "Total: integrate signal over entire energy range"
+TOT.ul.__doc__ = "90% upper limit (Wilks' Theorem)"
+TOT.dp.__doc__ = "5\sigma discover potential"
+TOT.fc.__doc__ = "90% upper limit (Feldman-Cousins construction)"
+
 DIFF = Enum('DIFF', ['ul', 'dp', 'fc'])
+DIFF.__doc__ = "Differential: return figure of merit in energy bins"
+DIFF.ul.__doc__ = "90% upper limit (Wilks' Theorem)"
+DIFF.dp.__doc__ = "5\sigma discover potential"
+DIFF.fc.__doc__ = "90% upper limit (Feldman-Cousins construction)"
 
 class GZK(object):
 
