@@ -14,6 +14,18 @@ import logging
 from util import *
 from .pointsource import is_zenith_weight
 
+class NullComponent(object):
+	"""
+	A flux component that predicts zero events. This is useful for padding out
+	components that predict events in only a subset of channels (e.g. penetrating
+	atmospheric muons).
+	"""
+	def __init__(self, aeff):
+		self.seed = 1
+		self.uncertainty = None
+		i, j = aeff.dimensions.index('true_zenith_band'), aeff.dimensions.index('reco_energy')
+		self.expectations = dict(tracks=numpy.zeros((aeff.values.shape[i], aeff.values.shape[j])))
+
 class DiffuseNuGen(object):
 	def __init__(self, effective_area, flux, livetime=1.):
 		"""
