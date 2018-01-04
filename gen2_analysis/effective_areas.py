@@ -510,6 +510,9 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 	# selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
 	selection_efficiency = selection_efficiency(*numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij')).T
 	
+	# Explicit energy threshold disabled for now; let muon background take over
+	# at whatever energy it drowns out the signal
+	# selection_efficiency *= energy_threshold.accept(*numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij')).T
 	aeff *= selection_efficiency[None,None,:,:]
 	
 	# Step 4: apply smearing for angular resolution
