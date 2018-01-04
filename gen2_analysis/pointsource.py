@@ -1,6 +1,7 @@
 
 import numpy
-from scipy import optimize, stats
+from scipy import optimize, stats, interpolate
+from StringIO import StringIO
 import itertools
 from copy import copy
 from multillh import LLHEval, asimov_llh, get_expectations
@@ -340,7 +341,6 @@ def events_above(observables, edges, ecutoff):
 
 def fc_upper_limit(point_source, diffuse_components, ecutoff=0,
                    cl=0.9, **fixed):
-        import ROOT as rt
 	components = dict(ps=point_source)
 	components.update(diffuse_components)
 
@@ -353,8 +353,19 @@ def fc_upper_limit(point_source, diffuse_components, ecutoff=0,
 
         logging.getLogger().info('ns: %.2g, nb: %.2g' % (ns, nb))
 
-        tfc = rt.TFeldmanCousins(cl)
-        return tfc.CalculateUpperLimit(nb, nb)/ns
+        if cl != 0.9:
+            raise ValueError("I can only handle 90% CL")
+        try:
+            return fc_upper_limit.table(nb)/ns
+        except ValueError:
+            raise ValueError("nb=%.2g is too large for the FC construction to be useful" % nb)
+
+# Average 90% upper limit for known background
+# taken from Table XII of Feldman & Cousins (1998)
+fc_upper_limit.table = interpolate.interp1d(
+    numpy.loadtxt(StringIO("0 0.5 1 1.5 2 2.5 3 3.5 4 5 6 7 8 9 10 11 12 13 14 15")),
+    numpy.loadtxt(StringIO("2.44 2.86 3.28 3.62 3.94 4.20 4.42 4.63 4.83 5.18 5.53 5.90 6.18 6.49 6.76 7.02 7.28 7.51 7.75 7.99"))
+    )
 
 
 def upper_limit(point_source, diffuse_components, cl=0.9, baseline=None, tolerance=1e-2, **fixed):
