@@ -177,13 +177,15 @@ class LLHEval:
 		for prop in lamb:
 			log_lambda = numpy.log(lamb[prop])
 			log_lambda[numpy.isinf(log_lambda)] = 0
+			log_data = numpy.log(self.data[prop])
+			log_data[numpy.isinf(log_data)] = 0
 			if self.unbinned:
 				norm = numpy.sum(lamb[prop])
 				for event in self.data[prop]:
 					llh += numpy.sum(event*lamb[prop])/norm
 				llh -= norm
 			else:
-				llh += numpy.sum(self.data[prop]*log_lambda - lamb[prop])
+				llh += numpy.sum(self.data[prop]*(log_lambda - log_data)) - numpy.sum(lamb[prop] - self.data[prop])
 
 		return llh
 	
