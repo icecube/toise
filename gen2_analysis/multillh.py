@@ -66,40 +66,40 @@ class Combination(object):
 
 	def differential_chunks(self, *args, **kwargs):
 		generators = dict()
-                # due to how the differential ranges are stepped
-                # through, need to specify emin and set for all components
-                tempmin = kwargs['emin'] if kwargs.has_key('emin') else -numpy.inf
-                emin = max([edges[1][0] for edges in self.bin_edges.viewvalues()]+[tempmin])
-                if emin != tempmin and kwargs.has_key('emin'):
-                        logging.getLogger().info('emin used for differential chunks has been changed from {} to {}'.format(kwargs['emin'], emin))
+		# due to how the differential ranges are stepped
+		# through, need to specify emin and set for all components
+		tempmin = kwargs['emin'] if kwargs.has_key('emin') else -numpy.inf
+		emin = max([edges[1][0] for edges in self.bin_edges.viewvalues()]+[tempmin])
+		if emin != tempmin and kwargs.has_key('emin'):
+			logging.getLogger().info('emin used for differential chunks has been changed from {} to {}'.format(kwargs['emin'], emin))
 
-                kwargs['emin'] = emin
+		kwargs['emin'] = emin
 		for label, (component, livetime) in self._components.items():
-			generators[label] = (component.
-                                             differential_chunks(*args,
-                                                                 exclusive=True,
-                                                                 **kwargs), livetime)
-                all_done = False
+			generators[label] = (
+			    component.differential_chunks(*args, exclusive=True,**kwargs),
+			    livetime
+			    )
+		all_done = False
 		while not all_done:
-                        components = dict()
-                        eranges = []
-                        ecenters = []
-                        for label, (generator, livetime) in generators.items():
-                                try:
-                                        e_center, component = next(generator)
-                                except StopIteration:
-                                        continue
-                                components[label] = (component, livetime)
-                                eranges.append(component.energy_range)
-                                ecenters.append(e_center)
-                                logging.getLogger().debug('label: %s, enu: %.2g' % (label, e_center))
-                        if not components:
-                                all_done = True
-                        else:
-                                combo = Combination(components)
-                                combo.energy_range = eranges[numpy.argmax(ecenters)]
-                                combo.energy_center = max(ecenters)
-                                yield max(ecenters), combo
+			components = dict()
+			eranges = []
+			ecenters = []
+			for label, (generator, livetime) in generators.items():
+				try:
+					e_center, component = next(generator)
+				except StopIteration:
+					continue
+				components[label] = (component, livetime)
+				eranges.append(component.energy_range)
+				ecenters.append(e_center)
+				logging.getLogger().debug('label: %s, enu: %.2g' % (label, e_center))
+			if not components:
+				all_done = True
+			else:
+				combo = Combination(components)
+				combo.energy_range = eranges[numpy.argmax(ecenters)]
+				combo.energy_center = max(ecenters)
+				yield max(ecenters), combo
 
 class LLHEval:
 	"""

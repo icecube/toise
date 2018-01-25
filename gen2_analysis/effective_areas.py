@@ -606,7 +606,7 @@ def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resoluti
 
 
 def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
-        """
+	"""
 	Get the aeff for a neutrino of energy E_nu from zenith angle
 	ct_edges for ARA (values from mlu ARAsim). Assumes flavor-independence.
 	
@@ -626,47 +626,48 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 		nside = ct_edges
 		ct_edges = _ring_range(nside)
 
-        fpath = os.path.join(data_dir, 'aeff', 'cosZenDepAeff_z{}.txt'.format(depth))
+	fpath = os.path.join(data_dir, 'aeff', 'cosZenDepAeff_z{}.half.txt'.format(depth))
 
-        with open(fpath) as fara:
-                # parse file and strip out empty lines
-                lines = itertools.ifilter(None, (line.rstrip() for line in fara))
+	with open(fpath) as fara:
+		# parse file and strip out empty lines
+		lines = itertools.ifilter(None, (line.rstrip() for line in fara))
 
-                energy = []
-                cos_theta = []
-                aeff = []
-                paeff = [] # partial aeff over a single energy range
-                for fline in lines:
-                    if 'EXPONENT' in fline:
-                        energy.append(float(fline.split('=')[-1]))
-                        if paeff:
-                            paeff.reverse()
-                            aeff.append(paeff)
-                            paeff = []
-                            cos_theta = []
-                    else:
-                        cos_theta.append(float(fline.split()[0]))
-                        paeff.append(float(fline.split()[1]))
-                # ara aeffs have zenith pointing in neutrino direction
-                paeff.reverse()
-                aeff.append(paeff)
+		energy = []
+		cos_theta = []
+		aeff = []
+		paeff = [] # partial aeff over a single energy range
+		for fline in lines:
+			if 'EXPONENT' in fline:
+				energy.append(float(fline.split('=')[-1]))
+				if paeff:
+					paeff.reverse()
+					aeff.append(paeff)
+					paeff = []
+					cos_theta = []
+			else:
+				cos_theta.append(float(fline.split()[0]))
+				paeff.append(float(fline.split()[1]))
+		# ara aeffs have zenith pointing in neutrino direction
+		paeff.reverse()
+		aeff.append(paeff)
 
-        aeff = numpy.asarray(aeff) * nstations
+	aeff = numpy.asarray(aeff) * nstations
 
-        # convert energy from exponent to GeV
-        energy = 10**edge(numpy.asarray(energy))*1e-9
-        cos_theta = edge(numpy.asarray(cos_theta))
+	# convert energy from exponent to GeV
+	energy = 10**edge(numpy.asarray(energy))*1e-9
+	cos_theta = edge(numpy.asarray(cos_theta))
 
-        edges = numpy.array([energy, cos_theta])
-        centers = map(center, edges)
+	edges = numpy.array([energy, cos_theta])
+	centers = map(center, edges)
 	newcenters = [centers[0], numpy.clip(center(ct_edges), centers[1].min(), centers[1].max())]
 	xi = numpy.vstack(map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
 	assert numpy.isfinite(xi).all()
 
-	interpolant = interpolate.RegularGridInterpolator(centers,
-	                                                  aeff,
-                                                          bounds_error=True,
-	                                                  fill_value=-numpy.inf)
+	interpolant = interpolate.RegularGridInterpolator(
+	    centers,
+	    aeff,
+	    bounds_error=True,
+	    fill_value=-numpy.inf)
 	# NB: we use nearest-neighbor interpolation here because
 	# n-dimensional linear interpolation has the unfortunate side-effect
 	# of dropping the highest-energy muon energy bin in each neutrino
@@ -675,13 +676,13 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 	# underestimates the muon flux from steeply falling neutrino spectra. 
 	v = interpolant(xi,  method='nearest').reshape(map(lambda x: x.size, newcenters))
 
-        # assume flavor-independence for ARA by extending same aeff across all flavors
-        return (energy, ct_edges), numpy.repeat(v[None,...], 6, axis=0)
+	# assume flavor-independence for ARA by extending same aeff across all flavors
+	return (energy, ct_edges), numpy.repeat(v[None,...], 6, axis=0)
 
 
 def create_ara_aeff(depth=200,
                     nstations=37,
-	            cos_theta=None,):
+                    cos_theta=None,):
 	"""
 	Create an effective area for ARA
 	
@@ -705,12 +706,12 @@ def create_ara_aeff(depth=200,
 	(e_nu, cos_theta), aeff = _interpolate_ara_aeff(cos_theta, depth, nstations)
 		
 	# Step 2: for now, assume no energy resolution
-        e_reco = numpy.copy(e_nu)
-        aeff = numpy.repeat(aeff[...,None], aeff.shape[1], axis=-1)
-        aeff /= aeff.shape[1]
+	e_reco = numpy.copy(e_nu)
+	aeff = numpy.repeat(aeff[...,None], aeff.shape[1], axis=-1)
+	aeff /= aeff.shape[1]
 
 	# Step 3: dummy angular resolution smearing
-        psi_bins=numpy.asarray([0, numpy.inf])
+	psi_bins=numpy.asarray([0, numpy.inf])
 	total_aeff = numpy.zeros(aeff.shape + (psi_bins.size-1,))
 	# put everything in first psi_bin for no angular resolution
 	total_aeff[...,0] = aeff[...]
