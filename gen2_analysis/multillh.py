@@ -63,17 +63,22 @@ class Combination(object):
 			edges[label+'_tracks'] = component.bin_edges
 
 		return edges
+	
+	def _get_energy_range(self):
+		"""Return the true energy range where all the components have support"""
+		energy_range = lambda i: (component[0].energy_range[i] for component in self._components.viewvalues())
+		return max(energy_range(0)), min(energy_range(1))
 
 	def differential_chunks(self, *args, **kwargs):
 		generators = dict()
 		# due to how the differential ranges are stepped
 		# through, need to specify emin and set for all components
-		tempmin = kwargs['emin'] if kwargs.has_key('emin') else -numpy.inf
-		emin = max([edges[1][0] for edges in self.bin_edges.viewvalues()]+[tempmin])
-		if emin != tempmin and kwargs.has_key('emin'):
-			logging.getLogger().info('emin used for differential chunks has been changed from {} to {}'.format(kwargs['emin'], emin))
+		tempmin, tempmax = self._get_energy_range()
+		kwargs['emin'] = max(kwargs.get('emin', -numpy.inf), tempmin)
+		kwargs['emax'] = min(kwargs.get('emax', numpy.inf), tempmax)
+		
+		print kwargs
 
-		kwargs['emin'] = emin
 		for label, (component, livetime) in self._components.items():
 			generators[label] = (
 			    component.differential_chunks(*args, exclusive=True,**kwargs),
