@@ -1,9 +1,9 @@
 package:
   name: newnuflux
-  version: 153125
+  version: 161832
 
 source:
-  git_rev: 153125
+  svn_rev: 161832
   svn_url: http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
 
 requirements:
