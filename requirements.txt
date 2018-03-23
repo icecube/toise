@@ -1,0 +1,9 @@
+
+python=2
+numpy
+scipy>=0.15
+healpy
+pytables
+dashi
+newnuflux
+photospline
