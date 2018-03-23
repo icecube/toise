@@ -1,0 +1,27 @@
+package:
+  name: dashi
+  version: 1.0
+
+source:
+  git_rev: master
+  git_url: git@github.com:IceCube-SPNO/dashi.git
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+    - numpy
+    - scipy
+    - matplotlib
+
+test:
+  imports:
+    - dashi
+
+about:
+  home:
+  license:
+  license_file:
