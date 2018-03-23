@@ -23,3 +23,6 @@ requirements:
     - suitesparse
     - cfitsio
 
+test:
+  imports:
+    - photospline
