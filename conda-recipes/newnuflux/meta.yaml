@@ -1,0 +1,26 @@
+package:
+  name: newnuflux
+  version: 153125
+
+source:
+  git_rev: 153125
+  svn_url: http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - boost
+
+  run:
+    - python
+    - boost
+
+test:
+  imports:
+    - NewNuFlux
+
+about:
+  home:
+  license:
+  license_file:
