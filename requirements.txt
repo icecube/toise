@@ -4,6 +4,8 @@ scipy>=0.15
 healpy
 notebook
 pytables
+pandas
+clint
 dashi
 newnuflux
 photospline
