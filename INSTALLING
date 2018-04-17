@@ -1,0 +1,23 @@
+The easiest way to install the Gen2 analysis package and its depedencies is
+with `conda`. If you do not already have `miniconda` on your system, obtain the
+installer from https://conda.io/miniconda.html, and install in a location of
+your choice, e.g.:
+
+  sh ./Miniconda3-latest-Linux-x86_64.sh -p $CONDA_PREFIX
+
+replacing CONDA_PREFIX with the prefix you chose.
+
+Then, from the gen2_analysis source directory, create a new environment:
+
+  $CONDA_PREFIX/bin/conda create -n gen2-analysis --file requirements.txt python=2 --channel http://icecube.wisc.edu/~jvansanten/gen2_analysis/conda --channel conda-forge
+
+Now, activate the environment:
+
+  . $CONDA_PREFIX/bin/activate gen2-analysis
+
+and use `pip` to link the gen2_analysis package into your Python path:
+
+  pip install -e .
+
+This will also download the required data tables.
+
