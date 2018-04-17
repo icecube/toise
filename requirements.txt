@@ -2,6 +2,7 @@
 numpy
 scipy>=0.15
 healpy
+notebook
 pytables
 dashi
 newnuflux
