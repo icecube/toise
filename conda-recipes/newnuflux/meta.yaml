@@ -1,9 +1,9 @@
 package:
   name: newnuflux
-  version: 161832
+  version: 161839
 
 source:
-  svn_rev: 161832
+  svn_rev: 161839
   svn_url: http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
 
 requirements:
@@ -15,10 +15,6 @@ requirements:
   run:
     - python
     - boost
-
-test:
-  imports:
-    - NewNuFlux
 
 about:
   home:
