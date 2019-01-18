@@ -8,6 +8,8 @@ from .util import data_dir
 def get_energy_resolution(geometry="Sunflower", spacing=200, channel='muon'):
 	if channel == 'cascade':
 		return PotemkinCascadeEnergyResolution()
+	elif channel == 'radio':
+		return PotemkinCascadeEnergyResolution(lower_limit=numpy.log10(1.1), crossover_energy=1e8)
 	if geometry == "IceCube":
 		fname = "aachen_muon_energy_profile.npz"
 		# FIXME: we have to stretch the energy resolution for IC86 to get the

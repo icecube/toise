@@ -1,4 +1,6 @@
 
+import numpy as np
+
 import os
 import numpy
 import itertools
@@ -727,3 +729,103 @@ def create_ara_aeff(depth=200,
 	edges = (e_nu, cos_theta, e_reco, psi_bins)
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+
+def _load_radio_veff():
+    """
+    :returns: a tuple (edges, veff). veff has units of m^3
+    """
+    import pandas as pd
+    import json
+
+    with open(os.path.join(data_dir, 'aeff', 'desy_radio_nue_zenith.json')) as f:
+        dats = json.load(f)
+    index = []
+    arrays = {'veff': [], 'err': []}
+    for zenith, values in dats.items():
+        for selection, items in values.items():
+            for energy, veff, err in zip(items['energies'], items['Veff'], items['Veff_error']):
+                index.append((selection, energy, np.cos(float(zenith))))
+                arrays['veff'].append(veff)
+                arrays['err'].append(err)
+    veff = pd.DataFrame(arrays, index=pd.MultiIndex.from_tuples(index, names=['selection', 'energy', 'cos_zenith']))
+    veff.sort_index(level=[0,1,2], inplace=True)
+    # add right-hand bin edges
+    energy = veff.index.levels[1].values/1e9
+    energy = np.concatenate([energy, [energy[-1]**2/energy[-2]]])
+    # left-hand bin edges were specified in zenith, so add in reverse
+    cos_zenith = veff.index.levels[2].values
+    cos_zenith = np.concatenate(([2*cos_zenith[0] - cos_zenith[1]], cos_zenith))
+    omega = 2*np.pi*np.diff(cos_zenith)
+    return (energy, cos_zenith), veff['veff'].unstack(level=-1).values.reshape((energy.size-1, cos_zenith.size-1)) / omega[None,:]
+
+def _interpolate_radio_veff(energy_edges, ct_edges=None):
+    from scipy import interpolate
+
+    edges, veff = _load_radio_veff()
+    # NB: occasionally there are NaN effective volumes. intepolate through them
+    def interp_masked(arr, x, xp):
+        valid = ~np.ma.masked_invalid(arr).mask
+        return np.interp(x, xp[valid], arr[valid], left=-np.inf)
+    veff = np.exp(np.apply_along_axis(
+        interp_masked,
+        0,
+        np.log(veff),
+        center(np.log10(energy_edges)),
+        center(np.log10(edges[0]))
+        )
+    )
+    if ct_edges is None:
+        return (energy_edges, edges[1]), veff
+    else:
+        interp = interpolate.interp1d(
+            center(edges[1]),
+            veff,
+            'nearest',
+            axis=1,
+            bounds_error=False,
+            fill_value=0
+        )
+        return (energy_edges, ct_edges), interp(center(ct_edges))
+    
+
+def create_radio_aeff(
+    energy_resolution=get_energy_resolution(channel='radio'),
+    psf=get_angular_resolution(channel='radio'),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
+    cos_theta=None,):
+    """
+    Create an effective area for a nameless radio array
+    """
+    nside = None
+    if isinstance(cos_theta, int):
+        nside = cos_theta
+
+    # Step 1: Density of final states per meter
+    (e_nu, cos_theta, e_shower), aeff = get_cascade_production_density(cos_theta)
+
+    # Step 2: Effective volume in terms of shower energy
+    # NB: this includes selection efficiency (usually step 3)
+    edges, veff = _interpolate_radio_veff(e_shower, cos_theta)
+    aeff *= (veff.T)[None,None,...]
+
+    total_aeff = aeff
+
+    # Step 4: apply smearing for angular resolution
+    # Add an overflow bin if none present
+    if numpy.isfinite(psi_bins[-1]):
+        psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
+    cdf = eval_psf(psf, center(e_shower), center(cos_theta), psi_bins[:-1])
+
+    total_aeff = numpy.empty(aeff.shape + (psi_bins.size-1,))
+    # expand differential contributions along the opening-angle axis
+    total_aeff[...,:-1] = aeff[...,None]*numpy.diff(cdf, axis=2)[None,...]
+    # put the remainder in the overflow bin
+    total_aeff[...,-1] = aeff*(1-cdf[...,-1])[None,None,...]
+
+    # Step 5: apply smearing for energy resolution
+    response = energy_resolution.get_response_matrix(e_shower, e_shower)
+    total_aeff = numpy.apply_along_axis(numpy.inner, 3, total_aeff, response)
+
+    edges = (e_nu, cos_theta, e_shower, psi_bins)
+
+    return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')

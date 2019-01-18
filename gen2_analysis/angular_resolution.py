@@ -6,6 +6,8 @@ from .util import data_dir, center
 def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., psf_class=None, channel='muon'):
 	if channel == 'cascade':
 		return PotemkinCascadePointSpreadFunction()
+	elif channel == 'radio':
+		return PotemkinCascadePointSpreadFunction(lower_limit=numpy.radians(2), crossover_energy=1e8)
 	if geometry == "IceCube":
 		fname = "aachen_psf.fits"
 	elif psf_class is not None:
