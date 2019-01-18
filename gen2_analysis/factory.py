@@ -129,21 +129,23 @@ class aeff_factory(object):
 	
 	def _create(self, opts, **kwargs):
 		aeffs = {}
-		if opts.geometry == 'ARA':
+		if opts.geometry in ('ARA', 'Radio'):
 			for k in 'psi_bins', 'cos_theta':
 				if k in kwargs:
 					kwargs[k] = numpy.asarray(kwargs[k])
 				elif hasattr(opts, k):
 					kwargs[k] = numpy.asarray(getattr(opts, k))
-			kwargs['nstations'] = opts.nstations
-			kwargs['depth'] = opts.depth
-			aeffs['events'] = (effective_areas.create_ara_aeff(**kwargs), None)
+			if opts.geometry == 'ARA':
+				kwargs['nstations'] = opts.nstations
+				kwargs['depth'] = opts.depth
+				aeffs['radio_events'] = (effective_areas.create_ara_aeff(**kwargs), None)
+			else:
+				aeffs['radio_events'] = (effective_areas.create_radio_aeff(**kwargs), None)
 		else:
 			nu, mu = create_aeff(opts,**kwargs)
 			aeffs['shadowed_tracks'] = (nu[0], mu[0])
 			aeffs['unshadowed_tracks'] = (nu[1], mu[1])
 			if opts.cascade_energy_threshold is not None:
-                                print 'making cascades'
 				aeffs['cascades']=(create_cascade_aeff(opts,**kwargs), None)
 		return aeffs
 	
@@ -204,6 +206,7 @@ set_kwargs = aeff_factory.get().set_kwargs
 
 default_configs = {
 	'IceCube' : dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
+	'RadioThingy' : dict(geometry='Radio'),
 	'Sunflower_240' : dict(geometry='Sunflower', spacing=240, cascade_energy_threshold=2e5, veto_area=75., veto_threshold=1e5),
 	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
 	'ARA_200' : dict(geometry='ARA', nstations=200, depth=200),
