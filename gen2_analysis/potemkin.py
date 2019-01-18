@@ -91,7 +91,7 @@ def discovery_potential(angular_resolution=0.5, energy_threshold=1e3, area=1):
     
     
     scale = pointsource.discovery_potential(ps, dict(atmo=atmo_bkg, astro=astro_bkg), astro=1, atmo=1)
-    ns = scale*ps.expectations()['tracks'].sum()
-    nb = atmo_bkg.expectations['tracks'].sum()
+    ns = scale*ps.expectations().sum()
+    nb = atmo_bkg.expectations.sum()
     
     return ns, nb, 1e-12*scale

@@ -25,7 +25,7 @@ class NullComponent(object):
 		self.seed = 1
 		self.uncertainty = None
 		i, j = aeff.dimensions.index('true_zenith_band'), aeff.dimensions.index('reco_energy')
-		self.expectations = dict(tracks=numpy.zeros((aeff.values.shape[i], aeff.values.shape[j])))
+		self.expectations = numpy.zeros((aeff.values.shape[i], aeff.values.shape[j]))
 
 class DiffuseNuGen(object):
 	def __init__(self, effective_area, flux, livetime=1.):
@@ -149,7 +149,7 @@ class AtmosphericNu(DiffuseNuGen):
 		if self.is_healpix:
 			total = total.repeat(self._aeff.ring_repeat_pattern, axis=0)
 		# dimensions of the keys in expectations are now reconstructed energy, sky bin (zenith/healpix pixel)
-		self.expectations = dict(tracks=total.sum(axis=2))
+		self.expectations = total.sum(axis=2)
 	
 	def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
 		"""
@@ -492,7 +492,7 @@ class DiffuseAstro(DiffuseNuGen):
 		if not self._with_energy:
 			total = total.sum(axis=0)
 		
-		self._last_expectations = dict(tracks=total)
+		self._last_expectations = total
 		return self._last_expectations
 	
 	def expectations(self, gamma=-2, **kwargs):
@@ -713,7 +713,7 @@ class FermiGalacticEmission(DiffuseNuGen):
 		total = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')(aeff, self._flux[...,None], self._livetime).sum(axis=0)
 		
 		# dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
-		self.expectations = dict(tracks=total)
+		self.expectations = total
 
 def pmns_matrix(theta12, theta23, theta13, delta):
 	"""

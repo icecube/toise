@@ -51,16 +51,14 @@ class Combination(object):
 				subex = component.expectations(*args, **kwargs)
 			else:
 				subex = component.expectations
-			for k, v in subex.items():
-				exes[label+'_'+k] = livetime*v
+			exes[label] = livetime*v
 		return exes
 	
 	@property
 	def bin_edges(self):
 		edges = dict()
 		for label, (component, livetime) in self._components.items():
-			# everything returns a dict with 1 entry, 'tracks'. ew.
-			edges[label+'_tracks'] = component.bin_edges
+			edges[label] = component.bin_edges
 
 		return edges
 	
