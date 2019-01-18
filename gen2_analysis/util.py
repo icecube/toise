@@ -14,7 +14,8 @@ def edge(x):
     return np.concatenate(([2*x[0]-c[0]], c, [2*x[-1]-c[-1]]))
 
 class constants:
-	annum = 365*24*3600.
+	day = 24*3600.
+	annum = 365*day
 	cm = 1e2
 	cm2 = 1e4
 
