@@ -85,6 +85,84 @@ def save_all(fname_base):
 	plt.savefig(fname_base + '.hires.png', dpi=300)
 	plt.savefig(fname_base + '.png')
 
+def label_curve(ax, line, x=None, y=None, orientation='parallel', offset=0, **kwargs):
+    """
+    Place a label on an existing line. The anchor point may be specified
+    either as an x or y coordinate. Extra keyword arguments will be passed
+    to ax.text().
+    
+    :param ax: an Axes to draw the text in
+    :param line: a Line2D to label
+    :param x: x-position of label anchor
+    :param y: y-position of label anchor
+    :param orientation: if parallel, rotate label so that it matches
+                        the local slope of the target line. Since rotations
+                        must be specified in screen coordinates, this should
+                        only be called once all layout (axis boundaries, 
+                        aspect ratios, etc.) is finished.
+    :param offset: if nonzero, then shift the label from the anchor point along
+                   the local vector this number of points
+    
+    Example
+    -------
+    
+    >>> x = linspace(-1, 1, 101)
+    >>> line = plot(x, x**2, label='foo!')[0]
+    >>> label_curve(gca(), line, x=0.5, va='bottom',)
+    >>> label_curve(gca(), line, x=-0.5, va='top', label='something\ndifferent!')
+    
+    """
+    
+    # extract points from line
+    xd = line.get_xdata()
+    yd = line.get_ydata()
+    # sort if necessary
+    if (numpy.diff(xd) < 0).any():
+        order = xd.argsort()
+        xd = xd[order]
+        yd = yd[order]
+    # de-step if necessary
+    ux = numpy.unique(xd)
+    if 2*ux.size == xd.size and (ux == xd[::2]).all():
+        xd = (xd[::2] + xd[1::2])/2
+        yd = yd[1::2]
+    
+    # interpolate for x if y is supplied
+    if x is None:
+        x = numpy.interp([y], yd, xd)[0]
+    # get points on either side of the anchor point
+    i = numpy.searchsorted(xd, x)
+    if i > xd.size-2:
+        i = xd.size-2
+    xb, yb = xd[i:i+2], yd[i:i+2]
+    # interpolate for y
+    y = yb[0] + (yb[1]-yb[0])*(x-xb[0])/(xb[1]-xb[0])
+    
+    text = kwargs.pop('label', line.get_label())
+    kw = {
+        'color'         : line.get_color(),
+        'rotation_mode' : 'anchor',
+        'ha'            :'center',
+        }
+    
+    # get local slope in *screen coordinates*
+    p1 = ax.transData.transform_point([xb[0], yb[0]])
+    p2 = ax.transData.transform_point([xb[1], yb[1]])
+    if orientation == 'parallel':
+        kw['rotation'] = numpy.degrees(numpy.arctan2(p2[1]-p1[1], p2[0]-p1[0]))
+    
+    kw.update(**kwargs)
+    
+    text = ax.text(x, y, text, **kw)
+    # calculate normal in *screen coordinates*
+    if offset != 0:
+        xy = ax.transData.transform_point(text.get_position())
+        norm = numpy.array([p2[1]-p1[1], p2[0]-p1[0]])
+        norm = norm/(numpy.hypot(norm[0], norm[1])/offset)
+        xy = ax.transData.inverted().transform_point((xy[0]-norm[0], xy[1]+norm[1]))
+        text.set_position(xy)
+    return text
+
 # New matplotlib colormaps by Nathaniel J. Smith, Stefan van der Walt,
 # and (in the case of viridis) Eric Firing.
 #
