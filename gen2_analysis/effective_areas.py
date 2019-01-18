@@ -789,6 +789,7 @@ def _interpolate_radio_veff(energy_edges, ct_edges=None):
     
 
 def create_radio_aeff(
+    nstations=305,
     energy_resolution=get_energy_resolution(channel='radio'),
     psf=get_angular_resolution(channel='radio'),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
@@ -812,7 +813,7 @@ def create_radio_aeff(
     # Step 2: Effective volume in terms of shower energy
     # NB: this includes selection efficiency (usually step 3)
     edges, veff = _interpolate_radio_veff(e_shower, cos_theta)
-    aeff *= (veff.T)[None,None,...]
+    aeff *= (veff.T)[None,None,...]*nstations
 
     total_aeff = aeff
 

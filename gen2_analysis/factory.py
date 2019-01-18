@@ -137,8 +137,8 @@ class aeff_factory(object):
 					kwargs[k] = numpy.asarray(kwargs[k])
 				elif hasattr(opts, k):
 					kwargs[k] = numpy.asarray(getattr(opts, k))
+			kwargs['nstations'] = opts.nstations
 			if opts.geometry == 'ARA':
-				kwargs['nstations'] = opts.nstations
 				kwargs['depth'] = opts.depth
 				aeffs['radio_events'] = (effective_areas.create_ara_aeff(**kwargs), None)
 			else:
@@ -234,7 +234,7 @@ def scale_gen2_sensors(scale=1.):
 default_configs = {
 	'IceCube' : dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
 	'Gen2' : scale_gen2_sensors(4.),
-	'RadioThingy' : dict(geometry='Radio'),
+	'RadioThingy' : dict(geometry='Radio', nstations=305),
 	'Sunflower_240' : dict(geometry='Sunflower', spacing=240, cascade_energy_threshold=2e5, veto_area=75., veto_threshold=1e5),
 	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
 	'ARA_200' : dict(geometry='ARA', nstations=200, depth=200),
