@@ -323,6 +323,12 @@ class effective_area(object):
 		self.sky_binning = sky_binning
 		self.dimensions = ['type', 'true_energy', 'true_zenith_band', 'reco_energy', 'reco_psi']
 	
+	def get_bin_edges(self, dim_name):
+		return self.bin_edges[self.dimensions.index(dim_name)-1]
+
+	def get_bin_centers(self, dim_name):
+		return center(self.get_bin_edges(dim_name))
+
 	def compatible_with(self, other):
 		return self.values.shape == other.values.shape and all(((a==b).all() for a, b in zip(self.bin_edges, other.bin_edges)))
 	
