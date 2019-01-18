@@ -6,6 +6,9 @@ source:
   svn_rev: 161839
   svn_url: http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
 
+build:
+  number: 2
+
 requirements:
   build:
     - python
@@ -13,8 +16,8 @@ requirements:
     - boost
 
   run:
-    - python
-    - boost
+    - {{ pin_compatible('python', max_pin='x.x') }}
+    - {{ pin_compatible('boost', max_pin='x.x') }}
 
 about:
   home:
