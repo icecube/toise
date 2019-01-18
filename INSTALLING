@@ -17,7 +17,7 @@ Now, activate the environment:
 
 and use `pip` to link the gen2_analysis package into your Python path:
 
-  pip install -e .
+  ICECUBE_PASSWORD=xxx pip install -e .
 
-This will also download the required data tables.
+Replace xxx with the icecube user password. This will be used to download the required data tables.
 
