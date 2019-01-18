@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
-from subprocess import check_call
-from os import path
+from subprocess import check_call, PIPE
+from os import path, unlink, environ
 
-check_call(['rsync', '-avz', '--cvs-exclude', 'data.icecube.wisc.edu:/data/user/jvansanten/projects/2015/gen2_benchmark/data/', path.join(path.dirname(__file__), 'gen2_analysis', 'data')])
+if not 'ICECUBE_PASSWORD' in environ:
+    raise EnvironmentError('You need to set the environment variable ICECUBE_PASSWORD to the icecube user password.')
+
+cwd = path.join(path.dirname(__file__), 'gen2_analysis', 'data')
+check_call(['curl', '--fail', '-u', 'icecube:'+environ['ICECUBE_PASSWORD'], '-O', 'http://convey.icecube.wisc.edu/data/user/jvansanten/projects/2015/gen2_benchmark/data/archive.tar.gz'], cwd=cwd)
+check_call(['tar', 'xzf', 'archive.tar.gz'], cwd=cwd)
+unlink(path.join(path.dirname(__file__), 'gen2_analysis', 'data', 'archive.tar.gz'))
 
 setup(name='gen2-analysis',
       version='0.1',
