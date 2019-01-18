@@ -321,7 +321,7 @@ class DiffuseAstro(DiffuseNuGen):
 	
 	@staticmethod
 	def _integral_flux(aeff, gamma=-2):
-		# reference flux is E^2 Phi = 1e-8 GeV^2 cm^-2 sr^-1 s^-1
+		# reference flux is E^2 Phi = 1e-8 GeV cm^-2 sr^-1 s^-1
 		intflux = lambda e, gamma: ((1e5**-gamma)/(1+gamma))*e**(1+gamma)
 		enu = aeff.bin_edges[0]
 		# 1 / m^2 yr
