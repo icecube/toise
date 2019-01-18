@@ -129,7 +129,7 @@ class PointSource(object):
                                            gamma=-2.3,
                                            ps_gamma=gamma,
                                            **kwargs)
-            ns = sum([v.sum() for v in ps.expectations().values()])*ul
+            ns = sum([v.sum() for v in ps.expectations(ps_gamma=gamma).values()])*ul
             return ul, ns
         elif fom == TOT.dp:
             dp = pointsource.discovery_potential(ps,
@@ -138,7 +138,7 @@ class PointSource(object):
                                                    gamma=-2.3,
                                                    ps_gamma=gamma,
                                                    **kwargs)
-            ns = sum([v.sum() for v in ps.expectations().values()])*dp
+            ns = sum([v.sum() for v in ps.expectations(ps_gamma=gamma).values()])*dp
             return dp, ns
         elif fom == TOT.fc:
             return pointsource.fc_upper_limit(ps,
