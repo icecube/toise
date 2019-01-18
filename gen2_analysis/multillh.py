@@ -51,7 +51,7 @@ class Combination(object):
 				subex = component.expectations(*args, **kwargs)
 			else:
 				subex = component.expectations
-			exes[label] = livetime*v
+			exes[label] = livetime*subex
 		return exes
 	
 	@property
