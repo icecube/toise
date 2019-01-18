@@ -819,10 +819,7 @@ def create_radio_aeff(
     # Step 2: Effective volume in terms of shower energy
     # NB: this includes selection efficiency (usually step 3)
     edges, veff = _interpolate_radio_veff(e_shower, cos_theta)
-    # The RNO proposal claims 25 events in 5 years from E^-2.19 1:1:1. This
-    # effective volume implies 140. Divide by a fudge factor to compensate.
-    warnings.warn("Horrible fudge factor in RNO effective volume. Fix it!")
-    aeff *= (veff.T)[None,None,...]*nstations/5.55
+    aeff *= (veff.T)[None,None,...]*nstations
 
     total_aeff = aeff
 
