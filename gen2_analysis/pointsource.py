@@ -77,7 +77,7 @@ class PointSource(object):
 		if not self._use_energies:
 			total = total.sum(axis=0)
 		
-		self._last_expectations = dict(tracks=total)
+		self._last_expectations = total
 		return self._last_expectations
 
 	def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):

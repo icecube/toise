@@ -338,7 +338,7 @@ class MuonBundleBackground(object):
 		self.seed = 1.
 		self.uncertainty = None
 		
-		self.expectations = dict(tracks=self._rate)
+		self.expectations = self._rate
 	
 	def point_source_background(self, zenith_index, psi_bins, livetime=None, n_sources=None, with_energy=True):
 		"""
