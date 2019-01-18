@@ -51,18 +51,21 @@ class PointSource(object):
 		
 	
 	def _invalidate_cache(self):
-		self._last_gamma = None
+		self._last_params = dict()
 		self._last_expectations = None
 	
-	def expectations(self, ps_gamma=-2, **kwargs):
+	def spectral_weight(self, e_center, **kwargs):
+		gamma_name = 'ps_gamma'
+		self._last_params[gamma_name] = kwargs[gamma_name]
+		return (e_center/1e3)**(kwargs[gamma_name]+2)
+	
+	def expectations(self, **kwargs):
 		
-		if self._last_gamma == ps_gamma:
+		if self._last_expectations is not None and all([self._last_params[k] == kwargs[k] for k in self._last_params]):
 			return self._last_expectations
-		
 		energy = self._edges[0]
-		
 		centers = 0.5*(energy[1:] + energy[:-1])
-		specweight = (centers/1e3)**(ps_gamma+2)
+		specweight = self.spectral_weight(centers, **kwargs)
 		
 		expand = [None]*(self._rate.ndim)
 		expand[1] = slice(None)
@@ -75,7 +78,6 @@ class PointSource(object):
 			total = total.sum(axis=0)
 		
 		self._last_expectations = dict(tracks=total)
-		self._last_gamma = ps_gamma
 		return self._last_expectations
 
 	def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):
