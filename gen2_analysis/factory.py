@@ -1,5 +1,7 @@
 
 import numpy
+from scipy import interpolate
+from functools import partial
 import os
 import cPickle as pickle
 from . import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
@@ -183,6 +185,16 @@ class component_bundle(object):
 				keys.update(v.keys())
 			return {key : self.get_component(key, livetimes) for key in keys}
 
+def gen2_throughgoing_muon_efficiency_correction(energy, scale):
+	x, y = [1.0, 1.5, 2.2, 3.0, 5.0], [   -0.,  1138.,  1985.,  2307.,  2397.]
+	b = interpolate.interp1d(x, y, 2)(scale)
+	return 1 + b/energy
+
+def gen2_throughgoing_muon_angular_resolution_correction(energy, scale):
+	b = lambda x: -0.82 + 14.54/x
+	med = lambda emu, b: 0.11 + b/numpy.sqrt(emu)
+	return med(energy, b(scale))/med(energy, b(1))
+
 def make_options(**kwargs):
 	import argparse
 	defaults = dict(geometry='Sunflower', spacing=240, veto_area=75., angular_resolution_scale=1., efficiency_scale=1.,
@@ -204,8 +216,24 @@ def add_configuration(name, opts, **kwargs):
 
 set_kwargs = aeff_factory.get().set_kwargs
 
+def scale_gen2_sensors(scale=1.):
+	"""
+	Approximate a Gen2 instrumented with sensors `scale` times the photon
+	effective area of a PDOM
+	"""
+	return dict(
+		geometry='Sunflower',
+		spacing=240,
+		cascade_energy_threshold=2e5/scale,
+		veto_area=10.,
+		veto_threshold=1e5,
+		angular_resolution_scale=partial(gen2_throughgoing_muon_angular_resolution_correction, scale=scale),
+		efficiency_scale=partial(gen2_throughgoing_muon_efficiency_correction, scale=scale),
+	)
+
 default_configs = {
 	'IceCube' : dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
+	'Gen2' : scale_gen2_sensors(4.),
 	'RadioThingy' : dict(geometry='Radio'),
 	'Sunflower_240' : dict(geometry='Sunflower', spacing=240, cascade_energy_threshold=2e5, veto_area=75., veto_threshold=1e5),
 	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
@@ -215,5 +243,9 @@ default_configs = {
 	'Sunflower_240_NoCasc' : dict(geometry='Sunflower', spacing=240, veto_area=75., veto_threshold=1e5),
 	'KM3NeT' : dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.2),
 }
+
 for k, config in default_configs.items():
-	add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1, 1, 21))
+    add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1,1,21))
+
+def get(configuration):
+	return aeff_factory.instance(configuration)
