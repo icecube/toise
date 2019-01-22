@@ -188,12 +188,12 @@ class AtmosphericNu(DiffuseNuGen):
 			
 		# dimensions of the keys in expectations are now energy, radial bin
 		if is_zenith_weight(zenith_index, self._aeff):
-			background.expectations = {k: numpy.nansum((v*zenith_index[:,None])/omega, axis=0)[...,None]*bin_areas for k,v in self.expectations.items()}
+			background.expectations = numpy.nansum((self.expectations*zenith_index[:,None])/omega, axis=0)[...,None]*bin_areas
 		else:
-			background.expectations = {k: (v[zenith_index,:]/omega)[...,None]*bin_areas for k,v in self.expectations.items()}
+			background.expectations = (self.expectations[zenith_index,:]/omega)[...,None]*bin_areas
 		if not with_energy:
 			# just radial bins
-			background.expectations = {k: v.sum(axis=0) for k,v in background.expectations.items()}
+			background.expectations = background.expectations.sum(axis=0)
 		return background
 	
 	def scale_livetime(self, livetime):
