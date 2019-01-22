@@ -178,7 +178,7 @@ class component_bundle(object):
 	def get_component(self, key, livetimes=None):
 		if livetimes is None:
 			livetimes = self.livetimes
-		return multillh.Combination({k: (self.components[k][key], livetimes[self.detectors[k]]) for k in self.components})
+		return multillh.Combination({k: (self.components[k][key], livetimes[self.detectors[k]]) for k in self.components if key in self.components[k]})
 	def get_components(self, livetimes=None):
 			keys = set()
 			for v in self.components.values():
