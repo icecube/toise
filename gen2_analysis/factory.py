@@ -216,7 +216,7 @@ def add_configuration(name, opts, **kwargs):
 
 set_kwargs = aeff_factory.get().set_kwargs
 
-def scale_gen2_sensors(scale=1.):
+def scale_gen2_sensors(scale=1., with_cascades=True):
 	"""
 	Approximate a Gen2 instrumented with sensors `scale` times the photon
 	effective area of a PDOM
@@ -224,7 +224,7 @@ def scale_gen2_sensors(scale=1.):
 	return dict(
 		geometry='Sunflower',
 		spacing=240,
-		cascade_energy_threshold=2e5/scale,
+		cascade_energy_threshold=2e5/scale if with_cascades else None,
 		veto_area=10.,
 		veto_threshold=1e5,
 		angular_resolution_scale=partial(gen2_throughgoing_muon_angular_resolution_correction, scale=scale),
@@ -234,6 +234,7 @@ def scale_gen2_sensors(scale=1.):
 default_configs = {
 	'IceCube' : dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
 	'Gen2-InIce' : scale_gen2_sensors(4.),
+	'Gen2-InIce-TracksOnly' : scale_gen2_sensors(4., with_cascades=False),
 	'Gen2-Radio' : dict(geometry='Radio', nstations=305),
 	'Sunflower_240' : dict(geometry='Sunflower', spacing=240, cascade_energy_threshold=2e5, veto_area=75., veto_threshold=1e5),
 	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
