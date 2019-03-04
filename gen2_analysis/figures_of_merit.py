@@ -2,6 +2,7 @@ from enum import Enum
 from functools import partial
 import numpy
 from . import factory, diffuse, surface_veto, pointsource, multillh
+from .util import constants
 
 # Enum has no facility for setting docstrings inline. Do it by hand.
 TOT = Enum('TOT', ['ul', 'dp', 'fc'])
@@ -143,12 +144,27 @@ class PointSource(object):
         elif fom == TOT.fc:
             return pointsource.fc_upper_limit(ps,
                                               components,
-                                              gamma=gamma,
+                                              gamma=-2.,
                                               ps_gamma=gamma,
                                               **kwargs)
+        elif fom == DIFF.ul:
+            return pointsource.differential_upper_limit(ps,
+                                                        components,
+                                                        gamma=gamma,
+                                                        ps_gamma=-2,
+                                                        tolerance=1e-4,
+                                                        decades=0.5,
+                                                        **kwargs)
+        elif fom == DIFF.dp:
+            return pointsource.differential_discovery_potential(ps,
+                                                                components,
+                                                                gamma=gamma,
+                                                                ps_gamma=-2,
+                                                                tolerance=1e-4,
+                                                                decades=0.5,
+                                                                **kwargs)
         else:
             raise RuntimeError('No such fom')
-
 
     @staticmethod
     def make_components(zi, aeffs):
@@ -169,3 +185,4 @@ class PointSource(object):
         muon_bkg = surface_veto.MuonBundleBackground(muon_aeff, 1).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
         
         return dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, muon=muon_bkg, ps=ps)
+
