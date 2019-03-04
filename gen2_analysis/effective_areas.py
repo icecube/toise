@@ -814,7 +814,7 @@ def create_radio_aeff(
     # detailed reconstruction, we add these back in an approximate fashion.
     # At high energy, the CC cross-section is 2x the NC cross-section. The 18%
     # of taus that decay to muons are unlikely to be detectable.
-    aeff[4:5,...] = aeff[0,...] * (((2*(1-0.18)) + 1)/3.)
+    aeff[4:6,...] = aeff[0,...] * (((2*(1-0.18)) + 1)/3.)
 
     # Step 2: Effective volume in terms of shower energy
     # NB: this includes selection efficiency (usually step 3)
