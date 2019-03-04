@@ -26,6 +26,8 @@ class PointSource(object):
 		"""
 
 		self._edges = effective_area.bin_edges
+		energy_bins = effective_area.get_bin_edges('true_energy')
+		self.energy_range = (energy_bins[0], energy_bins[-1])
                 self.bin_edges = self._edges
 		
 		if is_zenith_weight(zenith_selection, effective_area):
@@ -319,7 +321,7 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		baseline = max(((numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb)))/10, 0.3/ns))
 		# logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
 	# baseline = 1000
-	if baseline > 1e4:
+	if baseline > 1e8:
 		return numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
