@@ -181,8 +181,10 @@ class PointSource(object):
         atmo_bkg = atmo.point_source_background(zenith_index=zi)
         prompt_bkg = prompt.point_source_background(zenith_index=zi)
         astro_bkg = astro.point_source_background(zenith_index=zi)
-        
-        muon_bkg = surface_veto.MuonBundleBackground(muon_aeff, 1).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
-        
-        return dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, muon=muon_bkg, ps=ps)
+
+        components = dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, ps=ps)
+        if muon_aeff is not None:
+            components['muon'] = surface_veto.MuonBundleBackground(muon_aeff, 1).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
+
+        return components
 
