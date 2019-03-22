@@ -291,6 +291,10 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 	    events as :math:`\sqrt{n_B} \sigma / n_S`.
 	:param tolerance: tolerance for the test statistic
 	:param fixed: values to fix for the diffuse components in each fit.
+	
+	:returns: a tuple (norm, ns, nb) giving the flux normalization, the
+	    number of signal events corresponding to that normalization and the
+	    total number of background events
 	"""
 	critical_ts = sigma**2
 
@@ -322,7 +326,7 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		# logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
 	# baseline = 1000
 	if baseline > 1e8:
-		return numpy.inf
+		return numpy.inf, numpy.inf, numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
 		actual = optimize.fsolve(f, baseline, xtol=tolerance, factor=1, epsfcn=1)
@@ -331,7 +335,7 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		nb = nevents(allh, ps=0, **fixed)
 		ns = total-nb
 		logging.getLogger().info("baseline: %.2g actual %.2g ns: %.2g nb: %.2g ts: %.2g" % (baseline, actual, ns, nb, ts(actual)))
-		return actual[0]
+		return actual[0], ns, nb
 
 
 def events_above(observables, edges, ecutoff):
@@ -378,6 +382,9 @@ def upper_limit(point_source, diffuse_components, cl=0.9, baseline=None, toleran
 	*diffuse_components*.
 	
 	:param cl: desired confidence level for the upper limit
+	:returns: a tuple (norm, ns, nb) giving the flux normalization, the
+	    number of signal events corresponding to that normalization and the
+	    total number of background events
 	
 	The remaining arguments are the same as :func:`discovery_potential`
 	"""
@@ -409,7 +416,7 @@ def upper_limit(point_source, diffuse_components, cl=0.9, baseline=None, toleran
                 logging.getLogger().debug('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
 
 	if baseline > 1e4:
-		return numpy.inf
+		return numpy.inf, numpy.inf, numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
 		actual = optimize.fsolve(f, baseline, xtol=tolerance, factor=1, epsfcn=1)
@@ -419,39 +426,55 @@ def upper_limit(point_source, diffuse_components, cl=0.9, baseline=None, toleran
 		nb = nevents(allh, ps=0, **fixed)
 		ns = total-nb
 		logging.getLogger().info("ns: %.2g nb: %.2g" % (ns, nb))
-		return actual[0]
+		return actual[0], ns, nb
 
 
 def differential_discovery_potential(point_source, diffuse_components, sigma=5, baseline=None, tolerance=1e-2, decades=0.5, **fixed):
 	"""
 	Calculate the discovery potential in the same way as :func:`discovery_potential`,
 	but with the *decades*-wide chunks of the flux due to *point_source*.
+
+	:returns: a tuple (energies, sensitivities, ns, nb) giving the central
+	    energy, flux normalization, number of signal and number of background
+	    events for each neutrino energy range
 	"""
 	energies = []
 	sensitivities = []
+	ns = []
+	nb = []
 	for energy, pschunk in point_source.differential_chunks(decades=decades):
 		energies.append(energy)
-		sensitivities.append(discovery_potential(pschunk,
-		                                         diffuse_components, sigma, baseline,
-		                                         tolerance, **fixed))
-	return numpy.asarray(energies), numpy.asarray(sensitivities)
-
+		norm, _ns, _nb = discovery_potential(pschunk,
+		                                     diffuse_components, sigma, baseline,
+		                                     tolerance, **fixed)
+		sensitivities.append(norm)
+		ns.append(_ns)
+		nb.append(_nb)
+	return tuple(map(np.asarray, (energies, sensitivities, ns, nb)))
 
 def differential_upper_limit(point_source, diffuse_components,
                              cl=0.9, baseline=None, tolerance=1e-2, decades=0.5, **fixed):
 	"""
 	Calculate the discovery potential in the same way as :func:`discovery_potential`,
 	but with the *decades*-wide chunks of the flux due to *point_source*.
+
+	:returns: a tuple (energies, sensitivities, ns, nb) giving the central
+	    energy, flux normalization, number of signal and number of background
+	    events for each neutrino energy range
 	"""
 	energies = []
 	sensitivities = []
+	ns = []
+	nb = []
 	for energy, pschunk in point_source.differential_chunks(decades=decades):
 		energies.append(energy)
-		sensitivities.append(upper_limit(pschunk,
-		                                 diffuse_components, cl, baseline, tolerance,
-		                                 **fixed))
-	return numpy.asarray(energies), numpy.asarray(sensitivities)
-
+		norm, _ns, _nb = upper_limit(pschunk,
+		                           diffuse_components, cl, baseline, tolerance,
+		                           **fixed)
+		sensitivities.append(norm)
+		ns.append(_ns)
+		nb.append(_nb)
+	return tuple(map(np.asarray, (energies, sensitivities, ns, nb)))
 
 def differential_fc_upper_limit(point_source, diffuse_components, ecutoff=0,
                                 cl=0.9, decades=0.5, **fixed):

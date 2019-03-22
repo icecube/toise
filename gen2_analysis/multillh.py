@@ -74,8 +74,6 @@ class Combination(object):
 		tempmin, tempmax = self._get_energy_range()
 		kwargs['emin'] = max(kwargs.get('emin', -numpy.inf), tempmin)
 		kwargs['emax'] = min(kwargs.get('emax', numpy.inf), tempmax)
-		
-		print kwargs
 
 		for label, (component, livetime) in self._components.items():
 			generators[label] = (
