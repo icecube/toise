@@ -116,6 +116,7 @@ class PointSource(object):
         components = self.bundle.get_components()
         ps = components.pop('ps')
         
+        decades = kwargs.pop('decades', 0.5)
         if len(kwargs) != 0:
             raise ValueError("Can't take kwargs")
         # assume all backgrounds known perfectly
@@ -151,7 +152,7 @@ class PointSource(object):
                                                         gamma=gamma,
                                                         ps_gamma=-2,
                                                         tolerance=1e-4,
-                                                        decades=0.5,
+                                                        decades=decades,
                                                         **kwargs)
         elif fom == DIFF.dp:
             return pointsource.differential_discovery_potential(ps,
@@ -159,7 +160,7 @@ class PointSource(object):
                                                                 gamma=gamma,
                                                                 ps_gamma=-2,
                                                                 tolerance=1e-4,
-                                                                decades=0.5,
+                                                                decades=decades,
                                                                 **kwargs)
         else:
             raise RuntimeError('No such fom')
