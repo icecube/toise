@@ -323,9 +323,11 @@ def discovery_potential(point_source, diffuse_components, sigma=5., baseline=Non
 		ns = total-nb
 		baseline = min((1000, numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))))/10
 		baseline = max(((numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb)))/10, 0.3/ns))
+		if baseline*ns > 1e3:
+			baseline = numpy.inf
 		# logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
 	# baseline = 1000
-	if baseline > 1e8:
+	if not numpy.isfinite(baseline):
 		return numpy.inf, numpy.inf, numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
@@ -414,8 +416,11 @@ def upper_limit(point_source, diffuse_components, cl=0.9, baseline=None, toleran
 		baseline = min((1000, numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb))))/10
 		baseline = max(((numpy.sqrt(critical_ts)/(ns/numpy.sqrt(nb)))/10, 0.3/ns))
                 logging.getLogger().debug('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g' % (total, ns, nb, baseline))
-
-	if baseline > 1e4:
+		if baseline*ns > 1e3:
+			baseline = numpy.inf
+		# logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
+	# baseline = 1000
+	if not numpy.isfinite(baseline):
 		return numpy.inf, numpy.inf, numpy.inf
 	else:
 		# actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
