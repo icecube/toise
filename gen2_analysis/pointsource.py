@@ -157,26 +157,6 @@ class WBSteadyPointSource(PointSource):
 		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
 		self._livetime = livetime
 
-class WBSteadyPointSource(PointSource):
-	def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
-		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
-		# remember: fluxes are defined as neutrino + antineutrino, so the flux
-		# per particle (which we need here) is .5e-12
-		def intflux(e, gamma):
-			return (e**(1+gamma))/(1+gamma)
-		tev = effective_area.bin_edges[0]/1e3
-		# 1/cm^2 yr
-		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
-		
-		# scale by the WB GRB fluence, normalized to the E^-2 flux between 100 TeV and 10 PeV
-		from grb import WaxmannBahcallFluence
-		norm = WaxmannBahcallFluence()(effective_area.bin_edges[0][1:])*effective_area.bin_edges[0][1:]**2
-		norm /= norm.max()
-		fluence *= norm
-		
-		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
-		self._livetime = livetime
-
 # An astrophysics-style powerlaw, with a positive lower limit, no upper limit,
 # and a negative index
 class powerlaw_gen(stats.rv_continuous):
