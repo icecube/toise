@@ -168,10 +168,9 @@ class PointSource(object):
     @staticmethod
     def make_components(zi, aeffs):
         aeff, muon_aeff = aeffs
-        energy_threshold = numpy.inf
-        atmo = diffuse.AtmosphericNu.conventional(aeff, 1., hard_veto_threshold=energy_threshold)
+        atmo = diffuse.AtmosphericNu.conventional(aeff, 1., veto_threshold=None)
         atmo.uncertainty = 0.1
-        prompt = diffuse.AtmosphericNu.prompt(aeff, 1., hard_veto_threshold=energy_threshold)
+        prompt = diffuse.AtmosphericNu.prompt(aeff, 1., veto_threshold=None)
         prompt.min = 0.5
         prompt.max = 3
         astro = diffuse.DiffuseAstro(aeff, 1.)
