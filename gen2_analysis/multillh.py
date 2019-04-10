@@ -67,6 +67,10 @@ class Combination(object):
 		energy_range = lambda i: (component[0].energy_range[i] for component in self._components.viewvalues())
 		return max(energy_range(0)), min(energy_range(1))
 
+	def apply(self, func):
+		"""Return a copy with the function applied to each component"""
+		return Combination({k: (func(component), livetime) for k, (component, livetime) in self._components.items()})
+
 	def differential_chunks(self, *args, **kwargs):
 		generators = dict()
 		# due to how the differential ranges are stepped
