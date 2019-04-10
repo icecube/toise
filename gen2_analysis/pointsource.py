@@ -82,6 +82,19 @@ class PointSource(object):
 		self._last_expectations = total
 		return self._last_expectations
 
+	def get_chunk(self, emin=-numpy.inf, emax=numpy.inf):
+		ebins = self._edges[0]
+		start, stop = ebins.searchsorted((emin, emax))
+		start = max((0, start-1))
+		chunk = copy(self)
+		chunk._invalidate_cache()
+		# zero out the neutrino flux outside the given range
+		chunk._rate = self._rate.copy()
+		chunk._rate[:,:start,...] = 0
+		chunk._rate[:,stop:,...] = 0
+		chunk.energy_range = (ebins[start], ebins[stop])
+		return chunk
+
 	def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):
 		"""
 		Yield copies of self with the neutrino spectrum restricted to *decade*
@@ -92,10 +105,10 @@ class PointSource(object):
 		loge = numpy.log10(ebins)
 		bin_range = int(round(decades/(loge[1]-loge[0])))
 		
-                # when emin is "equal" to an edge in ebins
-                # searchsorted sometimes returns inconsistent indices
-                # (wrong side). subtract a little fudge factor to ensure
-                # we're on the correct side
+		# when emin is "equal" to an edge in ebins
+		# searchsorted sometimes returns inconsistent indices
+		# (wrong side). subtract a little fudge factor to ensure
+		# we're on the correct side
 		lo = ebins.searchsorted(emin-1e-4) 
 		hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
 		
@@ -108,6 +121,7 @@ class PointSource(object):
 			start = i
 			stop = start + bin_range
 			chunk = copy(self)
+			chunk._invalidate_cache()
 			# zero out the neutrino flux outside the given range
 			chunk._rate = self._rate.copy()
 			chunk._rate[:,:start,...] = 0
@@ -124,15 +138,18 @@ class SteadyPointSource(PointSource):
 	in units of :math:`10^{-12} \,\, \rm  TeV^{-1} \, cm^{-2} \, s^{-1}`
 	
 	"""
-	def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
+	def __init__(self, effective_area, livetime, zenith_bin, emin=0, emax=numpy.inf, with_energy=True):
 		# reference flux is E^2 Phi = 1e-12 TeV cm^-2 s^-1
 		# remember: fluxes are defined as neutrino + antineutrino, so the flux
 		# per particle (which we need here) is .5e-12
 		def intflux(e, gamma):
 			return (e**(1+gamma))/(1+gamma)
-		tev = effective_area.bin_edges[0]/1e3
+		energy = effective_area.bin_edges[0]
+		tev = energy/1e3
 		# 1/cm^2 yr
 		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
+		# zero out fluence outside energy range
+		fluence[(energy[:-1] > emax) | (energy[1:] < emin)] = 0
 		
 		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
 		self._livetime = livetime
@@ -152,6 +169,23 @@ class WBSteadyPointSource(PointSource):
 		from grb import WaxmannBahcallFluence
 		norm = WaxmannBahcallFluence()(effective_area.bin_edges[0][1:])*effective_area.bin_edges[0][1:]**2
 		norm /= norm.max()
+		fluence *= norm
+		
+		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
+		self._livetime = livetime
+
+class TruncatedSteadyPointSource(PointSource):
+	def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
+		# reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
+		# remember: fluxes are defined as neutrino + antineutrino, so the flux
+		# per particle (which we need here) is .5e-12
+		def intflux(e, gamma):
+			return (e**(1+gamma))/(1+gamma)
+		tev = effective_area.bin_edges[0]/1e3
+		# 1/cm^2 yr
+		fluence = 0.5e-12*(intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
+		
+		
 		fluence *= norm
 		
 		PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
