@@ -241,7 +241,7 @@ class AtmosphericNu(DiffuseNuGen):
 			flux = _import_NewNuFlux().makeFlux('honda2006')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = lambda *args, **kwargs: 1. if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
-			flux = (flux, partial(pf, spline=False))
+			flux = (flux, pf)
 		else:
 			flux = flux[1]
 		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
@@ -273,7 +273,7 @@ class AtmosphericNu(DiffuseNuGen):
 			flux = _import_NewNuFlux().makeFlux('sarcevic_std')
 			flux.knee_reweighting_model = 'gaisserH3a_elbert'
 			pf = lambda *args, **kwargs: 1. if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
-			flux = (flux, partial(pf, spline=False))
+			flux = (flux, pf)
 		else:
 			flux = flux[1]
 		instance = cls(effective_area, flux, livetime, hard_veto_threshold)

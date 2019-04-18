@@ -7,6 +7,8 @@ class AnalyticPassingFraction(object):
 	"""
 	A combination of the Schoenert et al calculation and an approximate treatment of uncorrelated muons from the rest of the shower.
 	"""
+	_cache = {}
+
 	def __init__(self, kind='conventional', veto_threshold=1e3, floor=1e-4):
 		"""
 		:param kind: either 'conventional' for neutrinos from pion/kaon decay
@@ -23,27 +25,17 @@ class AnalyticPassingFraction(object):
 		
 		self._splines = dict()
 		if kind == 'conventional':
-			numu = self._create_spline('numu', veto_threshold)
-			nue = self._create_spline('nue', veto_threshold)
+			numu = self._get_spline('numu', veto_threshold)
+			nue = self._get_spline('nue', veto_threshold)
 		elif kind == 'charm':
-			numu = self._create_spline('charm', veto_threshold)
+			numu = self._get_spline('charm', veto_threshold)
 			nue = numu
 		
 		self._eval = dict()
 		self._eval[PDGCode.NuMu] = numpy.vectorize(lambda enu, ct, depth: numu.evaluate_simple([enu, ct, depth]))
 		self._eval[PDGCode.NuE] = numpy.vectorize(lambda enu, ct, depth: nue.evaluate_simple([enu, ct, depth]))
 	
-	def _create_spline(self, kind, veto_threshold):
-		"""
-		Parameterize the uncorrelated veto probability as a function of
-		neutrino energy, zenith angle, and vertical depth, and cache the result.
-		"""
-		import photospline
-		import os
-		fname = os.path.join(data_dir, 'cache', 'uncorrelated_veto_prob.%s.%.1e.fits' % (kind, veto_threshold))
-		if os.path.exists(fname):
-			return photospline.SplineTable(fname)
-		
+	def _eval_grid(self, kind, veto_threshold):
 		def pad_knots(knots, order=2):
 			"""
 			Pad knots out for full support at the boundaries
@@ -69,12 +61,26 @@ class AnalyticPassingFraction(object):
 		
 		centers = [log_enu, ct, depth]
 		knots = map(pad_knots, map(edges, centers))
-		
-		z, w = photospline.ndsparse.from_data(pr)
+
 		ndim = pr.ndim
-		spline = photospline.glam_fit(z, w, centers, knots, [2]*ndim, [2]*ndim, [1e-16]*ndim)
-		spline.write(fname)
+		return pr, centers, knots, [2]*ndim, [1e-16]*ndim, [2]*ndim
+	
+	def _create_spline(self, kind, veto_threshold):
+		import photospline
+		pr, centers, knots, order, penalty, penorder = self._eval_grid(kind, veto_threshold)
+		z, w = photospline.ndsparse.from_data(pr, numpy.ones(pr.shape))
+		spline = photospline.glam_fit(z, w, centers, knots, order, penalty, penorder)
 		return spline
+
+	def _get_spline(self, kind, veto_threshold):
+		"""
+		Parameterize the uncorrelated veto probability as a function of
+		neutrino energy, zenith angle, and vertical depth, and cache the result.
+		"""
+		key = (kind, veto_threshold)
+		if not key in self._cache:
+			self._cache[key] = self._create_spline(kind, veto_threshold)
+		return self._cache[key]
 	
 	def __call__(self, particleType, enu, ct, depth, spline=True):
 		"""
