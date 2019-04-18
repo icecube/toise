@@ -144,11 +144,12 @@ class aeff_factory(object):
 			else:
 				aeffs['radio_events'] = (effective_areas.create_radio_aeff(**kwargs), None)
 		else:
-			nu, mu = create_aeff(opts,**kwargs)
+			psi_bins = kwargs.pop('psi_bins')
+			nu, mu = create_aeff(opts,psi_bins=psi_bins['tracks'], **kwargs)
 			aeffs['shadowed_tracks'] = (nu[0], mu[0])
 			aeffs['unshadowed_tracks'] = (nu[1], mu[1])
 			if opts.cascade_energy_threshold is not None:
-				aeffs['cascades']=(create_cascade_aeff(opts,**kwargs), None)
+				aeffs['cascades']=(create_cascade_aeff(opts,psi_bins=psi_bins['cascades'], **kwargs), None)
 		return aeffs
 	
 	def __call__(self, name):
@@ -245,8 +246,20 @@ default_configs = {
 	'KM3NeT' : dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.2),
 }
 
+default_psi_bins = {
+    'tracks': numpy.linspace(0, numpy.radians(1.5)**2, 150)**(1./2),
+    'cascades': numpy.linspace(0, numpy.radians(60)**2, 50)**(1./2),
+    'radio': numpy.linspace(0, numpy.radians(15)**2, 50)**(1./2),
+}
+
 for k, config in default_configs.items():
-    add_configuration(k, make_options(**config), cos_theta=numpy.linspace(-1,1,21))
+    psi_bins = dict(default_psi_bins)
+    psi_bins.update(config.pop('psi_bins', {}))
+    kwargs = {
+        'cos_theta': config.pop('cos_theta', numpy.linspace(-1,1,21)),
+        'psi_bins':  psi_bins
+    }
+    add_configuration(k, make_options(**config), **kwargs)
 
 def get(configuration):
 	return aeff_factory.instance(configuration)
