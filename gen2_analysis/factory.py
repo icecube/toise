@@ -193,10 +193,24 @@ def gen2_throughgoing_muon_efficiency_correction(energy, scale):
 	b = interpolate.interp1d(x, y, 2)(scale)
 	return 1 + b/energy
 
-def gen2_throughgoing_muon_angular_resolution_correction(energy, scale):
+def gen2_throughgoing_muon_angular_resolution_correction(energy, scale, ssmpe=True, mdom=True):
+	"""
+	:param scale: cherenkov effective area per sensor, relative to PDOM
+	:param sspmpe: approximate resolution improvement from Segmented SplineMPE
+	:param mdom: approxmate resoluteion improvement from mDOM
+	"""
 	b = lambda x: -0.82 + 14.54/x
 	med = lambda emu, b: 0.11 + b/numpy.sqrt(emu)
-	return med(energy, b(scale))/med(energy, b(1))
+	scale =  med(energy, b(scale))/med(energy, b(1))
+	if ssmpe:
+		# see: https://github.com/fbradascio/IceCube/blob/b8556b7b3d3c53a1cfab4bf53737bebff1264707/SensitivityStudy_SSMPE_vs_MPE.ipynb
+		# https://doi.org/10.1051/epjconf/201920705002
+		# NB: this improvement was evaluated at 2x PDOM sensitivty
+		scale *= numpy.polyval([ 0.01266943, -0.1901559 ,  0.80568256,  0.04948373], numpy.log10(energy/2))
+	if mdom:
+		# see: https://events.icecube.wisc.edu/contributionDisplay.py?contribId=148&sessionId=1&confId=100
+		scale *= (1-0.2)
+	return scale
 
 def make_options(**kwargs):
 	import argparse
@@ -219,7 +233,7 @@ def add_configuration(name, opts, **kwargs):
 
 set_kwargs = aeff_factory.get().set_kwargs
 
-def scale_gen2_sensors(scale=1., with_cascades=True):
+def scale_gen2_sensors(scale=1., ssmpe=True, mdom=True, with_cascades=True):
 	"""
 	Approximate a Gen2 instrumented with sensors `scale` times the photon
 	effective area of a PDOM
@@ -230,14 +244,14 @@ def scale_gen2_sensors(scale=1., with_cascades=True):
 		cascade_energy_threshold=2e5/scale if with_cascades else None,
 		veto_area=10.,
 		veto_threshold=1e5,
-		angular_resolution_scale=partial(gen2_throughgoing_muon_angular_resolution_correction, scale=scale),
+		angular_resolution_scale=partial(gen2_throughgoing_muon_angular_resolution_correction, scale=scale, ssmpe=ssmpe, mdom=mdom),
 		efficiency_scale=partial(gen2_throughgoing_muon_efficiency_correction, scale=scale),
 	)
 
 default_configs = {
 	'IceCube' : dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
-	'Gen2-InIce' : scale_gen2_sensors(4.),
-	'Gen2-InIce-TracksOnly' : scale_gen2_sensors(4., with_cascades=False),
+	'Gen2-InIce' : scale_gen2_sensors(3.),
+	'Gen2-InIce-TracksOnly' : scale_gen2_sensors(3., with_cascades=False),
 	'Gen2-Radio' : dict(geometry='Radio', nstations=305),
 	'Sunflower_240' : dict(geometry='Sunflower', spacing=240, cascade_energy_threshold=2e5, veto_area=75., veto_threshold=1e5),
 	'ARA_37' : dict(geometry='ARA', nstations=37, depth=200),
