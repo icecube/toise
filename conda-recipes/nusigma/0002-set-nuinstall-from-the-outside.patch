@@ -1,0 +1,112 @@
+From 5b893b23106f9f010d638ed050610b51bd6402e5 Mon Sep 17 00:00:00 2001
+From: Jakob van Santen <jvansanten@gmail.com>
+Date: Tue, 18 Jun 2019 21:24:29 +0200
+Subject: [PATCH 5/5] set nuinstall from the outside
+
+---
+ inc/nuver.h         |  2 +-
+ src/Cteq6Pdf-2004.f |  2 +-
+ src/Cteq6Pdf-2008.f |  4 ++--
+ src/nusetup.f       | 15 ++++++++-------
+ 4 files changed, 12 insertions(+), 11 deletions(-)
+
+diff --git a/inc/nuver.h b/inc/nuver.h
+index 9e2b4c5..dded9ab 100644
+--- a/inc/nuver.h
++++ b/inc/nuver.h
+@@ -1,5 +1,5 @@
+ *          -*- mode: fortran -*-
+-      character*128 nudir
++      character*512 nudir
+       character*40 nuversion
+       integer nri
+       common/nuver/nudir,nuversion,nri
+diff --git a/src/Cteq6Pdf-2004.f b/src/Cteq6Pdf-2004.f
+index 919937b..f9ec90b 100644
+--- a/src/Cteq6Pdf-2004.f
++++ b/src/Cteq6Pdf-2004.f
+@@ -155,7 +155,7 @@ C                             ********************
+       Implicit Double Precision (A-H,O-Z)
+       include 'nuver.h'  ! JE CHANGE
+       Parameter (Isetmax0=6)
+-      Character Flnm(Isetmax0)*6, nn*3, Tablefile*160 ! JE CHANGE 40->160
++      Character Flnm(Isetmax0)*6, nn*3, Tablefile*512 ! JE CHANGE 40->160
+       Data (Flnm(I), I=1,Isetmax0)
+      > / 'cteq6m', 'cteq6d', 'cteq6l', 'cteq6l','ctq61.','cteq6s'/
+       Data Isetold, Isetmin0, Isetmin1, Isetmax1 /-987,1,100,140/
+diff --git a/src/Cteq6Pdf-2008.f b/src/Cteq6Pdf-2008.f
+index 1088bce..1a783f9 100644
+--- a/src/Cteq6Pdf-2008.f
++++ b/src/Cteq6Pdf-2008.f
+@@ -251,7 +251,7 @@ C                             ********************
+       Implicit Double Precision (A-H,O-Z)
+       include 'nuver.h'  ! JE CHANGE
+       Parameter (Isetmax0=8)
+-      Character Flnm(Isetmax0)*6, nn*3, Tablefile*160 ! JE CHANGE (*40->*160)
++      Character Flnm(Isetmax0)*6, nn*3, Tablefile*512 ! JE CHANGE (*40->*160)
+       Logical fmtpds
+       Data (Flnm(I), I=1,Isetmax0)
+      > / 'cteq6m', 'cteq6d', 'cteq6l', 'cteq6l','ctq61.','cteq6s'
+@@ -354,7 +354,7 @@ C                                                   (Cteq6.6AS)  460 - 463
+       Return
+ 
+  100  Print *, ' Data file ', Tablefile, ' cannot be opened '
+-     >  //'in SetCtq6!!'
++     >  //'in SetCtq6!!', nri
+       Stop
+ C                             ********************
+       End
+diff --git a/src/nusetup.f b/src/nusetup.f
+index df76e1f..bdf732d 100644
+--- a/src/nusetup.f
++++ b/src/nusetup.f
+@@ -1,11 +1,12 @@
+ ***********************************************************************
+ *** Set up neutrino calculations by calculating needed factors
+ ***********************************************************************
+-      subroutine nusetup
++      subroutine nusetup (nuinstall)
+ 
+       include 'nupar.h'
+       include 'nuver.h'
+ 
++      character*512 nuinstall
+       real*8 d12,d22,d32,d42
+       integer i
+       
+@@ -26,7 +27,7 @@
+       save first
+ 
+       include 'nuver.f'
+-      include 'nuroot.f'
++C       include 'nuroot.f'
+ 
+       if (first) then
+         first=.false.
+@@ -34,18 +35,18 @@
+         return
+       endif
+ 
+-      write(*,*) 'Initializing ',nuversion
++C       write(*,*) 'Initializing ',nuversion
+ 
+       nudir=nuinstall // '/'     ! transfer parameter to variable
+ 
+-
+ c... determine how long nudir is
+-      do i=128,1,-1
+-        if (nudir(i:i).ne.' ') then
+-          nri=i
++      do i=1,512
++        if (nudir(i:i).eq.' ') then
++          nri=i-1
+           goto 20
+         endif
+       enddo
++      nri=i
+  20   continue
+ 
+       d12=(0.5d0-2.0d0*s2thw/3.0d0)**2
+-- 
+2.18.0
+
