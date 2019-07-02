@@ -35,6 +35,10 @@ def format_energy(fmt, energy):
 		unit = 'PeV'
 	elif places == 9:
 		unit = 'EeV'
+	elif places == 12:
+		unit = 'ZeV'
+	elif places == 15:
+		unit = 'YeV'
 	return (fmt % (energy/10**(places))) + ' ' + unit
 
 def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors='k', **kwargs):
