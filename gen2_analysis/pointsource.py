@@ -116,10 +116,10 @@ class PointSource(object):
 			bins = range(lo, hi-1, bin_range)
 		else:
 			bins = range(lo, hi-1-bin_range)
-		
+
 		for i in bins:
 			start = i
-			stop = start + bin_range
+			stop = min((start + bin_range, loge.size-1))
 			chunk = copy(self)
 			chunk._invalidate_cache()
 			# zero out the neutrino flux outside the given range
