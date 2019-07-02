@@ -1,0 +1,46 @@
+package:
+  name: python-nusigma
+  version: 1.19
+
+source:
+  url: http://wimpsim.astroparticle.se/code/nusigma-1.19-pyr.tar.gz
+  sha256: 0d65597fcf21031564bf0a40e6f9261906300b9feff31752a7e342d3a4ff5ada
+  patches:
+    - 0001-dqagse-and-dqagseb-appear-to-be-identical.patch
+    - 0002-set-nuinstall-from-the-outside.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}
+    - {{ compiler('c') }}
+  host:
+    - make
+    - python
+    - numpy
+  run:
+    - python
+    - {{ pin_compatible('numpy', lower_bound='1.7') }}
+
+test:
+  imports:
+    - nusigma
+
+about:
+  home: http://wimpsim.astroparticle.se
+  summary: 'neutrino-nucleon cross sections'
+  author: edsjo@fysik.su.se
+  description: |
+    This is a Python wrapper for the nusigma library.
+    
+    The nusigma library contains routines to calculate the neutrino-nucleon
+    cross section on neutrons or protons. Both charged current and neutral
+    current cross sections are calculated for both neutrinos and antineutrinos.
+    
+    The program uses explicit cross section expressions, summing over parton
+    distributions in the proton and neutron (assuming isospin symmetry).
+    
+    Currently, the program uses the CTEQ6 parton distributions (from 2004), where
+    the CTEQ6-DIS distribution is chosen as a default.

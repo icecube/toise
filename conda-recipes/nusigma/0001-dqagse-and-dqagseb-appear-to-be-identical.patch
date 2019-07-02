@@ -1,0 +1,42 @@
+From 5d76714a125977142126d42bf87c8783097b371e Mon Sep 17 00:00:00 2001
+From: Jakob van Santen <jvansanten@gmail.com>
+Date: Wed, 12 Jun 2019 21:50:19 +0200
+Subject: [PATCH 1/4] dqagse and dqagseb appear to be identical
+
+save for a single line break in dqk21b.f
+
+see: https://phab.hepforge.org/source/DS_releases/change/master/darksusy-6.2.1/src/aux_xquadpack/dqk21b.f
+---
+ src/dsdly.f | 2 +-
+ src/dsdy.f  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/dsdly.f b/src/dsdly.f
+index fe43b11..06363b0 100644
+--- a/src/dsdly.f
++++ b/src/dsdly.f
+@@ -42,7 +42,7 @@
+ 
+       xmin=Qmin**2/(2*Mneutron*Enu*y)
+ 
+-      call dqagseb(dsdlxdly,log(xmin),log(1.d0),
++      call dqagse(dsdlxdly,log(xmin),log(1.d0),
+      &  epsabs,epsrel,limit,result,
+      &  abserr,neval,
+      &  ier,alist,blist,rlist,elist,iord,last)
+diff --git a/src/dsdy.f b/src/dsdy.f
+index a507dbb..37e48a7 100644
+--- a/src/dsdy.f
++++ b/src/dsdy.f
+@@ -40,7 +40,7 @@
+ 
+       xmin=Qmin**2/(2*Mneutron*Enu*y)
+ 
+-      call dqagseb(dsdxdy,xmin,1.d0,epsabs,epsrel,limit,result,
++      call dqagse(dsdxdy,xmin,1.d0,epsabs,epsrel,limit,result,
+      &  abserr,neval,
+      &  ier,alist,blist,rlist,elist,iord,last)
+ 
+-- 
+2.18.0
+

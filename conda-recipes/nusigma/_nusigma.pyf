@@ -1,0 +1,45 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module _nusigma ! in 
+    interface  ! in :_nusigma
+        function nucross(e,nu,targ,int_bn,how) ! in :_nusigma:src/nucross.f
+            real*8 :: e
+            integer :: nu
+            character*1 :: targ
+            character*2 :: int_bn
+            integer :: how
+            real*8 :: nucross
+        end function nucross
+        function nucrossdiff(e,ef,nu,targ,int_bn) ! in :_nusigma:src/nucrossdiff.f
+            real*8 :: e
+            real*8 :: ef
+            integer :: nu
+            character*1 :: targ
+            character*2 :: int_bn
+            real*8 :: nucrossdiff
+        end function nucrossdiff
+        function nucrossdiffl(e,ef,nu,targ,int_bn) ! in :_nusigma:src/nucrossdiffl.f
+            real*8 :: e
+            real*8 :: ef
+            integer :: nu
+            character*1 :: targ
+            character*2 :: int_bn
+            real*8 :: nucrossdiffl
+        end function nucrossdiffl
+        function nucrossdiffz(e,z,nu,targ,int_bn) ! in :_nusigma:src/nucrossdiffz.f
+            real*8 :: e
+            real*8 :: z
+            integer :: nu
+            character*1 :: targ
+            character*2 :: int_bn
+            real*8 :: nucrossdiffz
+        end function nucrossdiffz
+        subroutine nusetup(nuinstall) ! in :_nusigma:src/nusetup.f
+            character*512 :: nuinstall
+        end subroutine nusetup
+    end interface 
+end python module _nusigma
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
