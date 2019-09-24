@@ -21,5 +21,11 @@ setup(name='gen2-analysis',
       author_email='jvansanten@icecube.wisc.edu',
       url='http://icecube.wisc.edu/~jvansanten/gen2_analysis/',
       packages=['gen2_analysis'],
-      package_data={'gen2_analysis': ['data/**/*']}
+      package_data={'gen2_analysis': ['data/**/*']},
+      entry_points={
+          'console_scripts': [
+              'gen2-figure-data = gen2_analysis.figures.cli:make_figure_data',
+              'gen2-plot = gen2_analysis.figures.cli:make_figure',
+          ]
+      }
      )

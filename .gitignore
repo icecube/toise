@@ -1,3 +1,5 @@
 *.DS_Store
 *.pyc
 data/
+figures/**/*.json.gz
+figures/**/*.pdf
