@@ -11,6 +11,7 @@ import copy
 from surfaces import get_fiducial_surface
 from energy_resolution import get_energy_resolution
 from angular_resolution import get_angular_resolution
+from classification_efficiency import get_classification_efficiency
 from util import *
 
 def load_jvs_mese():
@@ -618,6 +619,73 @@ def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resoluti
 	
 	return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 
+def create_starting_aeff(energy_resolution=get_energy_resolution(channel='cascade'),
+    energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
+    selection_efficiency=HESEishSelectionEfficiency(),
+    classification_efficiency=get_classification_efficiency('IceCube'),
+    surface=get_fiducial_surface("IceCube"),
+    psf=get_angular_resolution("IceCube", channel='cascade'),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
+    neutrino_energy=numpy.logspace(4,9,51),
+	cos_theta=numpy.linspace(-1,1,21),):
+	"""
+	Create an effective area for neutrinos interacting inside the volume
+	
+	:returns: an effective_area object
+	"""
+	
+	# Ingredients:
+	# 1) Final state production efficiency
+	# 2) Geometric area
+	# 3) Selection efficiency
+	# 4) Point spread function
+	# 5) Energy resolution
+	
+	import tables, dashi
+	from scipy.special import erf
+	
+	nside = None
+	if isinstance(cos_theta, int):
+		nside = cos_theta
+	
+	# Step 1: Density of final states per meter
+	(e_nu, cos_theta, e_shower), aeff = calculate_cascade_production_density(cos_theta, neutrino_energy, depth=1.5)
+
+	# Step 2: Geometric effective area (no selection effects yet)
+	aeff *= surface.volume()
+	
+	warnings.warn('Reconstruction quantities are made up for now')
+	
+	# Step 3: apply overall selection efficiency
+	selection_efficiency = selection_efficiency(*numpy.meshgrid(e_shower[1:], center(cos_theta), indexing='ij')).T
+	aeff *= selection_efficiency[None,None,...]
+	# Step 3.5: calculate channel selection efficiency, padding the shape for
+	# the dimensions neutrino energy, zenith angle, and angular error
+	weights = {}
+	e_shower_center = np.exp(center(np.log(e_shower)))
+	for event_class in classification_efficiency.classes:
+		weights[event_class] = numpy.array([classification_efficiency(nutype, event_class, e_shower_center)[None,None,:,None] for nutype in range(aeff.shape[0])])
+	
+	# Step 4: apply smearing for angular resolution
+	# Add an overflow bin if none present
+	if numpy.isfinite(psi_bins[-1]):
+		psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
+	cdf = eval_psf(psf, center(e_shower), center(cos_theta), psi_bins[:-1])
+	
+	total_aeff = numpy.empty(aeff.shape + (psi_bins.size-1,))
+	# expand differential contributions along the opening-angle axis
+	total_aeff[...,:-1] = aeff[...,None]*numpy.diff(cdf, axis=2)[None,...]
+	# put the remainder in the overflow bin
+	total_aeff[...,-1] = aeff*(1-cdf[...,-1])[None,None,...] 
+	
+	# Step 5: apply smearing for energy resolution
+	response = energy_resolution.get_response_matrix(e_shower, e_shower)
+	total_aeff = numpy.apply_along_axis(numpy.inner, 3, total_aeff, response)
+	
+	edges = (e_nu, cos_theta, e_shower, psi_bins)
+	
+	return {event_class: effective_area(edges, total_aeff*w, 'cos_theta' if nside is None else 'healpix') for event_class,w in weights.items()}
 
 def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 	"""
