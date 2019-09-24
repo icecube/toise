@@ -172,12 +172,17 @@ def make_figure():
         p.set_defaults(command=func)
         p.add_argument('-o', '--outfile')
         spec = inspect.getargspec(func)
-        if spec.args:
+        num_required_args = 0
+        if spec.args and len(spec.args) - (len(spec.defaults) if spec.defaults else 0) == 1:
             p.add_argument('infiles', nargs='+')
+            num_required_args = 1
         if spec.defaults:
-            assert len(spec.args) - len(spec.defaults) == 1, "data files argument is required"
-            for arg, default in zip(spec.args[1:], spec.defaults):
-                p.add_argument('--'+arg, type=type(default), default=default, help=param_help.get(arg,None))
+            for arg, default in zip(spec.args[num_required_args:], spec.defaults):
+                argname = arg.replace('_','-')
+                if type(default) is bool:
+                    p.add_argument('--{}'.format('no-' if default else '')+argname, default=default, action='store_false' if default else 'store_true', dest=arg, help=param_help.get(arg,None))
+                else:
+                    p.add_argument('--'+argname, type=type(default), default=default, help=param_help.get(arg,None))
     kwargs = parser.parse_args().__dict__
     infiles = kwargs.pop('infiles', None)
     outfile = kwargs.pop('outfile')
