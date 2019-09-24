@@ -1,8 +1,19 @@
 
 import os
 import numpy as np
+from subprocess import check_call, PIPE
+from os import path, unlink, environ, mkdir
 
 data_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), 'data'))
+
+def refresh_data_tables(icecube_password=os.environ.get('ICECUBE_PASSWORD', None)):
+    if icecube_password is None:
+        raise EnvironmentError('You need to set the environment variable ICECUBE_PASSWORD to the icecube user password.')
+
+    cwd = data_dir
+    check_call(['curl', '--fail', '-u', 'icecube:'+icecube_password, '-O', 'http://convey.icecube.wisc.edu/data/user/jvansanten/projects/2015/gen2_benchmark/data/archive.tar.gz'], cwd=cwd)
+    check_call(['tar', 'xzf', 'archive.tar.gz'], cwd=cwd)
+    unlink(path.join(data_dir, 'archive.tar.gz'))
 
 def center(x):
 	return 0.5*(x[1:] + x[:-1])
