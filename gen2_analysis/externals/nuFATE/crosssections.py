@@ -125,10 +125,39 @@ def fit_differential_secondary(nutype, final_nutype, target, channel, nknots=[20
     z, w = photospline.ndsparse.from_data(log_dpdx, np.where(np.isfinite(log_dpdx), 1, 0))
     return photospline.glam_fit(z,w,centers,knots,[2]*2,[1e-16,1e-16],[2]*2)
 
+@partial(cached_spline, dependencies=[__file__, taudecay.__file__])
+def fit_differential_final_state(nutype, target, channel, nknots=[20,50], smoothness=[1e-16,1e-16]):
+    """
+    Fit log(dp/dx) as a function of log(enu) and x
+    
+    :param total_spline: total CC cross-section spline, as returned by :py:func:`fit_total`
+    :param partial_spline: differential CC cross-section spline, as returned by :py:func:`fit_partial`
+    :param enu: parent neutrino energies in GeV
+    :param x: ratio of final to parent neutrino energy
+    :param initial_nutype: type of parent neutrino
+    :param final_nutype: type of final neutrino
+    :param nknots: number of knots in (enu,x)
+    :param smoothness: regularization strength in (enu,x)
+    """
+    # polarization of V-A tau- production is -1
+    polarization = 1 if nutype == 6 else -1
+    assert nutype in set(range(5,7))
+    assert channel == 'CC'
+    crossdiff = taudecay.bang_crossdiff
+    xsec = DISCrossSection.create(nutype, target, channel)
+    centers = np.log(ENU_GRID), X_GRID
+    nknots = [20,50]
+    dpdx = np.asarray([crossdiff(xsec.differential, e, e*X_GRID, polarization)*e for e in ENU_GRID])/xsec.total(ENU_GRID[...,None])
+    log_dpdx = np.log(dpdx) + DPDX_BIAS
+    knots = map(pad_knots, map(lambda (c,n): np.linspace(min(c), max(c), n), zip(centers,nknots)))
+    z, w = photospline.ndsparse.from_data(log_dpdx, np.where(np.isfinite(log_dpdx), 1, 0))
+    return photospline.glam_fit(z,w,centers,knots,[2]*2,[1e-16,1e-16],[2]*2)
+
+
 class DISCrossSection(object):
     def __init__(self, total_spline, differential_spline):
-        self.sigma = total_spline
-        self.dpdx = differential_spline
+        self._sigma = total_spline
+        self._dpdx = differential_spline
 
     @classmethod
     @memoize
@@ -151,6 +180,18 @@ class DISCrossSection(object):
             fit_total(nutype, target, channel),
             fit_differential_secondary(nutype, final_nutype, target, channel)
         )
+
+    @classmethod
+    @memoize
+    def create_final_state(cls, nutype, target, channel):
+        """
+        Create a parameterization of the tau neutrino-nucleon interaction cross-section
+        """
+        return cls(
+            fit_total(nutype, target, channel),
+            fit_differential_final_state(nutype, target, channel)
+        )
+
     def total(self, enu):
         """
         Total cross-section
@@ -158,7 +199,16 @@ class DISCrossSection(object):
         :param enu: neutrino energy in GeV
         :returns: cross-section in cm^2
         """
-        return np.exp(self.sigma([np.log(enu)]) - TOTAL_XSEC_BIAS)
+        return np.exp(self._sigma([np.log(enu)]) - TOTAL_XSEC_BIAS)
+    def dPdx(self, enu, x):
+        """
+        Differential cross-section, normalized to 1
+        
+        :param enu: incoming neutrino energy in GeV
+        :param x: ef/enu
+        :returns: dP/dx
+        """
+        return np.where(x <= 1, np.where(x > 0, np.exp(self._dpdx([np.log(enu), x]) - DPDX_BIAS), 0), 0)
     def differential(self, enu, ef):
         """
         Differential cross-section
@@ -167,10 +217,9 @@ class DISCrossSection(object):
         :param ef: outcoming lepton energy in GeV
         :returns: d\sigma/dE_f in cm^2 GeV^-1
         """
-        # dP/dx, normalized to 1
-        dpdx = np.where(ef >= enu, 0, np.exp(self.dpdx([np.log(enu), ef/enu]) - DPDX_BIAS))
         # convert to dsigma/dE_f (cm^2 GeV^-1)
-        return dpdx/enu*self.total(enu)
+        return self.dPdx(enu, ef/enu)/enu*self.total(enu)
+
 
 class GlashowResonanceCrossSection(object):
     """
