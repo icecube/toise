@@ -401,15 +401,21 @@ class DiffuseAstro(DiffuseNuGen):
 		# now, sum over decades in neutrino energy
 		ebins = self._aeff.bin_edges[0]
 		loge = numpy.log10(ebins)
-		bin_range = int(round(decades/(loge[1]-loge[0])))
-                
-                # when emin is "equal" to an edge in ebins
-                # searchsorted sometimes returns inconsistent indices
-                # (wrong side). subtract a little fudge factor to ensure
-                # we're on the correct side
-		lo = ebins.searchsorted(emin-1e-4) 
-		hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
-		
+		dloge = loge[1]-loge[0]
+		bin_range = int(round(decades/dloge))
+		if numpy.isfinite(emin):
+			lo = int(round((numpy.log10(emin) - loge[0])/dloge))
+		else:
+			# when emin is "equal" to an edge in ebins
+			# searchsorted sometimes returns inconsistent indices
+			# (wrong side). subtract a little fudge factor to ensure
+			# we're on the correct side
+			lo = ebins.searchsorted(emin-1e-4) 
+		if numpy.isfinite(emax):
+			hi = (loge.size-1) - int(round((loge[-1] - numpy.log10(emax))/dloge))
+		else:
+			hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
+
 		if exclusive:
 			bins = range(lo, hi-1, bin_range)
 		else:
@@ -418,14 +424,19 @@ class DiffuseAstro(DiffuseNuGen):
 		for i in bins:
 			start = i
 			stop = min((start + bin_range, hi-1))
+			bounds = numpy.asarray([loge[0] + start*dloge, loge[0] + stop*dloge])
+			e_center = 10**numpy.mean(bounds)
+			if stop < 0 or start > ebins.size-1:
+				yield e_center, None
+				continue
 			chunk = copy(self)
 			chunk._invalidate_cache()
 			# zero out the neutrino flux outside the given range
 			chunk._flux = self._flux.copy()
-			chunk._flux[:,:start,...] = 0
-			chunk._flux[:,stop:,...] = 0
-			e_center = 10**(0.5*(loge[start] + loge[stop]))
-			chunk.energy_range = (10**loge[start], 10**loge[stop])
+			chunk._flux[:,:max((start,0)),...] = 0
+			chunk._flux[:,min((stop,loge.size-1)):,...] = 0
+			chunk.energy_range = 10**bounds
+
 			yield e_center, chunk
 	
 	def spectral_weight(self, e_center, **kwargs):
@@ -654,6 +665,7 @@ class ArbitraryFlux(DiffuseAstro):
                 """ Set the flux as a function of enu
                 """
                 self._flux_func = flux_func
+                self._invalidate_cache()
 
 
 	def spectral_weight(self, e_center, **kwargs):
