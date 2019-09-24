@@ -119,15 +119,14 @@ def make_figure_data():
 
     for name, (func, setup, teardown) in sorted(figures._figure_data.items()):
         docstring, param_help = getdoc(func)
+        spec = inspect.getargspec(func)
         p = subparsers.add_parser(name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         p.set_defaults(command=(func, setup, teardown))
         p.add_argument('-d', '--detector', default=[], action=DetectorConfigAction, nargs='+',
             help='sequence of detector configuration/livetime pairs')
         p.add_argument('-o', '--outputfile', action='append', help='')
-        spec = inspect.getargspec(func)
         assert len(spec.args) - len(spec.defaults) == 1, "exposures argument is required"
-        for arg, default in zip(spec.args[1:], spec.defaults):
-            p.add_argument('--'+arg, type=type(default), default=default, help=param_help.get(arg,None))
+        _add_options_for_args(p, spec, param_help)
     args = parser.parse_args().__dict__
     exposures = args.pop('detector')
     if not exposures:
@@ -155,6 +154,17 @@ def load_gzip(fname):
     with gzip.open(fname) as f:
         return json.load(f)
 
+def _add_options_for_args(parser, spec, param_help):
+    num_required_args = 0
+    num_required_args = len(spec.args) - (len(spec.defaults) if spec.defaults else 0)
+    if spec.defaults:
+        for arg, default in zip(spec.args[num_required_args:], spec.defaults):
+            argname = arg.replace('_','-')
+            if type(default) is bool:
+                parser.add_argument('--{}'.format('no-' if default else '')+argname, default=default, action='store_false' if default else 'store_true', dest=arg, help=param_help.get(arg,None))
+            else:
+                parser.add_argument('--'+argname, type=type(default), default=default, help=param_help.get(arg,None))
+
 def make_figure():
     from gen2_analysis import figures
     # find all submodules of gen2_analysis.figures and import them
@@ -168,6 +178,7 @@ def make_figure():
 
     for name, func in sorted(figures._figures.items()):
         docstring, param_help = getdoc(func)
+        spec = inspect.getargspec(func)
         p = subparsers.add_parser(name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         p.set_defaults(command=func)
         p.add_argument('-o', '--outfile')
@@ -176,13 +187,7 @@ def make_figure():
         if spec.args and len(spec.args) - (len(spec.defaults) if spec.defaults else 0) == 1:
             p.add_argument('infiles', nargs='+')
             num_required_args = 1
-        if spec.defaults:
-            for arg, default in zip(spec.args[num_required_args:], spec.defaults):
-                argname = arg.replace('_','-')
-                if type(default) is bool:
-                    p.add_argument('--{}'.format('no-' if default else '')+argname, default=default, action='store_false' if default else 'store_true', dest=arg, help=param_help.get(arg,None))
-                else:
-                    p.add_argument('--'+argname, type=type(default), default=default, help=param_help.get(arg,None))
+        _add_options_for_args(p, spec, param_help)
     kwargs = parser.parse_args().__dict__
     infiles = kwargs.pop('infiles', None)
     outfile = kwargs.pop('outfile')
