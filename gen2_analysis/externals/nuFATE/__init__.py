@@ -95,6 +95,60 @@ class NeutrinoCascade(object):
 
         return transfer_matrix
 
+    def _attenuation_for_flavor(self, flux, flavor, out_flavor, column_density):
+        assert np.asarray(flux).shape == self.energy_nodes.shape
+        flux0 = self.energy_nodes**2*flux
+        flux = flux0
+        if out_flavor != flavor:
+            # initial flux of nue/numu is zero
+            flux0 = np.concatenate([flux,flux])
+            flux = np.concatenate([np.zeros_like(flux), flux])
+        # decompose flux in the eigenbasis of cascade equation solution
+        w,v,ci = self.decompose_in_eigenbasis(flux, flavor, out_flavor)
+        # attenuate components
+        wf = np.exp(w[...,None]*np.asarray(column_density)[None,...])
+        # transform back to energy basis and pseudo-integrate to obtain a
+        # survival probability
+        return np.dot(v,wf*ci[...,None]).T/flux0
+
+    def attenuation(self, flux, cos_zenith, depth=0.5, scale=1):
+        """
+        Calculate the ratio between the flux at the surface of the Earth to the
+        one observed at a detector under `depth` km of ice.
+
+        :param flux: differential flux, in [something]/GeV
+        :param cos_zenith: cosine of angle between neutrino arrival direction and local zenith
+        :param depth: depth below the Earth's surface, in km
+        :returns: an array of shape (6,T,N), where T is the broadcast shape
+            of `cos_zenith` and `depth`, and N is the number of energy nodes.
+        """
+        # find [number] column density of nucleons along the trajectory in cm^-2
+        # a higher cross-section is equivalent to a larger column depth
+        t = scale*np.atleast_1d(np.vectorize(get_t_earth)(np.arccos(cos_zenith), depth)*Na)
+
+        flux = np.atleast_2d(flux)
+        if flux.shape[0] == 1:
+            flux = np.repeat(flux, 6, axis=0)
+        assert flux.shape == (6,self.energy_nodes)
+
+        num = self.energy_nodes.size
+        flux = np.zeros((6,) + t.shape + (num,))
+        # nu_e, nu_mu: CC absorption and NC downscattering
+        for flavor in range(4):
+            flux[flavor,...] = self._attenuation_for_flavor(flux[flavor,:],flavor,flavor,t)
+
+        # nu_tau: CC absorption and NC downscattering, plus neutrinos
+        # from tau decay
+        for flavor in range(4,6):
+            for out_flavor in range(flavor % 2, flavor, 2):
+                secondary, tau = np.hsplit(self._attenuation_for_flavor(flux[flavor,:],flavor,out_flavor,t), 2)
+                # one contribution each to nu_e and nu_mu
+                flux[out_flavor,...] += secondary
+            # only one contribution to nu_tau
+            flux[flavor,...] += tau
+
+        return flux
+
     @staticmethod
     @memoize
     def _get_cross_section(flavor, target, channel, secondary_flavor=None):
