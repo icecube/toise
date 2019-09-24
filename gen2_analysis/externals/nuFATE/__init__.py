@@ -19,12 +19,15 @@ class NeutrinoCascade(object):
         """
         assert energy_nodes.ndim == 1
         self.energy_nodes = energy_nodes
-        ei, ej = np.meshgrid(energy_nodes, energy_nodes)
-        de = np.diff(np.log(energy_nodes))[0]
+        # find logarithmic distance between nodes
+        dloge = (np.log(self.energy_nodes[-1])-np.log(self.energy_nodes[0]))/(len(self.energy_nodes)-1)
+        # ratio between the interval centered on the node energy and the node energy itself
+        self._width = 2*np.sinh(dloge/2.)
         # Comparing with NuFate paper: multiply by E_j (= E_in) to account
         # for log scale, then by E_i^2/E_j^2 to account for variable change
         # phi -> E^2*phi
-        self.differential_element = de*(ei**2/ej)
+        ei, ej = np.meshgrid(energy_nodes, energy_nodes)
+        self.differential_element = 2*dloge*(ei**2/ej)
 
     def transfer_matrix_element(self, i, flavor, out_flavor, column_density):
         """
@@ -41,8 +44,7 @@ class NeutrinoCascade(object):
         """
         # construct a differential flux that is nonzero in only 1 energy bin
         # and integrates to 1
-        de = np.exp((np.log(self.energy_nodes[-1])-np.log(self.energy_nodes[0]))/(len(self.energy_nodes)-1))
-        flux0 = 1/(self.energy_nodes[i]*de - self.energy_nodes[i]/de)
+        flux0 = 1./(self._width*self.energy_nodes[i])
         flux = np.where(np.arange(self.energy_nodes.size)==i, flux0, 0)
         if out_flavor != flavor:
             # initial flux of nue/numu is zero
@@ -148,7 +150,6 @@ class NeutrinoCascade(object):
         
         :returns: (w,v,ci), the eigenvalues, eigenvectors, and coefficients of `flux` in the basis `v`
         """
-        assert isinstance(flavor,int) and 0 <= flavor < 6
         w, v = self.get_eigenbasis(flavor, out_flavor)
         ci = np.linalg.solve(v, flux)
         return w, v, ci
@@ -183,9 +184,6 @@ class NeutrinoCascade(object):
         :param out_flavor: outgoing neutrino flavor
         :returns: (eigenvalues,eigenvectors) of M
         """
-        assert isinstance(flavor,int) and 0 <= flavor < 6
-        assert isinstance(out_flavor,int) and 0 <= out_flavor < 6
-        assert (flavor % 2) == (out_flavor % 2), "no lepton-number-violating interactions"
         downscattering = self._source_matrix(flavor,flavor) - self._sink_matrix(flavor)
         if out_flavor == flavor:
             RHSMatrix = downscattering
