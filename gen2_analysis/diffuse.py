@@ -337,9 +337,7 @@ class DiffuseAstro(DiffuseNuGen):
 			clear = getattr(getattr(self, attr), 'cache_clear', None)
 			if clear:
 				clear()
-		self._last_params = dict()
-		self._last_expectations = None
-	
+
 	def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
 		__doc__ = AtmosphericNu.point_source_background.__doc__
 		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
@@ -447,9 +445,12 @@ class DiffuseAstro(DiffuseNuGen):
 			chunk.energy_range = 10**bounds
 
 			yield e_center, chunk
-	
+
+	@property
+	def spectral_weight_params(self):
+		return (self._gamma_name,)
+
 	def spectral_weight(self, e_center, **kwargs):
-		self._last_params[self._gamma_name] = kwargs[self._gamma_name]
 		return self._integral_flux(self._aeff, kwargs[self._gamma_name])/self._integral_flux(self._aeff)
 
 	def _apply_flux(self, effective_area, flux, livetime):
@@ -535,7 +536,7 @@ class DiffuseAstro(DiffuseNuGen):
 		# peel off kwargs we consume
 		param = lambda k: k+self._suffix
 		keys = {param(k) for k in ('mu_fraction', 'e_tau_ratio', 'pgamma_fraction')}
-		keys.add(self._gamma_name)
+		keys.update(self.spectral_weight_params)
 		return self._apply_flavor_weights(**{k: kwargs[k] for k in kwargs.keys() if k in keys})
 
 	def expectations(self, gamma=-2, **kwargs):
@@ -580,11 +581,13 @@ class MuonDampedDiffuseAstro(DiffuseAstro):
 		flux[:,1] += knee_flux(e_nu, 15*e_knee)
 	
 		return flux
-	
+
+	@property
+	def spectral_weight_params(self):
+		return ('emu_crit', self._gamma_name)
+
 	def spectral_weight(self, e_center, **kwargs):
 		emu_crit = kwargs['emu_crit']
-		self._last_params[self._gamma_name] = kwargs[self._gamma_name]
-		self._last_params['emu_crit'] = kwargs['emu_crit']
 		specweight = self._oscillate(*(self.pion_decay_flux(e_center, kwargs['emu_crit']).T))
 		if self._fixed_flavor_ratio:
 			avg = specweight.sum(axis=0, keepdims=True)/3.
@@ -739,8 +742,11 @@ class ArbitraryFlux(DiffuseAstro):
                 self._flux_func = flux_func
                 self._invalidate_cache()
 
+        @property
+        def spectral_weight_params(self):
+            return tuple()
 
-	def spectral_weight(self, e_center, **kwargs):
+        def spectral_weight(self, e_center, **kwargs):
                 enu = self._aeff.bin_edges[0]
                 integrated = np.asarray([quad(self._flux_func, enu[i], enu[i+1])[0] for i, e in enumerate(enu[:-1])])
                 # Ahlers flux is for all flavors when we want the flux per flavor
