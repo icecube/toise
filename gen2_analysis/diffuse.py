@@ -495,7 +495,7 @@ class DiffuseAstro(DiffuseNuGen):
 		
 		return total
 
-	@lru_cache(maxsize=64)
+	@lru_cache(maxsize=256)
 	def _apply_flavor_weights(self, **kwargs):
 		# peel off kwargs we consume
 		param = lambda k: k+self._suffix
