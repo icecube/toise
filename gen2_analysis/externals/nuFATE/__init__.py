@@ -209,12 +209,15 @@ class NeutrinoCascadeToShowers(NeutrinoCascade):
     def __total_cross_section(self, enu, flavor, channel):
         return sum((DISCrossSection.create(flavor+1, target, channel).total(enu) for target in ['n', 'p']), np.zeros_like(enu))/2.
 
+    def __differential_final_state_cross_section(self, enu, ef, flavor, channel):
+        return sum((DISCrossSection.create_final_state(flavor+1, target, channel).differential(enu,ef) for target in ['n', 'p']), np.zeros_like(ef))/2.
+
     @memoize
-    def cascade_density(self, flavor):
+    def interaction_density(self, flavor):
         """
-        Calculate number of cascades per meter of ice at each energy in energy_nodes
+        Calculate number of events per meter of ice at each energy in energy_nodes
         :param flavor: 0,1,2,3,4,5 == nue,nuebar,numu,numubar,nutau,nutaubar
-        :returns: number of cascades per meter
+        :returns: number of events per meter
         """
         assert isinstance(flavor, int)
         assert 0 <= flavor < 6
@@ -224,6 +227,12 @@ class NeutrinoCascadeToShowers(NeutrinoCascade):
         enu, ef = np.meshgrid(self.energy_nodes, self.energy_nodes, indexing='ij')
         # all flavors contribute at least to NC
         xsec = np.where(enu-ef > 0, self.__differential_cross_section(enu, enu-ef,flavor,'NC'), 0)
+        # for CC numu, we see only the initial cascade
+        if flavor in (2,3):
+            xsec += np.where(enu-ef > 0, self.__differential_cross_section(enu, enu-ef,flavor,'CC'), 0)
+        # for CC nutau, we can see the tau decay (and neglect the initial cascade)
+        if flavor in (4,5):
+            xsec += np.where(enu-ef > 0, self.__differential_final_state_cross_section(enu, enu-ef,flavor,'CC'), 0)
         # pseudo-integrate over differential cross-sections
         xsec *= self.energy_nodes*self._width
         if flavor < 2:
@@ -257,16 +266,16 @@ class NeutrinoCascadeToShowers(NeutrinoCascade):
         for i in range(self.energy_nodes.size):
             # nu_e, nu_mu: CC absorption and NC downscattering
             for flavor in range(4):
-                transfer_matrix[flavor,i,...] += np.dot(self.transfer_matrix_element(i,flavor,flavor,t), self.cascade_density(flavor))
+                transfer_matrix[flavor,i,...] += np.dot(self.transfer_matrix_element(i,flavor,flavor,t), self.interaction_density(flavor))
 
             # nu_tau: CC absorption and NC downscattering, plus neutrinos
             # from tau decay
             for flavor in range(4,6):
                 for out_flavor in range(flavor % 2, flavor, 2):
                     secondary, tau = np.hsplit(self.transfer_matrix_element(i,flavor,out_flavor,t), 2)
-                    transfer_matrix[flavor,i,...] += np.dot(secondary, self.cascade_density(out_flavor))
+                    transfer_matrix[flavor,i,...] += np.dot(secondary, self.interaction_density(out_flavor))
                     # do not double-count tau contribution
                     if out_flavor == flavor % 2:
-                        transfer_matrix[flavor,i,...] += np.dot(tau, self.cascade_density(flavor))
+                        transfer_matrix[flavor,i,...] += np.dot(tau, self.interaction_density(flavor))
 
         return transfer_matrix
