@@ -200,14 +200,7 @@ class AtmosphericNu(DiffuseNuGen):
 			# just radial bins
 			background.expectations = background.expectations.sum(axis=0)
 		return background
-	
-	def scale_livetime(self, livetime):
-		scaled = copy(self)
-		scale = livetime / scaled._livetime
-		scaled.expectations = {k: v*scale for k,v in scaled.expectations.items()}
-		scaled._livetime = livetime
-		return scaled
-	
+
 	_cache_file = os.path.join(data_dir, 'cache', 'atmospheric_fluxes.pickle')
 	if os.path.exists(_cache_file):
 		with open(_cache_file) as f:
@@ -393,13 +386,7 @@ class DiffuseAstro(DiffuseNuGen):
 		# assert total[...,1].sum() > 0
 
 		return background
-	
-	def scale_livetime(self, livetime):
-		scaled = copy(self)
-		scaled._livetime = livetime
-		scaled._invalidate_cache()
-		return scaled
-	
+
 	def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):
 		"""
 		Yield copies of self with the neutrino spectrum restricted to *decade*
