@@ -64,7 +64,10 @@ class PickleCache(AbstractCacheInstance):
             self.set_many(k,v,timeout)
 
     def delete(self, key):
-        unlink(self._get_filename(key))
+        try:
+            unlink(self._get_filename(key))
+        except OSError:
+            pass
 
 from easy_cache import caches
 caches.set_default(PickleCache())
