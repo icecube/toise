@@ -5,6 +5,7 @@ from functools import partial
 import os
 import cPickle as pickle
 from . import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
+from . import classification_efficiency
 from .util import data_dir, center
 
 def make_key(opts, kwargs):
@@ -109,6 +110,22 @@ def create_cascade_aeff(opts, **kwargs):
 	# pickle.dump(cache, open(cache_file, 'w'), 2)
 	return aeff
 
+def create_starting_aeff(opts, **kwargs):
+
+	for k in 'psi_bins', 'cos_theta':
+		if k in kwargs:
+			kwargs[k] = numpy.asarray(kwargs[k])
+		elif hasattr(opts, k):
+			kwargs[k] = numpy.asarray(getattr(opts, k))
+
+	return effective_areas.create_starting_aeff(
+	    energy_resolution=effective_areas.get_energy_resolution(opts.geometry, opts.spacing, channel='cascade'),
+	    selection_efficiency=effective_areas.HESEishSelectionEfficiency(opts.geometry, opts.spacing, opts.cascade_energy_threshold),
+	    classification_efficiency=classification_efficiency.get_classification_efficiency(opts.geometry, opts.spacing),
+	    surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
+	    psf=angular_resolution.get_angular_resolution(opts.geometry, opts.spacing, opts.angular_resolution_scale, channel='cascade'),
+	    **kwargs)
+
 class aeff_factory(object):
 	"""
 	Create effective areas, lazily
@@ -151,7 +168,8 @@ class aeff_factory(object):
 			aeffs['shadowed_tracks'] = (nu[0], mu[0])
 			aeffs['unshadowed_tracks'] = (nu[1], mu[1])
 			if opts.cascade_energy_threshold is not None:
-				aeffs['cascades']=(create_cascade_aeff(opts,psi_bins=psi_bins['cascades'], **kwargs), None)
+				for channel, aeff in create_starting_aeff(opts,psi_bins=psi_bins['cascades'], **kwargs).items():
+					aeffs[channel] = (aeff, None)
 		return aeffs
 	
 	def __call__(self, name):
