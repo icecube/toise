@@ -46,11 +46,19 @@ class TauDecay:
             +0.13*cls.to_a1(z,polarization) \
             +0.13*cls.to_other_hadrons(z,polarization) \
             ,0)
+    @classmethod
+    def to_hadrons(cls, z, polarization):
+        return np.where(z < 1, np.where(z > 0, 
+            0.12*cls.to_pion(z,polarization) \
+            +0.26*cls.to_rho(z,polarization) \
+            +0.13*cls.to_a1(z,polarization) \
+            +0.13*cls.to_other_hadrons(z,polarization) \
+            ,0),0)
 
 @np.vectorize
 def tau_regen_crossdiff(nucrossdiff, e1, e2, polarization):
     """
-    Calculate differentiall cross-section for nu_tau -> nu_tau, assuming
+    Calculate differential cross-section for nu_tau -> nu_tau, assuming
     that the intermediate tau lepton decays instantly.
     
     :param nucrossdiff: a callable with the same signature as nusigma.nucrossdiff
@@ -77,9 +85,38 @@ def tau_regen_crossdiff(nucrossdiff, e1, e2, polarization):
     return scipy.integrate.quad(term, lo, hi, points=points)[0]
 
 @np.vectorize
+def second_bang_crossdiff(nucrossdiff, e1, e2, polarization):
+    """
+    Calculate differential cross-section for nu_tau -> hadron cascade, assuming
+    that the intermediate tau lepton decays instantly.
+    
+    :param nucrossdiff: a callable with the same signature as nusigma.nucrossdiff
+    """
+    assert polarization in (-1,1)
+    if e2 > e1:
+        return 0.
+    # cf inner integrand of eq 3 from nuFATE paper
+    # substituted e_tau for y and transforming to log space
+    def term(loge):
+        e_tau = np.exp(loge)
+        if e_tau < e2:
+            return 0.
+        else:
+            # nb: d(e_tau)/d(log(e_tau)) cancels d(z)/d(e2)
+            return TauDecay.to_hadrons(1-e2/e_tau, polarization)*nucrossdiff(e1,e_tau)
+    hi = np.log(e1)
+    lo = hi - 10
+    # lo = np.log(energy_nodes[0])
+    # note points where TauDecay.to_any() has a 1st-order discontinuity
+    points = np.log(e2/(TauDecay.breakpoints))
+    # clip these to the integration range to keep quadpack happy
+    points = points[(points<hi)&(points>lo)]
+    return scipy.integrate.quad(term, lo, hi, points=points)[0]
+
+@np.vectorize
 def tau_secondary_crossdiff(nucrossdiff, e1, e2, polarization):
     """
-    Calculate differentiall cross-section for nu_tau -> nu_(e|mu), assuming
+    Calculate differential cross-section for nu_tau -> nu_(e|mu), assuming
     that the intermediate tau lepton decays instantly.
     
     :param nucrossdiff: a callable with the same signature as nusigma.nucrossdiff
