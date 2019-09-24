@@ -3,13 +3,11 @@ import numpy as np
 from functools import partial, wraps
 import photospline
 from . import taudecay
-from gen2_analysis.util import data_dir
+import gen2_analysis.util
 import os
 import inspect
 import itertools
-from argparse import Namespace
-import cPickle as pickle
-import hashlib
+from toolz import memoize
 
 TOTAL_XSEC_BIAS = 80
 DPDX_BIAS = 10
@@ -17,7 +15,7 @@ ENU_GRID = np.logspace(1,15,14*2 + 1)
 X_GRID = np.linspace(0,1,6*30 + 1)
 
 def _get_cache_dir():
-    cache_dir = os.path.join(data_dir, 'cross_sections', 'cteq08')
+    cache_dir = os.path.join(gen2_analysis.util.data_dir, 'cross_sections', 'cteq08')
     if not os.path.isdir(cache_dir):
         os.mkdir(cache_dir)
     return cache_dir
@@ -131,7 +129,9 @@ class DISCrossSection(object):
     def __init__(self, total_spline, differential_spline):
         self.sigma = total_spline
         self.dpdx = differential_spline
+
     @classmethod
+    @memoize
     def create(cls, nutype, target, channel):
         """
         Create a parameterization of the neutrino-nucleon interaction cross-section
@@ -140,7 +140,9 @@ class DISCrossSection(object):
             fit_total(nutype, target, channel),
             fit_differential(nutype, target, channel)
         )
+
     @classmethod
+    @memoize
     def create_secondary(cls, nutype, final_nutype, target, channel):
         """
         Create a parameterization of the tau neutrino-nucleon interaction cross-section

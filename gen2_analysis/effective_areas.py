@@ -292,6 +292,12 @@ def get_cascade_production_density(ct_edges=None):
 	edges, efficiency = _interpolate_production_efficiency(center(ct_edges), 'cascade_efficiency.hdf5', ['e', 'mu', 'tau'])
 	return (edges[0], ct_edges, edges[2]), efficiency
 
+def calculate_cascade_production_density(ct_edges, energy_edges, depth=0.5):
+	from gen2_analysis.externals import nuFATE
+
+	cc = nuFATE.NeutrinoCascadeToShowers(np.exp(center(np.log(energy_edges))))
+	return (energy_edges, ct_edges, energy_edges), cc.transfer_matrix(center(ct_edges), depth)
+
 def get_doublebang_production_density(ct_edges=None):
 	"""
 	Get the probability that a muon neutrino of energy E_nu from zenith angle
@@ -799,7 +805,7 @@ def create_radio_aeff(
     energy_resolution=get_energy_resolution(channel='radio'),
     psf=get_angular_resolution(channel='radio'),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
-    cos_theta=None,):
+    cos_theta=np.linspace(-1,1,21),neutrino_energy=np.logspace(6,12,61)):
     """
     Create an effective area for a nameless radio array
     """
@@ -808,7 +814,7 @@ def create_radio_aeff(
         nside = cos_theta
 
     # Step 1: Density of final states per meter
-    (e_nu, cos_theta, e_shower), aeff = get_cascade_production_density(cos_theta)
+    (e_nu, cos_theta, e_shower), aeff = calculate_cascade_production_density(cos_theta, neutrino_energy)
     # The cascade production density explicitly excludes taus with decay lengths
     # longer than 300 m. Since radio is more about event counting than
     # detailed reconstruction, we add these back in an approximate fashion.

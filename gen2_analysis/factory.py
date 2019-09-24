@@ -133,7 +133,7 @@ class aeff_factory(object):
 		aeffs = {}
 		if opts.geometry in ('ARA', 'Radio'):
 			psi_bins = kwargs.pop('psi_bins')
-			for k in 'cos_theta',:
+			for k in 'cos_theta','neutrino_energy':
 				if k in kwargs:
 					kwargs[k] = numpy.asarray(kwargs[k])
 				elif hasattr(opts, k):
