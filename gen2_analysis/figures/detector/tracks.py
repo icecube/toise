@@ -3,7 +3,10 @@
 from gen2_analysis.figures import figure
 
 @figure
-def performance():
+def performance(tabulated_psf=False):
+    """
+    :param tabulated_psf: also show tabulated version of the King PSF
+    """
     import matplotlib.pyplot as plt
     import numpy as np
     from gen2_analysis import plotting, angular_resolution, effective_areas, surfaces, util
@@ -18,6 +21,7 @@ def performance():
             return np.radians(5)
 
     psf = angular_resolution.SplineKingPointSpreadFunction()
+    psf_tab = angular_resolution.get_angular_resolution('Sunflower', 240, psf_class=(0,1))
     psf_ic = angular_resolution.get_angular_resolution('IceCube')
     aeff = effective_areas.MuonEffectiveArea('Sunflower', 240)
 
@@ -68,6 +72,8 @@ def performance():
     ctfine = np.linspace(-1, 1, 101)
     for e in 1e4, 1e5, 1e6, 1e7:
         line = ax.plot(ctfine, np.degrees(psf.get_quantile(0.5, e, ctfine)), label=plotting.format_energy('%d', e))[0]
+        if tabulated_psf:
+            ax.plot(ctfine, np.degrees(psf_tab.get_quantile(0.5, e, ctfine)), color=line.get_color(), ls=':')
     icmed = np.degrees(median_opening_angle(psf_ic, 1e4, ctfine))
     ax.plot([-0.4, 0.4], [np.mean(icmed)]*2, ls='--', color='grey')
     ax.annotate('IceCube 10 TeV', (0, np.mean(icmed)), (0, -3),
