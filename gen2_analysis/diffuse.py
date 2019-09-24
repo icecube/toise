@@ -15,6 +15,11 @@ from functools import partial
 from util import *
 from .pointsource import is_zenith_weight
 
+try:
+	from functools import lru_cache
+except ImportError:
+	from backports.functools_lru_cache import lru_cache
+
 class NullComponent(object):
 	"""
 	A flux component that predicts zero events. This is useful for padding out
@@ -328,6 +333,10 @@ class DiffuseAstro(DiffuseNuGen):
 		return (0.5e-18*constants.cm2*constants.annum)*(intflux(enu[1:], gamma) - intflux(enu[:-1], gamma))
 	
 	def _invalidate_cache(self):
+		for attr in dir(self):
+			clear = getattr(getattr(self, attr), 'cache_clear', None)
+			if clear:
+				clear()
 		self._last_params = dict()
 		self._last_expectations = None
 	
@@ -442,10 +451,19 @@ class DiffuseAstro(DiffuseNuGen):
 	def spectral_weight(self, e_center, **kwargs):
 		self._last_params[self._gamma_name] = kwargs[self._gamma_name]
 		return self._integral_flux(self._aeff, kwargs[self._gamma_name])/self._integral_flux(self._aeff)
-	
-	def calculate_expectations(self, **kwargs):
-		if self._last_expectations is not None and all([self._last_params[k] == kwargs[k] for k in self._last_params]):
-			return self._last_expectations
+
+	def _apply_flux(self, effective_area, flux, livetime):
+		"""apply flux without summing over flavor"""
+		if effective_area.shape[2] > 1:
+			return self._reduce_flux(effective_area, flux[...,None,None], livetime)
+		else:
+			return (effective_area*flux[...,None,None]*livetime).sum(axis=1)
+
+	@lru_cache(maxsize=64)
+	def _apply_flux_weights(self, **kwargs):
+		"""
+		:returns: expectations by flavor (shape 6 x expectations)
+		"""
 		energy = self._aeff.bin_edges[0]
 		centers = 0.5*(energy[1:] + energy[:-1])
 		specweight = self.spectral_weight(centers, **kwargs)
@@ -455,57 +473,71 @@ class DiffuseAstro(DiffuseNuGen):
 			specweight = specweight[...,None]
 		
 		flux = (self._flux*specweight)
-		
-		param = lambda k: k+self._suffix
-		
-		if param('mu_fraction') in kwargs or param('pgamma_fraction') in kwargs:
-			flavor_weight = 3*numpy.ones(6)
-			if param('mu_fraction') in kwargs:
-				eratio, mu = kwargs[param('e_tau_ratio')], kwargs[param('mu_fraction')]
-				e = eratio*(1-mu)
-				# assert e+mu <= 1.
-				flavor_weight[0:2] *= e
-				flavor_weight[2:4] *= mu
-				flavor_weight[4:6] *= (1. - e - mu)
-				for k in param('e_tau_ratio'), param('mu_fraction'):
-					self._last_params[k] = kwargs[k]
-			# See
-			# The Glashow resonance at IceCube: signatures, event rates and pp vs. p-gamma interactions
-			# Bhattacharya et al
-			# http://arxiv.org/abs/1108.3163
-			if param('pgamma_fraction') in kwargs:
-				pgamma_fraction = kwargs[param('pgamma_fraction')]
-				assert param('mu_fraction') not in kwargs, "flavor fit and pp/pgamma are mutually exclusive"
-				assert pgamma_fraction >= 0 and pgamma_fraction <= 1
-				flavor_weight[0] = 1 - pgamma_fraction*(1 - 0.78/0.5)
-				flavor_weight[1] = 1 - pgamma_fraction*(1 - 0.22/0.5)
-				flavor_weight[2::2] = 1 - pgamma_fraction*(1 - 0.61/0.5)
-				flavor_weight[3::2] = 1 - pgamma_fraction*(1 - 0.39/0.5)
-				self._last_params[param('pgamma_fraction')] = pgamma_fraction
-			flux = flux*flavor_weight[:,None,None]
-
-		
+		# sum over neutrino energies
 		total = self._apply_flux(self._aeff.values, flux, self._livetime)
 		if not self._with_psi:
-			total = total.sum(axis=2)
-			assert total.ndim == 2
-		else:
+			total = total.sum(axis=3)
 			assert total.ndim == 3
+		else:
+			assert total.ndim == 4
 		
 		# up to now we've assumed that everything is azimuthally symmetric and
 		# dealt with zenith bins/healpix rings. repeat the values in each ring
 		# to broadcast onto a full healpix map.
 		if self.is_healpix:
-			total = total.repeat(self._aeff.ring_repeat_pattern, axis=0)
-		if total.shape[0] == 1:
-			total = total.reshape(total.shape[1:])
+			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
+		# FIXME is dim 1 still the angular dimension?
+		if total.shape[1] == 1:
+			total = numpy.squeeze(total, axis=1)
 		
 		if not self._with_energy:
-			total = total.sum(axis=0)
+			total = total.sum(axis=2)
 		
-		self._last_expectations = total
-		return self._last_expectations
-	
+		return total
+
+	@lru_cache(maxsize=64)
+	def _apply_flavor_weights(self, **kwargs):
+		# peel off kwargs we consume
+		param = lambda k: k+self._suffix
+		flavor_keys = {param(k) for k in ('mu_fraction', 'e_tau_ratio', 'pgamma_fraction')}
+		flavor_kwargs = {k: kwargs[k] for k in kwargs.keys() if k in flavor_keys}
+
+		# pass remainder upstream
+		spec_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in flavor_keys}
+		expectations_by_flavor = self._apply_flux_weights(**spec_kwargs)
+
+		if param('mu_fraction') in kwargs or param('pgamma_fraction') in flavor_kwargs:
+			flavor_weight = 3*numpy.ones((6,)+(1,)*(expectations_by_flavor.ndim-1))
+			if param('mu_fraction') in flavor_kwargs:
+				eratio, mu = flavor_kwargs[param('e_tau_ratio')], flavor_kwargs[param('mu_fraction')]
+				e = eratio*(1-mu)
+				# assert e+mu <= 1.
+				flavor_weight[0:2,...] *= e
+				flavor_weight[2:4,...] *= mu
+				flavor_weight[4:6,...] *= (1. - e - mu)
+			# See
+			# The Glashow resonance at IceCube: signatures, event rates and pp vs. p-gamma interactions
+			# Bhattacharya et al
+			# http://arxiv.org/abs/1108.3163
+			if param('pgamma_fraction') in flavor_kwargs:
+				pgamma_fraction = flavor_kwargs[param('pgamma_fraction')]
+				assert param('mu_fraction') not in flavor_kwargs, "flavor fit and pp/pgamma are mutually exclusive"
+				assert pgamma_fraction >= 0 and pgamma_fraction <= 1
+				flavor_weight[0,...] = 1 - pgamma_fraction*(1 - 0.78/0.5)
+				flavor_weight[1,...] = 1 - pgamma_fraction*(1 - 0.22/0.5)
+				flavor_weight[2::2,...] = 1 - pgamma_fraction*(1 - 0.61/0.5)
+				flavor_weight[3::2,...] = 1 - pgamma_fraction*(1 - 0.39/0.5)
+			return (expectations_by_flavor*flavor_weight).sum(axis=0)
+		else:
+			return expectations_by_flavor.sum(axis=0)
+
+	def calculate_expectations(self, **kwargs):
+		# peel off kwargs we consume
+		param = lambda k: k+self._suffix
+		keys = {param(k) for k in ('mu_fraction', 'e_tau_ratio', 'pgamma_fraction')}
+		keys.add(self._gamma_name)
+		return self._apply_flavor_weights(**{k: kwargs[k] for k in kwargs.keys() if k in keys})
+
 	def expectations(self, gamma=-2, **kwargs):
 		r"""
 		:param gamma: the spectral index :math:`\gamma`.
