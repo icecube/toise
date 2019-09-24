@@ -170,7 +170,7 @@ class NeutrinoCascade(object):
         :param flavor: incoming neutrino type (0-6)
         :param out_flavor: outgoing neutrino type (0-6)
         """
-        return (self.differential_cross_section(flavor, out_flavor)*self.differential_element).T
+        return np.triu((self.differential_cross_section(flavor, out_flavor)*self.differential_element).T, 1)
 
     @memoize
     def get_eigenbasis(self, flavor, out_flavor):
