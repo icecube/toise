@@ -315,7 +315,6 @@ class DiffuseAstro(DiffuseNuGen):
 		self._gamma_name = gamma_name
 		self._suffix = ''
 		self._with_energy = True
-		self._invalidate_cache()
 	
 	@staticmethod
 	def _integral_flux(aeff, gamma=-2):
