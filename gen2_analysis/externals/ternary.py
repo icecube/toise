@@ -8,7 +8,7 @@ import matplotlib
 from matplotlib.axes import Axes
 from matplotlib.patches import Circle, Polygon
 from matplotlib.path import Path
-from matplotlib.ticker import NullLocator, Formatter, FixedLocator
+from matplotlib.ticker import NullLocator, Formatter, FixedLocator, MultipleLocator
 from matplotlib.transforms import Affine2D, IdentityTransform, BboxTransformTo, Transform, ScaledTranslation
 from matplotlib.transforms import TransformedBbox, BboxTransformFrom
 from matplotlib import transforms as mtransforms
@@ -53,10 +53,12 @@ class TernaryAxes(Axes):
             self = fig.add_axes(subplotspec, projection="ternary1")
             
         self.ab = self
-        self.bc = self.figure.add_axes(self.get_position(True), sharex=self,
-                                        projection="ternary2", frameon=True)
-        self.ca = self.figure.add_axes(self.get_position(True), sharex=self,
-                                        projection="ternary3", frameon=True)
+        self.ab.patch.set_visible(False)
+        self.bc = self.figure.add_axes(self.get_position(True), sharex=self.ab,
+                                        projection="ternary2", frameon=True, zorder=-1)
+        self.bc.patch.set_visible(False)
+        self.ca = self.figure.add_axes(self.get_position(True), sharex=self.ab,
+                                        projection="ternary3", frameon=True, zorder=-1)
         return self
     
     def grid(self, *args, **kwargs):
@@ -170,9 +172,11 @@ class TernaryAxes3(TernaryAxes2):
         h = np.sqrt(3)/2
         trans.rotate_around(1, 1-h, self.angle).translate(-1, 0)
 
-def flavor_triangle(fig=None, subplotspec='111'):
+def flavor_triangle(fig=None, subplotspec='111', grid=False):
     ax = TernaryAxes.create(fig, subplotspec)
-    ax.ab.xaxis.set_ticks(ax.ab.xaxis.get_ticklocs()[::2])
+    ax.grid(grid, 'minor', zorder=0, linewidth=0.5)
+    ax.ab.xaxis.set_major_locator(MultipleLocator(0.2))
+    ax.ab.xaxis.set_minor_locator(MultipleLocator(0.1))
     rot = 60
     sgn = 1
     for subax in (ax.ab, ax.bc, ax.ca):
@@ -194,6 +198,10 @@ def flavor_triangle(fig=None, subplotspec='111'):
             l = xt.tick1line
             l.set_marker(p)
             l.set_markersize(10)
+        for xt in subax.xaxis.get_minor_ticks():
+            l = xt.tick1line
+            l.set_marker(p)
+            l.set_markersize(3)
         
         rot -= 60
         sgn *= -1
