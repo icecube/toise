@@ -106,7 +106,7 @@ class Combination(object):
 				combo.energy_center = max(ecenters)
 				yield max(ecenters), combo
 
-class LLHEval:
+class LLHEval(object):
 	"""
 	Object containing a Poisson likelihood fit
 	"""
