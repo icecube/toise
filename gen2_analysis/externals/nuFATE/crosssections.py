@@ -1,63 +1,17 @@
 
 import numpy as np
-from functools import partial, wraps
-import photospline
+from functools import partial
 from . import taudecay
 import gen2_analysis.util
 import os
-import inspect
 import itertools
-from toolz import memoize
+import photospline
+from gen2_analysis.cache import ecached, lru_cache
 
 TOTAL_XSEC_BIAS = 80
 DPDX_BIAS = 10
 ENU_GRID = np.logspace(1,15,14*2 + 1)
 X_GRID = np.linspace(0,1,6*30 + 1)
-
-def _get_cache_dir():
-    cache_dir = os.path.join(gen2_analysis.util.data_dir, 'cross_sections', 'cteq08')
-    if not os.path.isdir(cache_dir):
-        os.mkdir(cache_dir)
-    return cache_dir
-
-def _stale(target, dependencies):
-    try:
-        mtime = os.stat(target).st_mtime
-    except OSError:
-        return True
-    for dep in dependencies:
-        if os.stat(dep).st_mtime > mtime:
-            return True
-    return False
-
-def cached_spline(f, dependencies):
-    """
-    cache the results of photospline.SplineTable-returning function in a file,
-    recalculating whenever the source module is updated
-    """
-    spec = inspect.getargspec(f)
-    types = ['nu{}{}'.format(*args) for args in itertools.product(['e', 'mu', 'tau'], ['', 'bar'])]
-    name = f.__name__[4:]
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        label = [
-            name,
-            types[args[spec.args.index('nutype')]-1],
-            args[spec.args.index('channel')],
-            args[spec.args.index('target')],
-            'fits'
-        ]
-        if 'final_nutype' in spec.args:
-            label.insert(-2, types[args[spec.args.index('final_nutype')]-1])
-        cache = os.path.join(_get_cache_dir(), '.'.join(label))
-        if _stale(cache, dependencies):
-            print('{} is stale'.format(cache))
-            spline = f(*args, **kwargs)
-            spline.write(cache)
-        else:
-            spline = photospline.SplineTable(cache)
-        return spline
-    return wrapper
 
 def pad_knots(knots, order=2):
     """
@@ -67,17 +21,17 @@ def pad_knots(knots, order=2):
     post = knots[-1] + (knots[-1]-knots[-2])*np.arange(1, order+1)
     return np.concatenate((pre, knots, post))
 
-@partial(cached_spline, dependencies=[__file__])
-def fit_total(nutype, target, channel, smoothness=1e-12):
+@ecached(__name__+'.total.{nutype}.{target}.{channel}')
+def fit_total(nutype, target, channel):
     import nusigma
     nucross = np.vectorize(partial(nusigma.nucross, nu=nutype, targ=target, int_bn=channel, how=2))
     x = np.log(ENU_GRID)
     knots = pad_knots(x)
     y = np.log(nucross(ENU_GRID)) + TOTAL_XSEC_BIAS
     z, w = photospline.ndsparse.from_data(y, np.ones(y.shape))
-    return photospline.glam_fit(z,w,[x],[knots],[2],[smoothness],[2])
+    return photospline.glam_fit(z,w,[x],[knots],[2],[1e-12],[2])
 
-@partial(cached_spline, dependencies=[__file__])
+@ecached(__name__+'.differential.{nutype}.{target}.{channel}')
 def fit_differential(nutype, target, channel):
     """
     Fit log(dp/dx) as a function of log(enu) and x
@@ -93,7 +47,7 @@ def fit_differential(nutype, target, channel):
     z, w = photospline.ndsparse.from_data(log_dpdx, np.where(np.isfinite(log_dpdx), 1, 0))
     return photospline.glam_fit(z,w,centers,knots,[2]*2,[1e-16,1e-16],[2]*2)
 
-@partial(cached_spline, dependencies=[__file__, taudecay.__file__])
+@ecached(__name__+'.differential_secondary.{nutype}.{final_nutype}.{target}.{channel}')
 def fit_differential_secondary(nutype, final_nutype, target, channel, nknots=[20,50], smoothness=[1e-16,1e-16]):
     """
     Fit log(dp/dx) as a function of log(enu) and x
@@ -125,7 +79,7 @@ def fit_differential_secondary(nutype, final_nutype, target, channel, nknots=[20
     z, w = photospline.ndsparse.from_data(log_dpdx, np.where(np.isfinite(log_dpdx), 1, 0))
     return photospline.glam_fit(z,w,centers,knots,[2]*2,[1e-16,1e-16],[2]*2)
 
-@partial(cached_spline, dependencies=[__file__, taudecay.__file__])
+@ecached(__name__+'.differential_final_state.{nutype}.{target}.{channel}')
 def fit_differential_final_state(nutype, target, channel, nknots=[20,50], smoothness=[1e-16,1e-16]):
     """
     Fit log(dp/dx) as a function of log(enu) and x
@@ -160,7 +114,7 @@ class DISCrossSection(object):
         self._dpdx = differential_spline
 
     @classmethod
-    @memoize
+    @lru_cache()
     def create(cls, nutype, target, channel):
         """
         Create a parameterization of the neutrino-nucleon interaction cross-section
@@ -171,7 +125,7 @@ class DISCrossSection(object):
         )
 
     @classmethod
-    @memoize
+    @lru_cache()
     def create_secondary(cls, nutype, final_nutype, target, channel):
         """
         Create a parameterization of the tau neutrino-nucleon interaction cross-section
@@ -182,7 +136,7 @@ class DISCrossSection(object):
         )
 
     @classmethod
-    @memoize
+    @lru_cache()
     def create_final_state(cls, nutype, target, channel):
         """
         Create a parameterization of the tau neutrino-nucleon interaction cross-section
