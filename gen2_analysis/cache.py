@@ -5,7 +5,9 @@ from .util import data_dir
 from os.path import join
 from os import listdir, unlink
 import cPickle as pickle
+from photospline import SplineTable
 import gzip
+import json
 import time
 
 class PickleCache(AbstractCacheInstance):
@@ -13,40 +15,61 @@ class PickleCache(AbstractCacheInstance):
     def __init__(self, base_dir=join(data_dir, 'cache'), *args, **kwargs):
         super(PickleCache, self).__init__(*args, **kwargs)
         self._base_dir = base_dir
+        try:
+            with open(join(self._base_dir, 'manifest.json')) as f:
+                self._manifest = json.load(f)
+        except IOError:
+            self._manifest = {}
         self._sweep()
 
     def _get_filename(self, key):
-        return join(self._base_dir, key+'.pkl.gz')
-    
+        return join(self._base_dir, self._manifest[key]['filename'])
+
+    def _dump_manifest(self):
+        with open(join(self._base_dir, 'manifest.json'), 'w') as f:
+            json.dump(self._manifest, f, indent=1)
+
+    def _dump_item(self, key, value):
+        """
+        Special-case serialization for SplineTable
+        """
+        if isinstance(value, SplineTable):
+            fname = key+'.fits'
+            value.write(join(self._base_dir, fname))
+        else:
+            fname = key+'.pkl.gz'
+            with gzip.open(fname, 'wb') as f:
+                pickle.dump(value, f, protocol=pickle.HIGHEST_PROTOCOL)
+        return fname
+
+    def _load_item(self, fname):
+        if fname.endswith('.fits'):
+            return SplineTable(fname)
+        elif fname.endswith('.json.gz'):
+            with gzip.open(fname, 'r') as f:
+                return pickle.load(f)
+        else:
+            raise ValueError("Don't know how to load {}".format(fname))
+
     def _sweep(self):
-        cache_dir = join(data_dir, 'cache')
-        for fname in listdir(self._base_dir):
-            fname = join(self._base_dir, fname)
-            if fname.endswith('.pkl.gz'):
-                with gzip.open(fname, 'r') as f:
-                    try:
-                        item = pickle.load(f)
-                    except EOFError:
-                        unlink(fname)
-                        continue
-                if item['expires'] is not None and item['expires'] <= time.time():
-                    unlink(fname)
+        removed = set()
+        for key, item in self._manifest.items():
+            if item['expires'] is not None and item['expires'] <= time.time():
+                unlink(join(self._base_dir, item['filename']))
+                removed.add(key)
+        for k in removed:
+            del self._manifest[k]
+        self._dump_manifest()
 
     def get(self, key, default=NOT_FOUND):
-        try:
+        if not key in self._manifest:
+            return default
+        else:
             try:
-                with gzip.open(self._get_filename(key), 'r') as f:
-                    item = pickle.load(f)
+                return self._load_item(self._get_filename(key))
             except EOFError:
                 self.delete(key)
                 return default
-            if item['expires'] is not None and item['expires'] <= time.time():
-                self.delete(key)
-                return default
-            else:
-                return item['value']
-        except IOError:
-            return default
 
     def get_many(self, keys):
         return [self.get(k) for k in keys]
@@ -56,18 +79,28 @@ class PickleCache(AbstractCacheInstance):
             expires = None
         else:
             expires = time.time() + timeout
-        with gzip.open(self._get_filename(key), 'wb') as f:
-            pickle.dump({'key': key, 'expires': expires, 'value': value}, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        filename = self._dump_item(key, value)
+        self._manifest[key] = {'filename': filename, 'expires': expires}
+        self._dump_manifest()
 
     def set_many(self, data_dict, timeout=DEFAULT_TIMEOUT):
-        for k, v in data_dict.items():
-            self.set_many(k,v,timeout)
+        if timeout == DEFAULT_TIMEOUT:
+            expires = None
+        else:
+            expires = time.time() + timeout
+        for key, value in data_dict.items():
+            filename = self._dump_item(key, value)
+            self._manifest[key] = {'filename': filename, 'expires': expires}
+
+        self._dump_manifest()
 
     def delete(self, key):
         try:
             unlink(self._get_filename(key))
         except OSError:
             pass
+        del self._manifest[key]
 
 from easy_cache import caches
 caches.set_default(PickleCache())
