@@ -611,6 +611,46 @@ class AhlersGZKFlux(object):
 	def __call__(self, e_center):
                 return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
 
+class VanVlietGZKFlux(object):
+	"""
+	See Fig. 1 of https://arxiv.org/pdf/1901.01899.pdf
+	alpha = 2.0, Emax = 100 EeV
+	"""
+	def __init__(self):
+		from scipy import interpolate
+	
+		logE, logWeight = numpy.log10(numpy.loadtxt(StringIO("""
+			2.387e6	5.206e-11
+			3.370e6	7.387e-11
+			4.973e6	9.571e-11
+			7.536e6	1.156e-10
+			2.271e7	1.486e-10
+			2.924e7	1.595e-10
+			3.708e7	1.937e-10
+			4.906e7	2.665e-10
+			6.551e7	3.957e-10
+			9.479e7	6.559e-10
+			1.376e8	1.093e-9
+			1.984e8	1.697e-9
+			2.735e8	2.248e-9
+			4.320e8	3.149e-9
+			6.267e8	3.794e-9
+			1.087e9	4.135e-9
+			2.021e9	3.550e-9
+			3.383e9	2.817e-9
+			4.993e9	1.974e-9
+			6.766e9	1.373e-9
+			8.985e9	1.022e-9
+			1.192e10	6.419e-10
+			1.681e10	3.493e-10
+			2.333e10	1.811e-10
+			3.044e10	9.534e-11
+			3.520e10	6.377e-11
+			"""))).T
+
+		self._interpolant = interpolate.interp1d(logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
+	def __call__(self, e_center):
+		return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
 
 def atmos_flux(enu, model):
     """Returns the atmospheric diff flux at enu, averaged
@@ -687,6 +727,10 @@ class AhlersGZK(ArbitraryFlux):
 		super(AhlersGZK, self).__init__(*args, **kwargs)
 		self._flux_func = AhlersGZKFlux()
 
+class VanVlietGZK(ArbitraryFlux):
+	def __init__(self, *args, **kwargs):
+		super(VanVlietGZK, self).__init__(*args, **kwargs)
+		self._flux_func = VanVlietGZKFlux()
 
 def transform_map(skymap):
 	"""
