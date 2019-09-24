@@ -146,26 +146,21 @@ class KingPointSpreadFunction(KingPointSpreadFunctionBase):
 class SplineKingPointSpreadFunction(KingPointSpreadFunctionBase):
     def __init__(self, fname='Sunflower_240_kingpsf1', **kwargs):
         super(SplineKingPointSpreadFunction, self).__init__(**kwargs)
-        from icecube.photospline import I3SplineTable
-        
+        from photospline import SplineTable
+
         if not fname.startswith('/'):
             fname = os.path.join(data_dir, 'psf', fname)
-        
-        self._splines = dict(sigma=I3SplineTable(fname + '.sigma.fits'), gamma=I3SplineTable(fname + '.gamma.fits'))
-    
-    @staticmethod
-    @numpy.vectorize
-    def _eval(spline, log_energy, cos_theta):
-        return spline.eval([log_energy, cos_theta])
-    
+
+        self._splines = dict(sigma=SplineTable(fname + '.sigma.fits'), gamma=SplineTable(fname + '.gamma.fits'))
+
     def get_params(self, log_energy, cos_theta):
         """
         Interpolate for sigma and gamma
         """
-        
-        sigma = 10**self._eval(self._splines['sigma'], log_energy, cos_theta)
-        gamma = 10**self._eval(self._splines['gamma'], log_energy, cos_theta) + 1
-        
+
+        sigma = 10**self._splines['sigma'].evaluate_simple([log_energy, cos_theta])
+        gamma = 10**self._splines['gamma'].evaluate_simple([log_energy, cos_theta]) + 1
+
         return sigma, gamma
 
 class PotemkinCascadePointSpreadFunction(object):
