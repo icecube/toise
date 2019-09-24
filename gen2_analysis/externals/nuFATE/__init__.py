@@ -5,6 +5,8 @@ from itertools import product
 from .crosssections import DISCrossSection, GlashowResonanceCrossSection
 from .earth import get_t_earth
 
+Na = 6.0221415e23
+
 class NeutrinoCascade(object):
     """
     Propagate a neutrino flux through the Earth using the method described in
@@ -74,7 +76,6 @@ class NeutrinoCascade(object):
             trajectory.
         """
         # find [number] column density of nucleons along the trajectory in cm^-2
-        Na = 6.0221415e23
         t = np.atleast_1d(np.vectorize(get_t_earth)(np.arccos(cos_zenith), depth)*Na)
 
         num = self.energy_nodes.size
@@ -199,3 +200,73 @@ class NeutrinoCascade(object):
             ])
         w, v = np.linalg.eig(RHSMatrix)
         return w, v
+
+class NeutrinoCascadeToShowers(NeutrinoCascade):
+
+    def __differential_cross_section(self, enu, ef, flavor, channel):
+        return sum((DISCrossSection.create(flavor+1, target, channel).differential(enu,ef) for target in ['n', 'p']), np.zeros_like(ef))/2.
+
+    def __total_cross_section(self, enu, flavor, channel):
+        return sum((DISCrossSection.create(flavor+1, target, channel).total(enu) for target in ['n', 'p']), np.zeros_like(enu))/2.
+
+    @memoize
+    def cascade_density(self, flavor):
+        """
+        Calculate number of cascades per meter of ice at each energy in energy_nodes
+        :param flavor: 0,1,2,3,4,5 == nue,nuebar,numu,numubar,nutau,nutaubar
+        :returns: number of cascades per meter
+        """
+        assert isinstance(flavor, int)
+        assert 0 <= flavor < 6
+        # convert differential cross section (cm^2 GeV^-1) to interaction density (cm^-1)
+        # [d\sigma/dE \rho N_A \delta E] = [(cm^2 GeV^-1) (g cm^-3) (g^-1) (GeV) (cm m^-1)] = [m^-1]
+        density_factor = 1.020 * Na * 100
+        enu, ef = np.meshgrid(self.energy_nodes, self.energy_nodes, indexing='ij')
+        # all flavors contribute at least to NC
+        xsec = np.where(enu-ef > 0, self.__differential_cross_section(enu, enu-ef,flavor,'NC'), 0)
+        # pseudo-integrate over differential cross-sections
+        xsec *= self.energy_nodes*self._width
+        if flavor < 2:
+            # assume CC nu_e goes entirely into visible energy
+            xsec += np.diag(self.__total_cross_section(self.energy_nodes,flavor,'CC'))
+        if flavor == 1:
+            # ditto for GR nu_e_bar
+            xsec += np.diag(GlashowResonanceCrossSection().total(self.energy_nodes))
+
+        return xsec*density_factor
+
+    def transfer_matrix(self, cos_zenith, depth=0.5):
+        """
+        Calculate a transfer matrix that can be used to convert a neutrino flux
+        at the surface of the Earth to a rate of showers (m^-1) in a detector
+        under `depth` km of ice.
+
+        :param cos_zenith: cosine of angle between neutrino arrival direction and local zenith
+        :param depth: depth below the Earth's surface, in km
+        :returns: an array of shape (6,N,T,N), where T is the broadcast shape
+            of `cos_zenith` and `depth`, and N is the number of energy nodes.
+            In other words, the array contains a transfer matrix for each
+            combination of initial neutrino type, final neutrino type, and
+            trajectory.
+        """
+        # find [number] column density of nucleons along the trajectory in cm^-2
+        t = np.atleast_1d(np.vectorize(get_t_earth)(np.arccos(cos_zenith), depth)*Na)
+
+        num = self.energy_nodes.size
+        transfer_matrix = np.zeros((6,num) + t.shape + (num,))
+        for i in range(self.energy_nodes.size):
+            # nu_e, nu_mu: CC absorption and NC downscattering
+            for flavor in range(4):
+                transfer_matrix[flavor,i,...] += np.dot(self.transfer_matrix_element(i,flavor,flavor,t), self.cascade_density(flavor))
+
+            # nu_tau: CC absorption and NC downscattering, plus neutrinos
+            # from tau decay
+            for flavor in range(4,6):
+                for out_flavor in range(flavor % 2, flavor, 2):
+                    secondary, tau = np.hsplit(self.transfer_matrix_element(i,flavor,out_flavor,t), 2)
+                    transfer_matrix[flavor,i,...] += np.dot(secondary, self.cascade_density(out_flavor))
+                    # do not double-count tau contribution
+                    if out_flavor == flavor % 2:
+                        transfer_matrix[flavor,i,...] += np.dot(tau, self.cascade_density(flavor))
+
+        return transfer_matrix
