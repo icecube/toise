@@ -85,12 +85,12 @@ def tau_regen_crossdiff(nucrossdiff, e1, e2, polarization):
     return scipy.integrate.quad(term, lo, hi, points=points)[0]
 
 @np.vectorize
-def second_bang_crossdiff(nucrossdiff, e1, e2, polarization):
+def second_bang_distribution(dPdx, e1, e2, polarization):
     """
-    Calculate differential cross-section for nu_tau -> hadron cascade, assuming
+    Calculate energy distribution of nu_tau -> hadron cascade, assuming
     that the intermediate tau lepton decays instantly.
     
-    :param nucrossdiff: a callable with the same signature as nusigma.nucrossdiff
+    :param dPdx: normalized differential CC cross-section
     """
     assert polarization in (-1,1)
     if e2 > e1:
@@ -103,7 +103,7 @@ def second_bang_crossdiff(nucrossdiff, e1, e2, polarization):
             return 0.
         else:
             # nb: d(e_tau)/d(log(e_tau)) cancels d(z)/d(e2)
-            return TauDecay.to_hadrons(1-e2/e_tau, polarization)*nucrossdiff(e1,e_tau)
+            return TauDecay.to_hadrons(1-e2/e_tau, polarization)*dPdx(e1,e_tau/e1)
     hi = np.log(e1)
     lo = hi - 10
     # lo = np.log(energy_nodes[0])
@@ -111,7 +111,7 @@ def second_bang_crossdiff(nucrossdiff, e1, e2, polarization):
     points = np.log(e2/(TauDecay.breakpoints))
     # clip these to the integration range to keep quadpack happy
     points = points[(points<hi)&(points>lo)]
-    return scipy.integrate.quad(term, lo, hi, points=points)[0]
+    return scipy.integrate.quad(term, lo, hi, points=points)[0]/e1
 
 @np.vectorize
 def tau_secondary_crossdiff(nucrossdiff, e1, e2, polarization):
