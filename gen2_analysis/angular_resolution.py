@@ -10,7 +10,7 @@ def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., psf_clas
     if channel == 'cascade':
         return PotemkinCascadePointSpreadFunction()
     elif channel == 'radio':
-        return PotemkinCascadePointSpreadFunction(lower_limit=numpy.radians(2), crossover_energy=1e8)
+        return PotemkinCascadePointSpreadFunction(lower_limit=numpy.radians(2), crossover_energy=0)
     if geometry == "IceCube":
         fname = "aachen_psf.fits"
     elif psf_class is not None:

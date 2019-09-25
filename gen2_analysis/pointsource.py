@@ -199,7 +199,11 @@ class TruncatedSteadyPointSource(PointSource):
         # 1/cm^2 yr
         fluence = 0.5e-12 * \
             (intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
-
+        # scale by the WB GRB fluence, normalized to the E^-2 flux between 100
+        # TeV and 10 PeV
+        from grb import WaxmannBahcallFluence
+        norm = WaxmannBahcallFluence()(effective_area.bin_edges[0][1:])*effective_area.bin_edges[0][1:]**2
+        norm /= norm.max()
         fluence *= norm
 
         PointSource.__init__(self, effective_area, fluence,
