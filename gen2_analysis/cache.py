@@ -1,4 +1,6 @@
 # Custom cache instance class must implement AbstractCacheInstance interface:
+from easy_cache import caches
+from easy_cache import ecached, ecached_property, create_cache_key
 from easy_cache.abc import AbstractCacheInstance
 from easy_cache.core import DEFAULT_TIMEOUT, NOT_FOUND
 from .util import data_dir
@@ -9,6 +11,7 @@ from photospline import SplineTable
 import gzip
 import json
 import time
+
 
 class PickleCache(AbstractCacheInstance):
 
@@ -102,10 +105,9 @@ class PickleCache(AbstractCacheInstance):
             pass
         del self._manifest[key]
 
-from easy_cache import caches
+
 caches.set_default(PickleCache())
 
-from easy_cache import ecached, ecached_property, create_cache_key
 try:
     from functools import lru_cache
 except ImportError:
