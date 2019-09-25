@@ -41,14 +41,14 @@ class PickleCache(AbstractCacheInstance):
             value.write(join(self._base_dir, fname))
         else:
             fname = key+'.pkl.gz'
-            with gzip.open(fname, 'wb') as f:
+            with gzip.open(join(self._base_dir, fname), 'wb') as f:
                 pickle.dump(value, f, protocol=pickle.HIGHEST_PROTOCOL)
         return fname
 
     def _load_item(self, fname):
         if fname.endswith('.fits'):
             return SplineTable(fname)
-        elif fname.endswith('.json.gz'):
+        elif fname.endswith('.pkl.gz'):
             with gzip.open(fname, 'r') as f:
                 return pickle.load(f)
         else:
@@ -100,10 +100,14 @@ class PickleCache(AbstractCacheInstance):
 
     def delete(self, key):
         try:
-            unlink(self._get_filename(key))
-        except OSError:
+            filename = self._get_filename(key)
+        except KeyError:
+            return
+        try:
+            unlink(filename)
+            del self._manifest[key]
+        except (OSError, KeyError):
             pass
-        del self._manifest[key]
 
 
 caches.set_default(PickleCache())
