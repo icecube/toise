@@ -980,18 +980,6 @@ def create_radio_aeff(
     # Step 1: Density of final states per meter
     (e_nu, cos_theta, e_shower), aeff = calculate_cascade_production_density(
         cos_theta, neutrino_energy)
-    # The cascade production density explicitly excludes taus with decay lengths
-    # longer than 300 m. Since radio is more about event counting than
-    # detailed reconstruction, we add these back in an approximate fashion.
-    # At high energy, the CC cross-section is 2x the NC cross-section. The 18%
-    # of taus that decay to muons are unlikely to be detectable.
-    aeff[4:6, ...] = aeff[0, ...] * (((2*(1-0.18)) + 1)/3.)
-    # Jakob's muon matrices underestimate the effective area for the radio, since
-    # they do not give enough weight to NC muon neutrino interactions. For a radio
-    # detector, NC and CC reactions for a muon neutrino are equally detectable,
-    # in principle. We correct this multiplying the muon neutrino effective areas
-    # by a factor of 3.
-    aeff[2:4,...] *= 3
 
     # Step 2: Effective volume in terms of shower energy
     # NB: this includes selection efficiency (usually step 3)
@@ -999,7 +987,7 @@ def create_radio_aeff(
     edges_mu, veff_mu = _interpolate_radio_veff(e_shower, cos_theta, filename=veff_filename['mu'])
     aeff[0:2,...] *= (veff_e.T)[None,None,...]*nstations # electron neutrino
     aeff[2:4,...] *= (veff_mu.T)[None,None,...]*nstations # muon neutrino
-    aeff[4:6,...] *= (veff_e.T)[None,None,...]*nstations # tau neutrino
+    aeff[4:6,...] *= (veff_mu.T)[None,None,...]*nstations # tau neutrino
     total_aeff = aeff
 
     # Step 4: apply smearing for angular resolution
