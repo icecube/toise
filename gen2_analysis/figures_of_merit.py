@@ -43,7 +43,7 @@ class GZK(object):
                                            gamma=-2.3,
                                            **kwargs)
         elif fom == TOT.dp:
-            return pointsource.discovery_potential(gzk,
+            return pointsource.discovery_potential(uhe,
                                                    components,
                                                    baseline=100,
                                                    tolerance=1e-4,
@@ -110,6 +110,7 @@ class GZK(object):
         uhe = diffuse.DiffuseAstro(aeff, 1., gamma_name='uhe_gamma')
         gzk = diffuse.AhlersGZK(aeff, 1.)
         return dict(atmo=atmo, prompt=prompt, astro=astro, gzk=gzk, uhe=uhe)
+        #return dict(gzk=gzk, uhe=uhe)
 
 
 class PointSource(object):
@@ -117,7 +118,7 @@ class PointSource(object):
         self.bundle = factory.component_bundle(
             exposures, partial(self.make_components, zi))
 
-    def benchmark(self, fom, gamma=-2.3, **kwargs):
+    def benchmark(self, fom, gamma=-2.0, diff_gamma=-2.3, **kwargs):
         components = self.bundle.get_components()
         ps = components.pop('ps')
 
@@ -133,7 +134,7 @@ class PointSource(object):
         # assume all backgrounds known perfectly
         kwargs = {k: v.seed for k, v in components.items()}
         components['gamma'] = multillh.NuisanceParam(
-            -2.3, 0.5, min=-2.7, max=-1.7)
+            diff_gamma, 0.5, min=-2.7, max=-1.7)
         components['ps_gamma'] = multillh.NuisanceParam(
             gamma, 0.5, min=-2.7, max=-1.7)
 
@@ -141,7 +142,7 @@ class PointSource(object):
             ul, ns, nb = pointsource.upper_limit(ps,
                                                  components,
                                                  tolerance=1e-4,
-                                                 gamma=-2.3,
+                                                 gamma=diff_gamma,
                                                  ps_gamma=gamma,
                                                  **kwargs)
             return ul, ns, nb
@@ -149,21 +150,21 @@ class PointSource(object):
             dp, ns, nb = pointsource.discovery_potential(ps,
                                                          components,
                                                          tolerance=1e-4,
-                                                         gamma=-2.3,
+                                                         gamma=diff_gamma,
                                                          ps_gamma=gamma,
                                                          **kwargs)
             return dp, ns, nb
         elif fom == TOT.fc:
             return pointsource.fc_upper_limit(ps,
                                               components,
-                                              gamma=-2.,
+                                              gamma=diff_gamma,
                                               ps_gamma=gamma,
                                               **kwargs)
         elif fom == DIFF.ul:
             return pointsource.differential_upper_limit(ps,
                                                         components,
-                                                        gamma=gamma,
-                                                        ps_gamma=-2,
+                                                        gamma=diff_gamma,
+                                                        ps_gamma=gamma,
                                                         tolerance=1e-4,
                                                         decades=decades,
                                                         **kwargs)

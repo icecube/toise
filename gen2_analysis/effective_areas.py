@@ -399,6 +399,19 @@ class effective_area(object):
 
         return reduced
 
+    def truncate_energy_range(self, emin, emax):
+
+        # find bins with lower edge >= emin and upper edge <= emax
+        mask = (self.bin_edges[0][1:] <= emax) & (self.bin_edges[0][:-1] >= emin)
+        idx = numpy.arange(mask.size)[mask][[0,-1]]
+
+        reduced = copy.copy(self)
+
+        reduced.values[:,0:idx[0],...] *= 0
+        reduced.values[:,idx[1]+1:,...] *= 0
+
+        return reduced
+
     @property
     def is_healpix(self):
         return self.sky_binning == 'healpix'
@@ -886,14 +899,19 @@ def create_ara_aeff(depth=200,
     return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 
 
-def _load_radio_veff():
+def _load_radio_veff(flavor='e'):
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
     import pandas as pd
     import json
 
-    with open(os.path.join(data_dir, 'aeff', 'desy_radio_nue_zenith.json')) as f:
+    if(flavor == 'e'):
+        filename = 'nu_e_Gen2_100m_1.5sigma.json' # 'desy_radio_nue_zenith.json'
+    elif(flavor == 'mu'):
+        filename = 'nu_mu_Gen2_100m_1.5sigma.json'
+    #filename = 'desy_radio_nue_zenith.json'
+    with open(os.path.join(data_dir, 'aeff', filename)) as f:
         dats = json.load(f)
     index = []
     arrays = {'veff': [], 'err': []}
@@ -917,10 +935,10 @@ def _load_radio_veff():
     return (energy, cos_zenith), veff['veff'].unstack(level=-1).values.reshape((energy.size-1, cos_zenith.size-1)) / omega[None, :]
 
 
-def _interpolate_radio_veff(energy_edges, ct_edges=None):
+def _interpolate_radio_veff(energy_edges, ct_edges=None, flavor='e'):
     from scipy import interpolate
 
-    edges, veff = _load_radio_veff()
+    edges, veff = _load_radio_veff(flavor)
     # NB: occasionally there are NaN effective volumes. intepolate through them
 
     def interp_masked(arr, x, xp):
@@ -970,12 +988,22 @@ def create_radio_aeff(
     # At high energy, the CC cross-section is 2x the NC cross-section. The 18%
     # of taus that decay to muons are unlikely to be detectable.
     aeff[4:6, ...] = aeff[0, ...] * (((2*(1-0.18)) + 1)/3.)
+    # Jakob's muon matrices underestimate the effective area for the radio, since
+    # they do not give enough weight to NC muon neutrino interactions. For a radio
+    # detector, NC and CC reactions for a muon neutrino are equally detectable,
+    # in principle. We correct this multiplying the muon neutrino effective areas
+    # by a factor of 3.
+    aeff[2:4,...] *= 3
 
     # Step 2: Effective volume in terms of shower energy
     # NB: this includes selection efficiency (usually step 3)
-    edges, veff = _interpolate_radio_veff(e_shower, cos_theta)
-    aeff *= (veff.T)[None, None, ...]*nstations
-
+    edges_e, veff_e = _interpolate_radio_veff(e_shower, cos_theta, flavor='e')
+    edges_mu, veff_mu = _interpolate_radio_veff(e_shower, cos_theta, flavor='mu')
+    #aeff *= (veff.T)[None,None,...]*nstations
+    #aeff[2:4] *= (veff.T)[None,None,...]*nstations
+    aeff[0:2,...] *= (veff_e.T)[None,None,...]*nstations # electron neutrino
+    aeff[2:4,...] *= (veff_mu.T)[None,None,...]*nstations # muon neutrino
+    aeff[4:6,...] *= (veff_e.T)[None,None,...]*nstations # tau neutrino
     total_aeff = aeff
 
     # Step 4: apply smearing for angular resolution

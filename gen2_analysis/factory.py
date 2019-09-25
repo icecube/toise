@@ -221,7 +221,21 @@ class component_bundle(object):
         for detector, livetime in livetimes.items():
             for channel, aeff in aeff_factory.get()(detector).items():
                 key = detector + '_' + channel
-                self.components[key] = component_factory(aeff)
+                if 'restricted' in kwargs:
+                    emin = kwargs['restricted'][0]
+                    emax = kwargs['restricted'][1]
+                    truncate = False
+                    if truncate:
+                        aeff_c = aeff[0].truncate_energy_range(emin,emax)
+                        try:
+                            aeff_mu = aeff[1].truncate_energy_range(emin,emax)
+                        except:
+                            aeff_mu = aeff[1]
+                            self.components[key] = component_factory( (aeff_c,aeff_mu) )
+                    else:
+                        self.components[key] = component_factory( aeff, emin=emin, emax=emax )
+                else:
+                    self.components[key] = component_factory(aeff)
                 self.detectors[key] = detector
 
     def get_component(self, key, livetimes=None):
