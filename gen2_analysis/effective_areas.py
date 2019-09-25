@@ -899,19 +899,16 @@ def create_ara_aeff(depth=200,
     return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
 
 
-def _load_radio_veff(flavor='e'):
+def _load_radio_veff(filename):
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
     import pandas as pd
     import json
 
-    if(flavor == 'e'):
-        filename = 'nu_e_Gen2_100m_1.5sigma.json' # 'desy_radio_nue_zenith.json'
-    elif(flavor == 'mu'):
-        filename = 'nu_mu_Gen2_100m_1.5sigma.json'
-    #filename = 'desy_radio_nue_zenith.json'
-    with open(os.path.join(data_dir, 'aeff', filename)) as f:
+    if not filename.startswith('/'):
+        filename = os.path.join(data_dir, 'aeff', filename)
+    with open(filename) as f:
         dats = json.load(f)
     index = []
     arrays = {'veff': [], 'err': []}
@@ -935,10 +932,10 @@ def _load_radio_veff(flavor='e'):
     return (energy, cos_zenith), veff['veff'].unstack(level=-1).values.reshape((energy.size-1, cos_zenith.size-1)) / omega[None, :]
 
 
-def _interpolate_radio_veff(energy_edges, ct_edges=None, flavor='e'):
+def _interpolate_radio_veff(energy_edges, ct_edges=None, filename='nu_e_Gen2_100m_1.5sigma.json'):
     from scipy import interpolate
 
-    edges, veff = _load_radio_veff(flavor)
+    edges, veff = _load_radio_veff(filename)
     # NB: occasionally there are NaN effective volumes. intepolate through them
 
     def interp_masked(arr, x, xp):
@@ -971,6 +968,7 @@ def create_radio_aeff(
         energy_resolution=get_energy_resolution(channel='radio'),
         psf=get_angular_resolution(channel='radio'),
         psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
+        veff_filename = dict(e='nu_e_Gen2_100m_1.5sigma.json', mu='nu_mu_Gen2_100m_1.5sigma.json'),
         cos_theta=np.linspace(-1, 1, 21), neutrino_energy=np.logspace(6, 12, 61)):
     """
     Create an effective area for a nameless radio array
@@ -997,10 +995,8 @@ def create_radio_aeff(
 
     # Step 2: Effective volume in terms of shower energy
     # NB: this includes selection efficiency (usually step 3)
-    edges_e, veff_e = _interpolate_radio_veff(e_shower, cos_theta, flavor='e')
-    edges_mu, veff_mu = _interpolate_radio_veff(e_shower, cos_theta, flavor='mu')
-    #aeff *= (veff.T)[None,None,...]*nstations
-    #aeff[2:4] *= (veff.T)[None,None,...]*nstations
+    edges_e, veff_e = _interpolate_radio_veff(e_shower, cos_theta, filename=veff_filename['e'])
+    edges_mu, veff_mu = _interpolate_radio_veff(e_shower, cos_theta, filename=veff_filename['mu'])
     aeff[0:2,...] *= (veff_e.T)[None,None,...]*nstations # electron neutrino
     aeff[2:4,...] *= (veff_mu.T)[None,None,...]*nstations # muon neutrino
     aeff[4:6,...] *= (veff_e.T)[None,None,...]*nstations # tau neutrino

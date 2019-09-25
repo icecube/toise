@@ -181,6 +181,8 @@ class aeff_factory(object):
                     kwargs[k] = numpy.asarray(getattr(opts, k))
             kwargs['psi_bins'] = psi_bins['radio']
             kwargs['nstations'] = opts.nstations
+            if hasattr(opts, 'veff_filename'):
+                kwargs['veff_filename'] = opts.veff_filename
             if opts.geometry == 'ARA':
                 kwargs['depth'] = opts.depth
                 aeffs['radio_events'] = (
