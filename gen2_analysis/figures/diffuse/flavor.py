@@ -17,14 +17,17 @@ from gen2_analysis.figures import figure_data, figure
 from gen2_analysis.cache import ecached, lru_cache
 from gen2_analysis import diffuse, multillh, plotting, surface_veto, factory, plotting
 
+
 def make_components(aeffs, astro_class=diffuse.DiffuseAstro):
     """
     :param muon_damped: 
     """
     aeff, muon_aeff = aeffs
-    atmo = diffuse.AtmosphericNu.conventional(aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None)
+    atmo = diffuse.AtmosphericNu.conventional(
+        aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None)
     atmo.prior = lambda v, **kwargs: -(v-1)**2/(2*0.1**2)
-    prompt = diffuse.AtmosphericNu.prompt(aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None)
+    prompt = diffuse.AtmosphericNu.prompt(
+        aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None)
     prompt.min = 0.5
     prompt.max = 3.
     astro = astro_class(aeff, 1)
@@ -33,20 +36,25 @@ def make_components(aeffs, astro_class=diffuse.DiffuseAstro):
         components['muon'] = surface_veto.MuonBundleBackground(muon_aeff, 1)
     return components
 
+
 def triangle_product(seq):
     for i in range(len(seq)):
         for j in range(len(seq)-i):
             yield seq[i], seq[j]
 
+
 def expand(dataframe):
     e_frac = dataframe.index.levels[0].values
     mu_frac = dataframe.index.levels[1].values
-    idx = pd.MultiIndex.from_product((e_frac, mu_frac), names=dataframe.index.names)
+    idx = pd.MultiIndex.from_product(
+        (e_frac, mu_frac), names=dataframe.index.names)
     return dataframe.reindex(idx)
+
 
 @lru_cache(maxsize=4)
 def create_bundle(exposures, **kwargs):
     return factory.component_bundle(dict(exposures), partial(make_components, **kwargs))
+
 
 @lru_cache(maxsize=4)
 def subdivide(bundle, key='astro', esplit=1e6):
@@ -55,45 +63,51 @@ def subdivide(bundle, key='astro', esplit=1e6):
     for k in bundle.components.keys():
         components = copy.copy(bundle.components[k])
         astro = components.pop(key)
-        downsample = lambda f: toolz.take_nth(1, f)
-        
+        def downsample(f): return toolz.take_nth(1, f)
+
         ebins = astro._aeff.bin_edges[0]
         idx = ebins.searchsorted(esplit)-1
-        
-        for i, sl in enumerate((slice(None,idx), slice(idx, None))):
+
+        for i, sl in enumerate((slice(None, idx), slice(idx, None))):
             chunk = copy.copy(astro)
             chunk._invalidate_cache()
             chunk._flux = np.zeros(astro._flux.shape)
-            chunk._flux[:,sl,...] = astro._flux[:,sl,...]
+            chunk._flux[:, sl, ...] = astro._flux[:, sl, ...]
             chunk._suffix = '_{:02d}'.format(i)
             chunk._energy_range = ebins[sl][0], ebins[sl][-1]
             components[key + chunk._suffix] = chunk
         bundle.components[k] = components
     return bundle
 
+
 @lru_cache(maxsize=4)
 def asimov_llh(exposures, **nominal):
     components = create_bundle(exposures).get_components()
     gamma = nominal.pop('gamma', -2.5)
-    components['gamma'] = multillh.NuisanceParam(gamma, 0.5, min=gamma-0.5, max=gamma+0.5)
-    components['e_tau_ratio'] = multillh.NuisanceParam((0.93/3)/(1-1.05/3), None, 0, 1)
+    components['gamma'] = multillh.NuisanceParam(
+        gamma, 0.5, min=gamma-0.5, max=gamma+0.5)
+    components['e_tau_ratio'] = multillh.NuisanceParam(
+        (0.93/3)/(1-1.05/3), None, 0, 1)
     components['mu_fraction'] = multillh.NuisanceParam(1.05/3, None, 0, 1)
     if not 'muon' in components:
         components['muon'] = multillh.NuisanceParam(1, None, 0, 1)
     return multillh.asimov_llh(components, **nominal)
 
+
 @lru_cache(maxsize=4)
 def muondamped_asimov_llh(exposures, **nominal):
-    
+
     ecrit = nominal.get('emu_crit', 2e6)
     # generate data from model where each flavor has a different spectrum
-    source_components = create_bundle(exposures, astro_class=diffuse.MuonDampedDiffuseAstro).get_components()
-    source_components['emu_crit'] =  multillh.NuisanceParam(ecrit)
+    source_components = create_bundle(
+        exposures, astro_class=diffuse.MuonDampedDiffuseAstro).get_components()
+    source_components['emu_crit'] = multillh.NuisanceParam(ecrit)
     data = multillh.asimov_llh(source_components).data
 
-    atearth = diffuse.IncoherentOscillation.create()(*(diffuse.MuonDampedDiffuseAstro.pion_decay_flux(np.array((ecrit/1e3, ecrit*1e3)), ecrit).T))
-    mufrac = atearth[1,:]/atearth.sum(axis=0)
-    e_tau_ratio = atearth[0,:]/(atearth[0,:] + atearth[2,:])
+    atearth = diffuse.IncoherentOscillation.create()(
+        *(diffuse.MuonDampedDiffuseAstro.pion_decay_flux(np.array((ecrit/1e3, ecrit*1e3)), ecrit).T))
+    mufrac = atearth[1, :]/atearth.sum(axis=0)
+    e_tau_ratio = atearth[0, :]/(atearth[0, :] + atearth[2, :])
 
     # fit with a model with the same energy spectrum for each flavor
     components = subdivide(
@@ -126,9 +140,11 @@ def muondamped_asimov_llh(exposures, **nominal):
 
     return chunk_llh
 
+
 @lru_cache(maxsize=16)
 def fit_llh(llh, **fixed):
     return llh.fit(**fixed)
+
 
 @ecached(__name__+'.profile.astro{suffix}_{exposures}_{nominal}_{steps}_{gamma_step}', timeout=2*24*3600)
 def make_profile(exposures, nominal=dict(), suffix='', steps=100, minimizer_params=dict(epsilon=1e-2), gamma_step=None):
@@ -148,7 +164,7 @@ def make_profile(exposures, nominal=dict(), suffix='', steps=100, minimizer_para
     fixed = {k: bestfit[k] for k in bestfit if not k in scan+free}
     if gamma_step is not None and 'gamma' in fixed:
         fixed['gamma'] = fixed['gamma'] + np.arange(-10, 11)*gamma_step
-    for e, mu in tqdm(triangle_product(steps), total=(steps.size+1)*(steps.size)/2, desc='{} {}'.format(__name__,detector_label(exposures))):
+    for e, mu in tqdm(triangle_product(steps), total=(steps.size+1)*(steps.size)/2, desc='{} {}'.format(__name__, detector_label(exposures))):
         fixed['mu_fraction'+suffix] = mu
         fixed['e_tau_ratio'+suffix] = e/(1-mu) if mu != 1 else 1
         assert e+mu <= 1
@@ -157,6 +173,7 @@ def make_profile(exposures, nominal=dict(), suffix='', steps=100, minimizer_para
         fit['e_fraction'+suffix] = e
         params.append(fit)
     return expand(pd.DataFrame(params).set_index(['e_fraction'+suffix, 'mu_fraction'+suffix]))
+
 
 @ecached(__name__+'.source_profile.astro{suffix}_{exposures}_{nominal}_{steps}_{gamma_step}', timeout=2*24*3600)
 def make_source_profile(exposures, nominal=dict(), suffix='', steps=100, minimizer_params=dict(epsilon=1e-2), gamma_step=None):
@@ -176,7 +193,7 @@ def make_source_profile(exposures, nominal=dict(), suffix='', steps=100, minimiz
     if gamma_step is not None and 'gamma' in fixed:
         fixed['gamma'] = fixed['gamma'] + np.arange(-10, 11)*gamma_step
     oscillate = diffuse.IncoherentOscillation.create()
-    for mufrac in tqdm(steps, desc='{} {}'.format(__name__,detector_label(exposures))):
+    for mufrac in tqdm(steps, desc='{} {}'.format(__name__, detector_label(exposures))):
         e, mu, tau = oscillate(1.-mufrac, mufrac, 0)[0]
         fixed['mu_fraction'+suffix] = mu/(e+mu+tau)
         fixed['e_tau_ratio'+suffix] = e/(e+tau)
@@ -186,20 +203,26 @@ def make_source_profile(exposures, nominal=dict(), suffix='', steps=100, minimiz
         params.append(fit)
     return pd.DataFrame(params).set_index('source_mu_fraction'+suffix)
 
+
 def extract_ts(dataframe):
     if isinstance(dataframe.index, pd.MultiIndex):
         e_frac = dataframe.index.levels[0].values
         mu_frac = dataframe.index.levels[1].values
         maxllh = np.nanmax(dataframe['LLH'])
-        idx = pd.MultiIndex.from_product((e_frac, mu_frac), names=dataframe.index.names)
+        idx = pd.MultiIndex.from_product(
+            (e_frac, mu_frac), names=dataframe.index.names)
 
-        ts = 2*(pd.Series((np.nanmax(dataframe['LLH'].values)*np.ones(len(idx))), index=idx) - dataframe['LLH'])
+        ts = 2*(pd.Series((np.nanmax(dataframe['LLH'].values)
+                           * np.ones(len(idx))), index=idx) - dataframe['LLH'])
         return e_frac, mu_frac, ts.values.reshape(e_frac.size, mu_frac.size)
     else:
         return dataframe.index.values, 2*(np.nanmax(dataframe['LLH'])-dataframe['LLH'])
 
+
 def psi_binning():
-    factory.set_kwargs(psi_bins={k: (0, np.pi) for k in ('tracks', 'cascades', 'radio')})
+    factory.set_kwargs(psi_bins={k: (0, np.pi)
+                                 for k in ('tracks', 'cascades', 'radio')})
+
 
 @figure_data(setup=psi_binning)
 def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.):
@@ -213,13 +236,15 @@ def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.
     :param gamma_step: granularity of optimization in spectral index. if 0, the spectral index is fixed.
     """
     from scipy import stats
-    profile = make_profile(exposures, steps=steps, nominal=dict(gamma=gamma, astro=astro))
+    profile = make_profile(exposures, steps=steps,
+                           nominal=dict(gamma=gamma, astro=astro))
     meta = {}
     efrac, mufrac, ts = extract_ts(profile)
     meta['nue_fraction'] = efrac.tolist()
     meta['numu_fraction'] = mufrac.tolist()
     meta['confidence_level'] = (stats.chi2.cdf(ts.T, 2)*100).tolist()
     return meta
+
 
 @figure_data(setup=psi_binning)
 def muon_damping_constraints(exposures, steps=100, emu_crit=2e6, clean=False):
@@ -241,22 +266,28 @@ def muon_damping_constraints(exposures, steps=100, emu_crit=2e6, clean=False):
     for i in range(2):
         suffix = '_{:02d}'.format(i)
         if clean:
-            make_profile.invalidate_cache_by_key(exposures, steps=steps, suffix=suffix, nominal=dict(emu_crit=emu_crit))
-        profile = make_profile(exposures, steps=steps, suffix=suffix, nominal=dict(emu_crit=emu_crit))
+            make_profile.invalidate_cache_by_key(
+                exposures, steps=steps, suffix=suffix, nominal=dict(emu_crit=emu_crit))
+        profile = make_profile(exposures, steps=steps,
+                               suffix=suffix, nominal=dict(emu_crit=emu_crit))
         efrac, mufrac, ts = extract_ts(profile)
         meta['earth']['nue_fraction'].append(efrac.tolist())
         meta['earth']['numu_fraction'].append(mufrac.tolist())
-        meta['earth']['confidence_level'].append((stats.chi2.cdf(ts.T, 2)*100).tolist())
-        
-        source_profile = make_source_profile(exposures, steps=steps, suffix=suffix, nominal=dict(emu_crit=emu_crit))
+        meta['earth']['confidence_level'].append(
+            (stats.chi2.cdf(ts.T, 2)*100).tolist())
+
+        source_profile = make_source_profile(
+            exposures, steps=steps, suffix=suffix, nominal=dict(emu_crit=emu_crit))
         mufrac, ts = extract_ts(source_profile)
         meta['source']['numu_fraction'].append(mufrac.tolist())
         meta['source']['test_statistic'].append(ts.tolist())
     return meta
 
+
 def detector_label(exposures):
     """transform (('Gen2-InIce', 10.0), ('IceCube', 15.0)) -> Gen2-InIce+IceCube 10+15 yr"""
     return '{} {} yr'.format(*map('+'.join, map(partial(map, str), zip(*exposures))))
+
 
 @figure
 def triangle(datasets):
@@ -271,10 +302,13 @@ def triangle(datasets):
     for i, meta in enumerate(datasets):
         labels.append(detector_label(meta['detectors']))
         values = meta['data']
-        cs = ax.ab.contour(values['nue_fraction'], values['numu_fraction'], values['confidence_level'], levels=[68,], colors='C{}'.format(i))
-    ax.ab.legend(ax.ab.collections[-len(labels):], labels, bbox_to_anchor=(1.3,1.1))
+        cs = ax.ab.contour(values['nue_fraction'], values['numu_fraction'],
+                           values['confidence_level'], levels=[68, ], colors='C{}'.format(i))
+    ax.ab.legend(ax.ab.collections[-len(labels):],
+                 labels, bbox_to_anchor=(1.3, 1.1))
 
     return ax.figure
+
 
 @figure
 def muon_damping(datasets):
@@ -287,41 +321,48 @@ def muon_damping(datasets):
 
     fig = plt.figure(figsize=(5, 4))
     w, h = fig.bbox_inches.width, fig.bbox_inches.height
-    griddy = plt.GridSpec(2,2,height_ratios=[4,3], left=0.75/w, right=(w-0.25)/w, bottom=0.5/h, top=(h-0.35)/h, hspace=0.35)
+    griddy = plt.GridSpec(2, 2, height_ratios=[
+                          4, 3], left=0.75/w, right=(w-0.25)/w, bottom=0.5/h, top=(h-0.35)/h, hspace=0.35)
 
     def position_labels(ax):
         fontdict = dict(size='x-large')
-        ax.ab.set_xlabel(r'$f_{e}$', fontdict=fontdict).set_position((0.5, -0.12))
-        ax.bc.set_xlabel(r'$f_{\mu}$', fontdict=fontdict).set_position((0.5, -0.20))
-        ax.ca.set_xlabel(r'$f_{\tau}$', fontdict=fontdict).set_position((0.5, -0.2))
+        ax.ab.set_xlabel(
+            r'$f_{e}$', fontdict=fontdict).set_position((0.5, -0.12))
+        ax.bc.set_xlabel(
+            r'$f_{\mu}$', fontdict=fontdict).set_position((0.5, -0.20))
+        ax.ca.set_xlabel(
+            r'$f_{\tau}$', fontdict=fontdict).set_position((0.5, -0.2))
 
     assert len(datasets) == 1
     meta = datasets[0]['data']['earth']
     ecrit = datasets[0]['args']['emu_crit']
     for i in range(2):
-        ax = ternary.flavor_triangle(fig, subplotspec=griddy[0,i])
+        ax = ternary.flavor_triangle(fig, subplotspec=griddy[0, i])
         position_labels(ax)
         source_points = ax.ab.collections[:3]
         cs = ax.ab.contour(meta['nue_fraction'][i],
                            meta['numu_fraction'][i],
-                           meta['confidence_level'][i], levels=[68,95], colors='k', linestyles=['--', '-'])
-    ax = plt.subplot(griddy[1,:])
+                           meta['confidence_level'][i], levels=[68, 95], colors='k', linestyles=['--', '-'])
+    ax = plt.subplot(griddy[1, :])
 
     e = np.logspace(4, 8, 101)
     flux = diffuse.MuonDampedDiffuseAstro.pion_decay_flux(e, ecrit)
-    ax.plot(e, flux[:,1]/flux.sum(axis=1), label=plotting.format_energy('%d', ecrit))
+    ax.plot(e, flux[:, 1]/flux.sum(axis=1),
+            label=plotting.format_energy('%d', ecrit))
     ax.semilogx()
 
     meta = datasets[0]['data']['source']
-    e = np.logspace(4,8,3)
+    e = np.logspace(4, 8, 3)
+
     def get_x(ebins):
         loge = np.log10(ebins)
         xc = 10**((loge[:-1]+loge[1:])/2.)
         xerr = [xc-ebins[:-1], ebins[1:]-xc]
         return xc, xerr
     x, xerr = get_x(np.logspace(4, 8, 3))
+
     def get_y(numu_frac, ts):
-        f = interpolate.interp1d(numu_frac,ts,bounds_error=True)
+        f = interpolate.interp1d(numu_frac, ts, bounds_error=True)
         y0 = optimize.fminbound(f, 0, 1)
         try:
             ylo = optimize.bisect(lambda y: f(y)-1, 0, y0)
@@ -332,8 +373,10 @@ def muon_damping(datasets):
         except ValueError:
             yhi = 1
         return y0, [y0 - ylo, yhi-y0]
-    y, yerr = zip(*[get_y(meta['numu_fraction'][i], meta['test_statistic'][i]) for i in range(2)])
-    ax.errorbar(x, y, xerr=xerr, yerr=yerr, linestyle='None', color='k', marker='s')
+    y, yerr = zip(*[get_y(meta['numu_fraction'][i],
+                          meta['test_statistic'][i]) for i in range(2)])
+    ax.errorbar(x, y, xerr=xerr, yerr=yerr,
+                linestyle='None', color='k', marker='s')
 
     ax.set_xlabel(r'$E_{\nu}$ (GeV)')
     ax.set_ylabel(r'$\nu_{\mu}$ fraction at source')
@@ -346,9 +389,7 @@ def muon_damping(datasets):
     leg.get_title().set_fontsize('small')
 
     ax.add_artist(plt.Text(0.15, 0.9, 'IceCube-Gen2\npreliminary', color='C3',
-                       ha='center', va='top', multialignment='center',
-                       transform=ax.transAxes))
-
-    
+                           ha='center', va='top', multialignment='center',
+                           transform=ax.transAxes))
 
     return fig

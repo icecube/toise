@@ -17,6 +17,7 @@ DIFF.ul.__doc__ = "90% upper limit (Wilks' Theorem)"
 DIFF.dp.__doc__ = "5\sigma discover potential"
 DIFF.fc.__doc__ = "90% upper limit (Feldman-Cousins construction)"
 
+
 class GZK(object):
 
     def __init__(self, exposures):
@@ -24,8 +25,10 @@ class GZK(object):
 
     def benchmark(self, fom, **kwargs):
         components = self.bundle.get_components()
-        components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
-        components['uhe_gamma'] =  multillh.NuisanceParam(-2, 0.5, min=-2.7, max=-1.7)
+        components['gamma'] = multillh.NuisanceParam(
+            -2.3, 0.5, min=-2.7, max=-1.7)
+        components['uhe_gamma'] = multillh.NuisanceParam(
+            -2, 0.5, min=-2.7, max=-1.7)
 
         gzk = components.pop('gzk')
         uhe = components.pop('uhe')
@@ -71,33 +74,35 @@ class GZK(object):
         else:
             raise RuntimeError('No such fom')
 
-
     def event_numbers(self, sigma=5):
         """ Returns event numbers from ahlers flux needed to reject null
         hypothesis at sigma *sigma*
         """
         scale = self.benchmark(TOT.dp, sigma=sigma)
-        
+
         components = self.bundle.get_components()
         components.pop('uhe')
-        components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+        components['gamma'] = multillh.NuisanceParam(
+            -2.3, 0.5, min=-2.7, max=-1.7)
         llh = multillh.asimov_llh(components)
-        
+
         bin_edges = components['gzk'].bin_edges
-        
+
         exes = multillh.get_expectations(llh, gzk=scale, gamma=-2.3)
-        nb = pointsource.events_above(exes['atmo'], bin_edges) + pointsource.events_above(exes['astro'], bin_edges)
+        nb = pointsource.events_above(
+            exes['atmo'], bin_edges) + pointsource.events_above(exes['astro'], bin_edges)
         ns = pointsource.events_above(exes['gzk'], bin_edges)
         return dict(ns=ns, nb=nb)
-
 
     @staticmethod
     def make_components(aeffs):
         aeff, muon_aeff = aeffs
         energy_threshold = numpy.inf
-        atmo = diffuse.AtmosphericNu.conventional(aeff, 1., hard_veto_threshold=energy_threshold)
+        atmo = diffuse.AtmosphericNu.conventional(
+            aeff, 1., hard_veto_threshold=energy_threshold)
         atmo.uncertainty = 0.1
-        prompt = diffuse.AtmosphericNu.prompt(aeff, 1., hard_veto_threshold=energy_threshold)
+        prompt = diffuse.AtmosphericNu.prompt(
+            aeff, 1., hard_veto_threshold=energy_threshold)
         prompt.min = 0.5
         prompt.max = 3
         astro = diffuse.DiffuseAstro(aeff, 1.)
@@ -109,41 +114,44 @@ class GZK(object):
 
 class PointSource(object):
     def __init__(self, exposures, zi):
-        self.bundle = factory.component_bundle(exposures, partial(self.make_components, zi))
-
+        self.bundle = factory.component_bundle(
+            exposures, partial(self.make_components, zi))
 
     def benchmark(self, fom, gamma=-2.3, **kwargs):
         components = self.bundle.get_components()
         ps = components.pop('ps')
-        
+
         decades = kwargs.pop('decades', 0.5)
         emin = kwargs.pop('emin', None)
         if len(kwargs) != 0:
             raise ValueError("Can't take kwargs")
         if emin is not None:
             if fom not in (TOT.dp, TOT.ul, TOT.fc):
-                raise ValueError("emin argument not supported for FoM {}".format(fom))
+                raise ValueError(
+                    "emin argument not supported for FoM {}".format(fom))
             ecenter, ps = next(ps.differential_chunks(emin=emin, decades=1000))
         # assume all backgrounds known perfectly
-        kwargs = {k:v.seed for k,v in components.items()}
-        components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
-        components['ps_gamma'] =  multillh.NuisanceParam(gamma, 0.5, min=-2.7, max=-1.7)
-                
+        kwargs = {k: v.seed for k, v in components.items()}
+        components['gamma'] = multillh.NuisanceParam(
+            -2.3, 0.5, min=-2.7, max=-1.7)
+        components['ps_gamma'] = multillh.NuisanceParam(
+            gamma, 0.5, min=-2.7, max=-1.7)
+
         if fom == TOT.ul:
             ul, ns, nb = pointsource.upper_limit(ps,
-                                           components,
-                                           tolerance=1e-4,
-                                           gamma=-2.3,
-                                           ps_gamma=gamma,
-                                           **kwargs)
+                                                 components,
+                                                 tolerance=1e-4,
+                                                 gamma=-2.3,
+                                                 ps_gamma=gamma,
+                                                 **kwargs)
             return ul, ns, nb
         elif fom == TOT.dp:
             dp, ns, nb = pointsource.discovery_potential(ps,
-                                                   components,
-                                                   tolerance=1e-4,
-                                                   gamma=-2.3,
-                                                   ps_gamma=gamma,
-                                                   **kwargs)
+                                                         components,
+                                                         tolerance=1e-4,
+                                                         gamma=-2.3,
+                                                         ps_gamma=gamma,
+                                                         **kwargs)
             return dp, ns, nb
         elif fom == TOT.fc:
             return pointsource.fc_upper_limit(ps,
@@ -173,7 +181,8 @@ class PointSource(object):
     @staticmethod
     def make_components(zi, aeffs):
         aeff, muon_aeff = aeffs
-        atmo = diffuse.AtmosphericNu.conventional(aeff, 1., veto_threshold=None)
+        atmo = diffuse.AtmosphericNu.conventional(
+            aeff, 1., veto_threshold=None)
         atmo.uncertainty = 0.1
         prompt = diffuse.AtmosphericNu.prompt(aeff, 1., veto_threshold=None)
         prompt.min = 0.5
@@ -185,9 +194,10 @@ class PointSource(object):
         prompt_bkg = prompt.point_source_background(zenith_index=zi)
         astro_bkg = astro.point_source_background(zenith_index=zi)
 
-        components = dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, ps=ps)
+        components = dict(atmo=atmo_bkg, prompt=prompt_bkg,
+                          astro=astro_bkg, ps=ps)
         if muon_aeff is not None:
-            components['muon'] = surface_veto.MuonBundleBackground(muon_aeff, 1).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
+            components['muon'] = surface_veto.MuonBundleBackground(
+                muon_aeff, 1).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
 
         return components
-

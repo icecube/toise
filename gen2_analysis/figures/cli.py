@@ -9,6 +9,7 @@ from pkgutil import iter_modules
 import importlib
 import inspect
 
+
 def find_modules(path):
     """Find all modules below the current path"""
     modules = set()
@@ -25,6 +26,7 @@ def find_modules(path):
                     modules.add(pkg + '.' + info.name)
     return modules
 
+
 try:
     import docutils.frontend
     import docutils.utils
@@ -33,9 +35,11 @@ try:
 
     class ParamHarvester(nodes.SparseNodeVisitor):
         """Extract Sphinxy parameter descriptions from a docstring."""
+
         def __init__(self, document):
             nodes.SparseNodeVisitor.__init__(self, document)
-            self.tags = set(['param', 'parameter', 'arg', 'argument', 'key', 'keyword'])
+            self.tags = set(['param', 'parameter', 'arg',
+                             'argument', 'key', 'keyword'])
 
         def visit_document(self, node):
             self.params = {}
@@ -92,19 +96,24 @@ except ImportError:
         else:
             return (docstring, {})
 
+
 class DetectorConfigAction(argparse.Action):
     """Add a detector configuration"""
+
     def __call__(self, parser, args, values, option_string=None):
         if not values or len(values) % 2:
-            raise argparse.ArgumentError(self, "expected an even number of arguments, got {}".format(len(values)))
+            raise argparse.ArgumentError(
+                self, "expected an even number of arguments, got {}".format(len(values)))
         config = []
         for detector, livetime in zip(values[::2], values[1::2]):
             try:
                 livetime = float(livetime)
             except TypeError:
-                raise argparse.ArgumentTypeError(self, "expected pairs of str, float, got {} {}".format(detector, livetime))
+                raise argparse.ArgumentTypeError(
+                    self, "expected pairs of str, float, got {} {}".format(detector, livetime))
             config.append((detector, livetime))
         getattr(args, self.dest).append(sorted(config))
+
 
 def make_figure_data():
     from gen2_analysis import figures
@@ -112,7 +121,8 @@ def make_figure_data():
     for submod in find_modules(os.path.dirname(sys.modules[__name__].__file__)):
         importlib.import_module('.'.join(__name__.split('.')[:-1] + [submod]))
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     subparsers = parser.add_subparsers(dest='command')
     subparsers.required = True
@@ -120,12 +130,14 @@ def make_figure_data():
     for name, (func, setup, teardown) in sorted(figures._figure_data.items()):
         docstring, param_help = getdoc(func)
         spec = inspect.getargspec(func)
-        p = subparsers.add_parser(name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        p = subparsers.add_parser(
+            name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         p.set_defaults(command=(func, setup, teardown))
         p.add_argument('-d', '--detector', default=[], action=DetectorConfigAction, nargs='+',
-            help='sequence of detector configuration/livetime pairs')
+                       help='sequence of detector configuration/livetime pairs')
         p.add_argument('-o', '--outputfile', action='append', help='')
-        assert len(spec.args) - len(spec.defaults) == 1, "exposures argument is required"
+        assert len(spec.args) - \
+            len(spec.defaults) == 1, "exposures argument is required"
         _add_options_for_args(p, spec, param_help)
     args = parser.parse_args().__dict__
     exposures = args.pop('detector')
@@ -133,14 +145,16 @@ def make_figure_data():
         parser.error('at least one detector configuration is required')
     outfiles = args.pop('outputfile')
     if outfiles and len(outfiles) != len(exposures):
-        parser.error('either none or all output file names should be specified. got {} output files for {} detector configs'.format(len(outfiles), len(exposures)))
+        parser.error('either none or all output file names should be specified. got {} output files for {} detector configs'.format(
+            len(outfiles), len(exposures)))
 
     func, setup, teardown = args.pop('command')
     if setup:
         setup()
     try:
         for exposure, outfile in zip(exposures, outfiles):
-            meta = {'source': func.__module__ + '.' + func.__name__, 'detectors': exposure, 'args': args}
+            meta = {'source': func.__module__ + '.' +
+                    func.__name__, 'detectors': exposure, 'args': args}
             meta['data'] = func(tuple(exposure), **args)
             if not outfile.endswith('.json.gz'):
                 outfile = outfile+'.json.gz'
@@ -150,20 +164,26 @@ def make_figure_data():
         if teardown:
             teardown()
 
+
 def load_gzip(fname):
     with gzip.open(fname) as f:
         return json.load(f)
 
+
 def _add_options_for_args(parser, spec, param_help):
     num_required_args = 0
-    num_required_args = len(spec.args) - (len(spec.defaults) if spec.defaults else 0)
+    num_required_args = len(spec.args) - \
+        (len(spec.defaults) if spec.defaults else 0)
     if spec.defaults:
         for arg, default in zip(spec.args[num_required_args:], spec.defaults):
-            argname = arg.replace('_','-')
+            argname = arg.replace('_', '-')
             if type(default) is bool:
-                parser.add_argument('--{}'.format('no-' if default else '')+argname, default=default, action='store_false' if default else 'store_true', dest=arg, help=param_help.get(arg,None))
+                parser.add_argument('--{}'.format('no-' if default else '')+argname, default=default,
+                                    action='store_false' if default else 'store_true', dest=arg, help=param_help.get(arg, None))
             else:
-                parser.add_argument('--'+argname, type=type(default), default=default, help=param_help.get(arg,None))
+                parser.add_argument('--'+argname, type=type(default),
+                                    default=default, help=param_help.get(arg, None))
+
 
 def make_figure():
     from gen2_analysis import figures
@@ -171,7 +191,8 @@ def make_figure():
     for submod in find_modules(os.path.dirname(sys.modules[__name__].__file__)):
         importlib.import_module('.'.join(__name__.split('.')[:-1] + [submod]))
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     subparsers = parser.add_subparsers(dest='command')
     subparsers.required = True
@@ -179,7 +200,8 @@ def make_figure():
     for name, func in sorted(figures._figures.items()):
         docstring, param_help = getdoc(func)
         spec = inspect.getargspec(func)
-        p = subparsers.add_parser(name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        p = subparsers.add_parser(
+            name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         p.set_defaults(command=func)
         p.add_argument('-o', '--outfile')
         spec = inspect.getargspec(func)

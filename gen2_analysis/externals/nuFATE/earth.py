@@ -5,7 +5,8 @@ import scipy.integrate as integrate
 
 REarth = 6371.  # Earth radius in km.
 
-def rho_earth(theta, x, d = 0):
+
+def rho_earth(theta, x, d=0):
     """ Returns the Earth density in gr/cm^3.
 
     Args:
@@ -57,9 +58,10 @@ def rho_earth(theta, x, d = 0):
 
     rho = p1 * r**2 + p2 * r + p3
 
-    return rho*1.0e-3 # g/cm^3.1.0e-3 conversion factor from kg/m^3 to g/cm^3
+    return rho*1.0e-3  # g/cm^3.1.0e-3 conversion factor from kg/m^3 to g/cm^3
 
-def get_t_earth(theta, d = 0):
+
+def get_t_earth(theta, d=0):
     """ Returns the Earth column density for a given zenith angle.
 
     Args:
@@ -69,10 +71,11 @@ def get_t_earth(theta, d = 0):
     Returns:
         rho: density in g/cm^2
     """
-    xmax = np.sqrt((REarth - d)**2 * np.cos(theta)**2 + d * (2 * REarth - d)) - (REarth - d) * np.cos(theta)
+    xmax = np.sqrt((REarth - d)**2 * np.cos(theta)**2 + d *
+                   (2 * REarth - d)) - (REarth - d) * np.cos(theta)
     kmTocm = 1.0e5
-    n = lambda x: rho_earth(theta, x, d)  #mass density
+    def n(x): return rho_earth(theta, x, d)  # mass density
     t = integrate.quad(
         lambda x: n(xmax - x), 0, xmax, epsrel=1.0e-3,
-        epsabs=1.0e-18)[0] * kmTocm  #g/cm^2
+        epsabs=1.0e-18)[0] * kmTocm  # g/cm^2
     return t

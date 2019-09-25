@@ -16,577 +16,621 @@ from util import *
 from .pointsource import is_zenith_weight
 
 try:
-	from functools import lru_cache
+    from functools import lru_cache
 except ImportError:
-	from backports.functools_lru_cache import lru_cache
+    from backports.functools_lru_cache import lru_cache
+
 
 class NullComponent(object):
-	"""
-	A flux component that predicts zero events. This is useful for padding out
-	components that predict events in only a subset of channels (e.g. penetrating
-	atmospheric muons).
-	"""
-	def __init__(self, aeff):
-		self.seed = 1
-		self.uncertainty = None
-		i, j = aeff.dimensions.index('true_zenith_band'), aeff.dimensions.index('reco_energy')
-		self.expectations = numpy.zeros((aeff.values.shape[i], aeff.values.shape[j]))
+    """
+    A flux component that predicts zero events. This is useful for padding out
+    components that predict events in only a subset of channels (e.g. penetrating
+    atmospheric muons).
+    """
+
+    def __init__(self, aeff):
+        self.seed = 1
+        self.uncertainty = None
+        i, j = aeff.dimensions.index(
+            'true_zenith_band'), aeff.dimensions.index('reco_energy')
+        self.expectations = numpy.zeros(
+            (aeff.values.shape[i], aeff.values.shape[j]))
+
 
 class DiffuseNuGen(object):
-	def __init__(self, effective_area, flux, livetime=1.):
-		"""
-		:param effective_area: effective area in m^2
-		:param edges: edges of the bins in the effective area histogram
-		:param flux: flux in 1/(m^2 yr), integrated over the edges in *edges*
-		:param livetime: observation time in years
-		"""
-		self._aeff = effective_area
-		idx = [self._aeff.dimensions.index(k)-1 for k in  ('true_zenith_band', 'reco_energy')]
-		self.bin_edges = [self._aeff.bin_edges[i] for i in idx]
-		i = self._aeff.dimensions.index('true_energy')-1
-		self.energy_range = [self._aeff.bin_edges[i][0], self._aeff.bin_edges[i][-1]]
-		self._livetime = livetime
-		# dimensions of flux should be: nu type (6),
-		# nu energy, cos(nu zenith), reco energy, cos(reco zenith),
-		# signature (cascade/track)
-		self._flux = flux
-		
-		# FIXME: account for healpix binning
-		self._solid_angle = 2*numpy.pi*numpy.diff(self._aeff.bin_edges[1])
-		
-		self.seed = 1.
-		self.uncertainty = None
-	
-	@property
-	def is_healpix(self):
-		return self._aeff.is_healpix
-		
-	def prior(self, value, **kwargs):
-		if self.uncertainty is None:
-			return 0.
-		else:
-			return -(value-self.seed)**2/(2*self.uncertainty**2)
-	
-	@staticmethod
-	def _integrate_flux(edges, flux, passing_fraction=lambda *args, **kwargs: 1.):
-		from .util import PDGCode
-		intflux = numpy.empty((6, len(edges[0])-1, len(edges[1])-1))
-		for i, (flavor, anti) in enumerate(itertools.product(('E', 'Mu', 'Tau'), ('', 'Bar'))): 
-			pt = getattr(PDGCode, 'Nu'+flavor+anti)
-			for j in range(len(edges[1])-1):
-				ct_hi = edges[1][j+1]
-				ct_lo = edges[1][j]
-				ct = (ct_lo + ct_hi)/2.
-				fluxband = numpy.zeros(len(edges[0])-1)
-				for k in range(len(fluxband)):
-					fluxband[k] = quad(lambda e: flux(pt, e, ct)*passing_fraction(pt, e, ct, depth=2e3), edges[0][k], edges[0][k+1])[0]
-				intflux[i,:,j] = fluxband
-		# return integrated flux in 1/(m^2 yr sr)
-		return intflux*constants.cm2*constants.annum
+    def __init__(self, effective_area, flux, livetime=1.):
+        """
+        :param effective_area: effective area in m^2
+        :param edges: edges of the bins in the effective area histogram
+        :param flux: flux in 1/(m^2 yr), integrated over the edges in *edges*
+        :param livetime: observation time in years
+        """
+        self._aeff = effective_area
+        idx = [self._aeff.dimensions.index(
+            k)-1 for k in ('true_zenith_band', 'reco_energy')]
+        self.bin_edges = [self._aeff.bin_edges[i] for i in idx]
+        i = self._aeff.dimensions.index('true_energy')-1
+        self.energy_range = [self._aeff.bin_edges[i]
+                             [0], self._aeff.bin_edges[i][-1]]
+        self._livetime = livetime
+        # dimensions of flux should be: nu type (6),
+        # nu energy, cos(nu zenith), reco energy, cos(reco zenith),
+        # signature (cascade/track)
+        self._flux = flux
 
-	# apply 3-element multiplication + reduction without creating too many
-	# unnecessary temporaries. numexpr allows a single reduction, so do it here
-	_reduce_flux = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')
-	
-	def _apply_flux(self, effective_area, flux, livetime):
-		if effective_area.shape[2] > 1:
-			return self._reduce_flux(effective_area, flux[...,None,None], livetime).sum(axis=0)
-		else:
-			return (effective_area*flux[...,None,None]*livetime).sum(axis=(0,1))
+        # FIXME: account for healpix binning
+        self._solid_angle = 2*numpy.pi*numpy.diff(self._aeff.bin_edges[1])
+
+        self.seed = 1.
+        self.uncertainty = None
+
+    @property
+    def is_healpix(self):
+        return self._aeff.is_healpix
+
+    def prior(self, value, **kwargs):
+        if self.uncertainty is None:
+            return 0.
+        else:
+            return -(value-self.seed)**2/(2*self.uncertainty**2)
+
+    @staticmethod
+    def _integrate_flux(edges, flux, passing_fraction=lambda *args, **kwargs: 1.):
+        from .util import PDGCode
+        intflux = numpy.empty((6, len(edges[0])-1, len(edges[1])-1))
+        for i, (flavor, anti) in enumerate(itertools.product(('E', 'Mu', 'Tau'), ('', 'Bar'))):
+            pt = getattr(PDGCode, 'Nu'+flavor+anti)
+            for j in range(len(edges[1])-1):
+                ct_hi = edges[1][j+1]
+                ct_lo = edges[1][j]
+                ct = (ct_lo + ct_hi)/2.
+                fluxband = numpy.zeros(len(edges[0])-1)
+                for k in range(len(fluxband)):
+                    fluxband[k] = quad(lambda e: flux(
+                        pt, e, ct)*passing_fraction(pt, e, ct, depth=2e3), edges[0][k], edges[0][k+1])[0]
+                intflux[i, :, j] = fluxband
+        # return integrated flux in 1/(m^2 yr sr)
+        return intflux*constants.cm2*constants.annum
+
+    # apply 3-element multiplication + reduction without creating too many
+    # unnecessary temporaries. numexpr allows a single reduction, so do it here
+    _reduce_flux = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')
+
+    def _apply_flux(self, effective_area, flux, livetime):
+        if effective_area.shape[2] > 1:
+            return self._reduce_flux(effective_area, flux[..., None, None], livetime).sum(axis=0)
+        else:
+            return (effective_area*flux[..., None, None]*livetime).sum(axis=(0, 1))
+
 
 def detect(sequence, pred):
-	try:
-		return next((s for s in sequence if pred(s)))
-	except StopIteration:
-		return None
+    try:
+        return next((s for s in sequence if pred(s)))
+    except StopIteration:
+        return None
+
 
 def _import_NewNuFlux():
-	"""
-	Try to find NewNuFlux, either standalone or as part of IceTray
-	
-	http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
-	"""
-	try:
-		import NewNuFlux
-	except ImportError:
-		from icecube import NewNuFlux
-	return NewNuFlux
+    """
+    Try to find NewNuFlux, either standalone or as part of IceTray
+
+    http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
+    """
+    try:
+        import NewNuFlux
+    except ImportError:
+        from icecube import NewNuFlux
+    return NewNuFlux
+
 
 class AtmosphericNu(DiffuseNuGen):
-	"""
-	The diffuse atmospheric neutrino flux. :meth:`.point_source_background`
-	returns the corresponding point source background.
-	
-	The units of the model are scalings of the underlying flux parameterization.
-	"""
-	def __init__(self, effective_area, flux, livetime, hard_veto_threshold=None):
-		if isinstance(flux, tuple):
-			flux_func, passing_fraction = flux
-			if passing_fraction is not None:
-				flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux, passing_fraction)
-			else:
-				flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux)
-		
-			# "integrate" over solid angle
-			if effective_area.is_healpix:
-				flux *= healpy.nside2pixarea(effective_area.nside)
-			else:
-				flux *= (2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:]
-		else:
-			# flux was precalculated
-			pass
-		
-		super(AtmosphericNu, self).__init__(effective_area, flux, livetime)
-		
-		if hard_veto_threshold is not None:
-			# reduce the flux in the south
-			# NB: assumes that a surface veto has been applied!
-			flux = self._flux * numpy.where(center(effective_area.bin_edges[1]) < 0.05, 1, 1e-4)[None,None,:]
-		else:
-			flux = self._flux
-			
-		# sum over neutrino flavors, energies, and zenith angles
-		total = self._apply_flux(self._aeff.values, flux, self._livetime)
+    """
+    The diffuse atmospheric neutrino flux. :meth:`.point_source_background`
+    returns the corresponding point source background.
 
-		# up to now we've assumed that everything is azimuthally symmetric and
-		# dealt with zenith bins/healpix rings. repeat the values in each ring
-		# to broadcast onto a full healpix map.
-		if self.is_healpix:
-			total = total.repeat(self._aeff.ring_repeat_pattern, axis=0)
-		# dimensions of the keys in expectations are now reconstructed energy, sky bin (zenith/healpix pixel)
-		self.expectations = total.sum(axis=2)
-	
-	def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
-		"""
-		Convert flux to a form suitable for calculating point source backgrounds.
-		The predictions in **expectations** will be differential in the opening-angle
-		bins provided in the effective area instead of being integrated over them.
-		
-		:param zenith_index: index of the sky bin to use. May be either an integer
-		                     (for single point source searches) or a slice (for
-		                     stacking searches)
-		:param livetime: if not None, the actual livetime to integrate over in seconds
-		:param n_sources: number of search windows in each zenith band
-		:param with_energy: if False, integrate over reconstructed energy. Otherwise,
-		                    provide a differential prediction in reconstructed energy.
-		"""
-		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
-		
-		background = copy(self)
-		psi_bins = self._aeff.bin_edges[-1][:-1]
-		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None,...]
-		# observation time shorter for triggered transient searches
-		if livetime is not None:
-			bin_areas *= (livetime/self._livetime/constants.annum)
-		if is_zenith_weight(zenith_index, self._aeff):
-			omega = self._solid_angle[:,None]
-		elif isinstance(zenith_index, slice):
-			omega = self._solid_angle[zenith_index,None]
-			bin_areas = bin_areas[None,...]
-		else:
-			omega = self._solid_angle[zenith_index]
-		# scale the area in each bin by the number of search windows
-		if n_sources is not None:
-			expand = [None]*bin_areas.ndim
-			expand[0] = slice(None)
-			bin_areas = bin_areas*n_sources[expand]
-			
-		# dimensions of the keys in expectations are now energy, radial bin
-		if is_zenith_weight(zenith_index, self._aeff):
-			background.expectations = numpy.nansum((self.expectations*zenith_index[:,None])/omega, axis=0)[...,None]*bin_areas
-		else:
-			background.expectations = (self.expectations[zenith_index,:]/omega)[...,None]*bin_areas
-		if not with_energy:
-			# just radial bins
-			background.expectations = background.expectations.sum(axis=0)
-		return background
+    The units of the model are scalings of the underlying flux parameterization.
+    """
 
-	_cache_file = os.path.join(data_dir, 'cache', 'atmospheric_fluxes.pickle')
-	if os.path.exists(_cache_file):
-		with open(_cache_file) as f:
-			_fluxes = pickle.load(f)
-	else:
-		_fluxes = dict(conventional=dict(), prompt=dict())
-	@classmethod
-	def conventional(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
-		"""
-		Instantiate a conventional atmospheric neutrino flux, using the Honda
-		parameterization with corrections for the cosmic ray knee and the fraction
-		of atmospheric neutrinos accompanied by muons.
-		
-		The flux will be integrated over the effective area's energy and zenith
-		angle bins the first time this method is called. Depending on the number of
-		bins this can take several minutes. Subsequent calls with the same veto
-		threshold and an effective area of the same shape will use the cached flux
-		and instantiate much more quickly.
-			
-		:param effective_area: an instance of :py:class:`effective_areas.effective_area`
-		:param livetime: observation time, in years
-		:param veto_threshold: muon energy, in GeV, above which atmospheric muons
-		                       can be vetoed. This will be used to modify the effective
-		                       atmospheric neutrino flux.
-		:param hard_veto_threshold: if not None, reduce the atmospheric flux to
-		                            1e-4 of its nominal value in the southern
-		                            hemisphere to model the effect of a surface
-		                            veto. This assumes that an energy threshold
-		                            has been applied to the effective area. 
-		"""
-		from .externals import AtmosphericSelfVeto
-		cache = cls._fluxes['conventional']
-		shape_key = effective_area.values.shape[:4]
-		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
-		if flux is None:
-			flux = _import_NewNuFlux().makeFlux('honda2006')
-			flux.knee_reweighting_model = 'gaisserH3a_elbert'
-			pf = lambda *args, **kwargs: 1. if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='conventional', veto_threshold=veto_threshold)
-			flux = (flux, pf)
-		else:
-			flux = flux[1]
-		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
-		if isinstance(flux, tuple):
-			
-			if not veto_threshold in cache:
-				cache[veto_threshold] = list()
-			cache[veto_threshold].append((shape_key, instance._flux))
-			with open(cls._cache_file, 'w') as f:
-				pickle.dump(cls._fluxes, f, protocol=2)
-		assert len(cls._fluxes['conventional']) > 0 
-		
-		return instance
-	
-	@classmethod
-	def prompt(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
-		"""
-		Instantiate a prompt atmospheric neutrino flux, using the Enberg
-		parameterization with corrections for the cosmic ray knee and the fraction
-		of atmospheric neutrinos accompanied by muons.
-		
-		The parameters have the same meanings as in :meth:`.conventional`
-		"""
-		from .externals import AtmosphericSelfVeto
-		cache = cls._fluxes['prompt']
-		shape_key = effective_area.values.shape[:4]
-		flux = detect(cache.get(veto_threshold, []), lambda args: args[0]==shape_key)
-		if flux is None:
-			flux = _import_NewNuFlux().makeFlux('sarcevic_std')
-			flux.knee_reweighting_model = 'gaisserH3a_elbert'
-			pf = lambda *args, **kwargs: 1. if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(kind='charm', veto_threshold=veto_threshold)
-			flux = (flux, pf)
-		else:
-			flux = flux[1]
-		instance = cls(effective_area, flux, livetime, hard_veto_threshold)
-		if isinstance(flux, tuple):
-			if not veto_threshold in cache:
-				cache[veto_threshold] = list()
-			cache[veto_threshold].append((shape_key, instance._flux))
-			with open(cls._cache_file, 'w') as f:
-				pickle.dump(cls._fluxes, f, protocol=2)
-		
-		return instance
-		
+    def __init__(self, effective_area, flux, livetime, hard_veto_threshold=None):
+        if isinstance(flux, tuple):
+            flux_func, passing_fraction = flux
+            if passing_fraction is not None:
+                flux = self._integrate_flux(
+                    effective_area.bin_edges, flux_func.getFlux, passing_fraction)
+            else:
+                flux = self._integrate_flux(
+                    effective_area.bin_edges, flux_func.getFlux)
+
+            # "integrate" over solid angle
+            if effective_area.is_healpix:
+                flux *= healpy.nside2pixarea(effective_area.nside)
+            else:
+                flux *= (2*numpy.pi *
+                         numpy.diff(effective_area.bin_edges[1]))[None, None, :]
+        else:
+            # flux was precalculated
+            pass
+
+        super(AtmosphericNu, self).__init__(effective_area, flux, livetime)
+
+        if hard_veto_threshold is not None:
+            # reduce the flux in the south
+            # NB: assumes that a surface veto has been applied!
+            flux = self._flux * \
+                numpy.where(
+                    center(effective_area.bin_edges[1]) < 0.05, 1, 1e-4)[None, None, :]
+        else:
+            flux = self._flux
+
+        # sum over neutrino flavors, energies, and zenith angles
+        total = self._apply_flux(self._aeff.values, flux, self._livetime)
+
+        # up to now we've assumed that everything is azimuthally symmetric and
+        # dealt with zenith bins/healpix rings. repeat the values in each ring
+        # to broadcast onto a full healpix map.
+        if self.is_healpix:
+            total = total.repeat(self._aeff.ring_repeat_pattern, axis=0)
+        # dimensions of the keys in expectations are now reconstructed energy, sky bin (zenith/healpix pixel)
+        self.expectations = total.sum(axis=2)
+
+    def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
+        """
+        Convert flux to a form suitable for calculating point source backgrounds.
+        The predictions in **expectations** will be differential in the opening-angle
+        bins provided in the effective area instead of being integrated over them.
+
+        :param zenith_index: index of the sky bin to use. May be either an integer
+                             (for single point source searches) or a slice (for
+                             stacking searches)
+        :param livetime: if not None, the actual livetime to integrate over in seconds
+        :param n_sources: number of search windows in each zenith band
+        :param with_energy: if False, integrate over reconstructed energy. Otherwise,
+                            provide a differential prediction in reconstructed energy.
+        """
+        assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
+
+        background = copy(self)
+        psi_bins = self._aeff.bin_edges[-1][:-1]
+        bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[None, ...]
+        # observation time shorter for triggered transient searches
+        if livetime is not None:
+            bin_areas *= (livetime/self._livetime/constants.annum)
+        if is_zenith_weight(zenith_index, self._aeff):
+            omega = self._solid_angle[:, None]
+        elif isinstance(zenith_index, slice):
+            omega = self._solid_angle[zenith_index, None]
+            bin_areas = bin_areas[None, ...]
+        else:
+            omega = self._solid_angle[zenith_index]
+        # scale the area in each bin by the number of search windows
+        if n_sources is not None:
+            expand = [None]*bin_areas.ndim
+            expand[0] = slice(None)
+            bin_areas = bin_areas*n_sources[expand]
+
+        # dimensions of the keys in expectations are now energy, radial bin
+        if is_zenith_weight(zenith_index, self._aeff):
+            background.expectations = numpy.nansum(
+                (self.expectations*zenith_index[:, None])/omega, axis=0)[..., None]*bin_areas
+        else:
+            background.expectations = (
+                self.expectations[zenith_index, :]/omega)[..., None]*bin_areas
+        if not with_energy:
+            # just radial bins
+            background.expectations = background.expectations.sum(axis=0)
+        return background
+
+    _cache_file = os.path.join(data_dir, 'cache', 'atmospheric_fluxes.pickle')
+    if os.path.exists(_cache_file):
+        with open(_cache_file) as f:
+            _fluxes = pickle.load(f)
+    else:
+        _fluxes = dict(conventional=dict(), prompt=dict())
+
+    @classmethod
+    def conventional(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
+        """
+        Instantiate a conventional atmospheric neutrino flux, using the Honda
+        parameterization with corrections for the cosmic ray knee and the fraction
+        of atmospheric neutrinos accompanied by muons.
+
+        The flux will be integrated over the effective area's energy and zenith
+        angle bins the first time this method is called. Depending on the number of
+        bins this can take several minutes. Subsequent calls with the same veto
+        threshold and an effective area of the same shape will use the cached flux
+        and instantiate much more quickly.
+
+        :param effective_area: an instance of :py:class:`effective_areas.effective_area`
+        :param livetime: observation time, in years
+        :param veto_threshold: muon energy, in GeV, above which atmospheric muons
+                               can be vetoed. This will be used to modify the effective
+                               atmospheric neutrino flux.
+        :param hard_veto_threshold: if not None, reduce the atmospheric flux to
+                                    1e-4 of its nominal value in the southern
+                                    hemisphere to model the effect of a surface
+                                    veto. This assumes that an energy threshold
+                                    has been applied to the effective area. 
+        """
+        from .externals import AtmosphericSelfVeto
+        cache = cls._fluxes['conventional']
+        shape_key = effective_area.values.shape[:4]
+        flux = detect(cache.get(veto_threshold, []),
+                      lambda args: args[0] == shape_key)
+        if flux is None:
+            flux = _import_NewNuFlux().makeFlux('honda2006')
+            flux.knee_reweighting_model = 'gaisserH3a_elbert'
+            pf = lambda *args, **kwargs: 1. if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(
+                kind='conventional', veto_threshold=veto_threshold)
+            flux = (flux, pf)
+        else:
+            flux = flux[1]
+        instance = cls(effective_area, flux, livetime, hard_veto_threshold)
+        if isinstance(flux, tuple):
+
+            if not veto_threshold in cache:
+                cache[veto_threshold] = list()
+            cache[veto_threshold].append((shape_key, instance._flux))
+            with open(cls._cache_file, 'w') as f:
+                pickle.dump(cls._fluxes, f, protocol=2)
+        assert len(cls._fluxes['conventional']) > 0
+
+        return instance
+
+    @classmethod
+    def prompt(cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None):
+        """
+        Instantiate a prompt atmospheric neutrino flux, using the Enberg
+        parameterization with corrections for the cosmic ray knee and the fraction
+        of atmospheric neutrinos accompanied by muons.
+
+        The parameters have the same meanings as in :meth:`.conventional`
+        """
+        from .externals import AtmosphericSelfVeto
+        cache = cls._fluxes['prompt']
+        shape_key = effective_area.values.shape[:4]
+        flux = detect(cache.get(veto_threshold, []),
+                      lambda args: args[0] == shape_key)
+        if flux is None:
+            flux = _import_NewNuFlux().makeFlux('sarcevic_std')
+            flux.knee_reweighting_model = 'gaisserH3a_elbert'
+            pf = lambda *args, **kwargs: 1. if veto_threshold is None else AtmosphericSelfVeto.AnalyticPassingFraction(
+                kind='charm', veto_threshold=veto_threshold)
+            flux = (flux, pf)
+        else:
+            flux = flux[1]
+        instance = cls(effective_area, flux, livetime, hard_veto_threshold)
+        if isinstance(flux, tuple):
+            if not veto_threshold in cache:
+                cache[veto_threshold] = list()
+            cache[veto_threshold].append((shape_key, instance._flux))
+            with open(cls._cache_file, 'w') as f:
+                pickle.dump(cls._fluxes, f, protocol=2)
+
+        return instance
+
+
 class DiffuseAstro(DiffuseNuGen):
-	r"""
-	A diffuse astrophysical neutrino flux. :meth:`.point_source_background`
-	returns the corresponding point source background.
-	
-	The unit is the differential flux per neutrino flavor at 100 TeV,
-	in units of :math:`10^{-18} \,\, \rm  GeV^{-1} \, cm^{-2} \, s^{-1} \, sr^{-1}`
-	"""
-	def __init__(self, effective_area, livetime, flavor=None, gamma_name='gamma'):
-		"""
-		:param effective_area: the effective area
-		:param livetime: observation time, in years
-		"""
-		flux = self._integral_flux(effective_area)[None,:,None]
-		
-		if isinstance(flavor, int):
-			for i in xrange(flux.shape[0]):
-				if i < 2*flavor or i > 2*flavor+1:
-					flux[i,...] = 0
+    r"""
+    A diffuse astrophysical neutrino flux. :meth:`.point_source_background`
+    returns the corresponding point source background.
 
-		# "integrate" over solid angle
-		if effective_area.is_healpix:
-			flux *= healpy.nside2pixarea(effective_area.nside)
-		else:
-			flux = flux*((2*numpy.pi*numpy.diff(effective_area.bin_edges[1]))[None,None,:])
-		super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
-		self._with_psi = False
-		
-		self._gamma_name = gamma_name
-		self._suffix = ''
-		self._with_energy = True
-	
-	@staticmethod
-	def _integral_flux(aeff, gamma=-2):
-		# reference flux is E^2 Phi = 1e-8 GeV cm^-2 sr^-1 s^-1
-		intflux = lambda e, gamma: ((1e5**-gamma)/(1+gamma))*e**(1+gamma)
-		enu = aeff.bin_edges[0]
-		# 1 / m^2 yr
-		return (0.5e-18*constants.cm2*constants.annum)*(intflux(enu[1:], gamma) - intflux(enu[:-1], gamma))
-	
-	def _invalidate_cache(self):
-		for attr in dir(self):
-			clear = getattr(getattr(self, attr), 'cache_clear', None)
-			if clear:
-				clear()
+    The unit is the differential flux per neutrino flavor at 100 TeV,
+    in units of :math:`10^{-18} \,\, \rm  GeV^{-1} \, cm^{-2} \, s^{-1} \, sr^{-1}`
+    """
 
-	def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
-		__doc__ = AtmosphericNu.point_source_background.__doc__
-		assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
-		
-		
-		background = copy(self)
-		psi_bins = self._aeff.bin_edges[-1][:-1]
-		expand = [None]*5
-		expand[-1] = slice(None)
-		bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[expand]
-		# observation time shorter for triggered transient searches
-		if livetime is not None:
-			background._livetime = livetime/constants.annum
-		# dimensions of the keys in expectations are now energy, radial bin
-		
-		# cut flux down to a single zenith band
-		# dimensions of self._flux are flavor, energy, zenith
-		if is_zenith_weight(zenith_index, self._aeff) or isinstance(zenith_index, slice):
-			sel = zenith_index
-		else:
-			sel = slice(zenith_index, zenith_index+1)
-		
-		# scale the area in each bin by the number of search windows
-		if n_sources is not None:
-			expand = [None]*bin_areas.ndim
-			expand[2] = slice(None)
-			bin_areas = bin_areas*n_sources[expand]
-		
-		# dimensions of flux are now 1/m^2 sr
-		if isinstance(sel, slice):
-			background._flux = (self._flux[:,:,sel]/self._solid_angle[zenith_index])
-		else:
-			assert (abs(self._flux[:,:,:1] - self._flux[:,:,1:]) < 1e-12).all(), "Diffuse flux must be independent of zenith angle for this weighting to work out"
-			background._flux = (self._flux[:,:,:1]/self._solid_angle[0])
-		
-		# replace reconstructed zenith with opening angle
-		# dimensions of aeff are now m^2 sr
-		background._aeff = copy(self._aeff)
-		if isinstance(sel, slice):
-			background._aeff.values = self._aeff.values[:,:,sel,:,:].sum(axis=4)[...,None]*bin_areas
-		else:
-			background._aeff.values = ((self._aeff.values*sel[None,None,:,None,None]).sum(axis=2, keepdims=True).sum(axis=4))[...,None]*bin_areas
-		background._with_psi = True
-		
-		background._with_energy = with_energy
-		background._invalidate_cache()
-		
-		# total = self._apply_flux(background._aeff.values, background._flux, self._livetime)
-		# print background._aeff.values.sum(axis=tuple(range(0, 5)))
-		# print total.sum(axis=tuple(range(0, 2)))
-		# print background._aeff.values.shape, background._flux.shape
-		# print total[...,0].sum()
-		# assert total[...,1].sum() > 0
+    def __init__(self, effective_area, livetime, flavor=None, gamma_name='gamma'):
+        """
+        :param effective_area: the effective area
+        :param livetime: observation time, in years
+        """
+        flux = self._integral_flux(effective_area)[None, :, None]
 
-		return background
+        if isinstance(flavor, int):
+            for i in xrange(flux.shape[0]):
+                if i < 2*flavor or i > 2*flavor+1:
+                    flux[i, ...] = 0
 
-	def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):
-		"""
-		Yield copies of self with the neutrino spectrum restricted to *decade*
-		decades in energy
-		"""
-		# now, sum over decades in neutrino energy
-		ebins = self._aeff.bin_edges[0]
-		loge = numpy.log10(ebins)
-		dloge = loge[1]-loge[0]
-		bin_range = int(round(decades/dloge))
-		if numpy.isfinite(emin):
-			lo = int(round((numpy.log10(emin) - loge[0])/dloge))
-		else:
-			# when emin is "equal" to an edge in ebins
-			# searchsorted sometimes returns inconsistent indices
-			# (wrong side). subtract a little fudge factor to ensure
-			# we're on the correct side
-			lo = ebins.searchsorted(emin-1e-4) 
-		if numpy.isfinite(emax):
-			hi = (loge.size-1) - int(round((loge[-1] - numpy.log10(emax))/dloge))
-		else:
-			hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
+        # "integrate" over solid angle
+        if effective_area.is_healpix:
+            flux *= healpy.nside2pixarea(effective_area.nside)
+        else:
+            flux = flux * \
+                ((2*numpy.pi *
+                  numpy.diff(effective_area.bin_edges[1]))[None, None, :])
+        super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
+        self._with_psi = False
 
-		if exclusive:
-			bins = range(lo, hi-1, bin_range)
-		else:
-			bins = range(lo, hi-1)
-		
-		for i in bins:
-			start = i
-			stop = min((start + bin_range, hi-1))
-			bounds = numpy.asarray([loge[0] + start*dloge, loge[0] + stop*dloge])
-			e_center = 10**numpy.mean(bounds)
-			if stop < 0 or start > ebins.size-1:
-				yield e_center, None
-				continue
-			chunk = copy(self)
-			chunk._invalidate_cache()
-			# zero out the neutrino flux outside the given range
-			chunk._flux = self._flux.copy()
-			chunk._flux[:,:max((start,0)),...] = 0
-			chunk._flux[:,min((stop,loge.size-1)):,...] = 0
-			chunk.energy_range = 10**bounds
+        self._gamma_name = gamma_name
+        self._suffix = ''
+        self._with_energy = True
 
-			yield e_center, chunk
+    @staticmethod
+    def _integral_flux(aeff, gamma=-2):
+        # reference flux is E^2 Phi = 1e-8 GeV cm^-2 sr^-1 s^-1
+        def intflux(e, gamma): return ((1e5**-gamma)/(1+gamma))*e**(1+gamma)
+        enu = aeff.bin_edges[0]
+        # 1 / m^2 yr
+        return (0.5e-18*constants.cm2*constants.annum)*(intflux(enu[1:], gamma) - intflux(enu[:-1], gamma))
 
-	@property
-	def spectral_weight_params(self):
-		return (self._gamma_name,)
+    def _invalidate_cache(self):
+        for attr in dir(self):
+            clear = getattr(getattr(self, attr), 'cache_clear', None)
+            if clear:
+                clear()
 
-	def spectral_weight(self, e_center, **kwargs):
-		return self._integral_flux(self._aeff, kwargs[self._gamma_name])/self._integral_flux(self._aeff)
+    def point_source_background(self, zenith_index, livetime=None, n_sources=None, with_energy=True):
+        __doc__ = AtmosphericNu.point_source_background.__doc__
+        assert not self.is_healpix, "Don't know how to make PS backgrounds from HEALpix maps yet"
 
-	def _apply_flux(self, effective_area, flux, livetime):
-		"""apply flux without summing over flavor"""
-		if effective_area.shape[2] > 1:
-			return self._reduce_flux(effective_area, flux[...,None,None], livetime)
-		else:
-			return (effective_area*flux[...,None,None]*livetime).sum(axis=1)
+        background = copy(self)
+        psi_bins = self._aeff.bin_edges[-1][:-1]
+        expand = [None]*5
+        expand[-1] = slice(None)
+        bin_areas = (numpy.pi*numpy.diff(psi_bins**2))[expand]
+        # observation time shorter for triggered transient searches
+        if livetime is not None:
+            background._livetime = livetime/constants.annum
+        # dimensions of the keys in expectations are now energy, radial bin
 
-	@lru_cache(maxsize=64)
-	def _apply_flux_weights(self, **kwargs):
-		"""
-		:returns: expectations by flavor (shape 6 x expectations)
-		"""
-		energy = self._aeff.bin_edges[0]
-		centers = 0.5*(energy[1:] + energy[:-1])
-		specweight = self.spectral_weight(centers, **kwargs)
-		if specweight.ndim == 1:
-			specweight = specweight[None,:,None]
-		elif specweight.ndim == 2:
-			specweight = specweight[...,None]
-		
-		flux = (self._flux*specweight)
-		# sum over neutrino energies
-		total = self._apply_flux(self._aeff.values, flux, self._livetime)
-		if not self._with_psi:
-			total = total.sum(axis=3)
-			assert total.ndim == 3
-		else:
-			assert total.ndim == 4
-		
-		# up to now we've assumed that everything is azimuthally symmetric and
-		# dealt with zenith bins/healpix rings. repeat the values in each ring
-		# to broadcast onto a full healpix map.
-		if self.is_healpix:
-			total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
-		# FIXME is dim 1 still the angular dimension?
-		if total.shape[1] == 1:
-			total = numpy.squeeze(total, axis=1)
-		
-		if not self._with_energy:
-			total = total.sum(axis=2)
-		
-		return total
+        # cut flux down to a single zenith band
+        # dimensions of self._flux are flavor, energy, zenith
+        if is_zenith_weight(zenith_index, self._aeff) or isinstance(zenith_index, slice):
+            sel = zenith_index
+        else:
+            sel = slice(zenith_index, zenith_index+1)
 
-	@lru_cache(maxsize=256)
-	def _apply_flavor_weights(self, **kwargs):
-		# peel off kwargs we consume
-		param = lambda k: k+self._suffix
-		flavor_keys = {param(k) for k in ('mu_fraction', 'e_tau_ratio', 'pgamma_fraction')}
-		flavor_kwargs = {k: kwargs[k] for k in kwargs.keys() if k in flavor_keys}
+        # scale the area in each bin by the number of search windows
+        if n_sources is not None:
+            expand = [None]*bin_areas.ndim
+            expand[2] = slice(None)
+            bin_areas = bin_areas*n_sources[expand]
 
-		# pass remainder upstream
-		spec_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in flavor_keys}
-		expectations_by_flavor = self._apply_flux_weights(**spec_kwargs)
+        # dimensions of flux are now 1/m^2 sr
+        if isinstance(sel, slice):
+            background._flux = (
+                self._flux[:, :, sel]/self._solid_angle[zenith_index])
+        else:
+            assert (abs(self._flux[:, :, :1] - self._flux[:, :, 1:]) < 1e-12).all(
+            ), "Diffuse flux must be independent of zenith angle for this weighting to work out"
+            background._flux = (self._flux[:, :, :1]/self._solid_angle[0])
 
-		if param('mu_fraction') in kwargs or param('pgamma_fraction') in flavor_kwargs:
-			flavor_weight = 3*numpy.ones((6,)+(1,)*(expectations_by_flavor.ndim-1))
-			if param('mu_fraction') in flavor_kwargs:
-				eratio, mu = flavor_kwargs[param('e_tau_ratio')], flavor_kwargs[param('mu_fraction')]
-				e = eratio*(1-mu)
-				# assert e+mu <= 1.
-				flavor_weight[0:2,...] *= e
-				flavor_weight[2:4,...] *= mu
-				flavor_weight[4:6,...] *= (1. - e - mu)
-			# See
-			# The Glashow resonance at IceCube: signatures, event rates and pp vs. p-gamma interactions
-			# Bhattacharya et al
-			# http://arxiv.org/abs/1108.3163
-			if param('pgamma_fraction') in flavor_kwargs:
-				pgamma_fraction = flavor_kwargs[param('pgamma_fraction')]
-				assert param('mu_fraction') not in flavor_kwargs, "flavor fit and pp/pgamma are mutually exclusive"
-				assert pgamma_fraction >= 0 and pgamma_fraction <= 1
-				flavor_weight[0,...] = 1 - pgamma_fraction*(1 - 0.78/0.5)
-				flavor_weight[1,...] = 1 - pgamma_fraction*(1 - 0.22/0.5)
-				flavor_weight[2::2,...] = 1 - pgamma_fraction*(1 - 0.61/0.5)
-				flavor_weight[3::2,...] = 1 - pgamma_fraction*(1 - 0.39/0.5)
-			return (expectations_by_flavor*flavor_weight).sum(axis=0)
-		else:
-			return expectations_by_flavor.sum(axis=0)
+        # replace reconstructed zenith with opening angle
+        # dimensions of aeff are now m^2 sr
+        background._aeff = copy(self._aeff)
+        if isinstance(sel, slice):
+            background._aeff.values = self._aeff.values[:, :, sel, :, :].sum(
+                axis=4)[..., None]*bin_areas
+        else:
+            background._aeff.values = ((self._aeff.values*sel[None, None, :, None, None]).sum(
+                axis=2, keepdims=True).sum(axis=4))[..., None]*bin_areas
+        background._with_psi = True
 
-	def calculate_expectations(self, **kwargs):
-		# peel off kwargs we consume
-		param = lambda k: k+self._suffix
-		keys = {param(k) for k in ('mu_fraction', 'e_tau_ratio', 'pgamma_fraction')}
-		keys.update(self.spectral_weight_params)
-		return self._apply_flavor_weights(**{k: kwargs[k] for k in kwargs.keys() if k in keys})
+        background._with_energy = with_energy
+        background._invalidate_cache()
 
-	def expectations(self, gamma=-2, **kwargs):
-		r"""
-		:param gamma: the spectral index :math:`\gamma`.
-		:returns: the observable distributions expected for a flux of
-		:math:`10^{-18} \frac{E_\nu}{\rm 100 \, TeV}^{\gamma} \,\, \rm  GeV^{-1} \, cm^{-2} \, s^{-1} \, sr^{-1}`
-		per neutrino flavor 
-		"""
-		return self.calculate_expectations(gamma=gamma, **kwargs)
+        # total = self._apply_flux(background._aeff.values, background._flux, self._livetime)
+        # print background._aeff.values.sum(axis=tuple(range(0, 5)))
+        # print total.sum(axis=tuple(range(0, 2)))
+        # print background._aeff.values.shape, background._flux.shape
+        # print total[...,0].sum()
+        # assert total[...,1].sum() > 0
+
+        return background
+
+    def differential_chunks(self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False):
+        """
+        Yield copies of self with the neutrino spectrum restricted to *decade*
+        decades in energy
+        """
+        # now, sum over decades in neutrino energy
+        ebins = self._aeff.bin_edges[0]
+        loge = numpy.log10(ebins)
+        dloge = loge[1]-loge[0]
+        bin_range = int(round(decades/dloge))
+        if numpy.isfinite(emin):
+            lo = int(round((numpy.log10(emin) - loge[0])/dloge))
+        else:
+            # when emin is "equal" to an edge in ebins
+            # searchsorted sometimes returns inconsistent indices
+            # (wrong side). subtract a little fudge factor to ensure
+            # we're on the correct side
+            lo = ebins.searchsorted(emin-1e-4)
+        if numpy.isfinite(emax):
+            hi = (loge.size-1) - \
+                int(round((loge[-1] - numpy.log10(emax))/dloge))
+        else:
+            hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
+
+        if exclusive:
+            bins = range(lo, hi-1, bin_range)
+        else:
+            bins = range(lo, hi-1)
+
+        for i in bins:
+            start = i
+            stop = min((start + bin_range, hi-1))
+            bounds = numpy.asarray(
+                [loge[0] + start*dloge, loge[0] + stop*dloge])
+            e_center = 10**numpy.mean(bounds)
+            if stop < 0 or start > ebins.size-1:
+                yield e_center, None
+                continue
+            chunk = copy(self)
+            chunk._invalidate_cache()
+            # zero out the neutrino flux outside the given range
+            chunk._flux = self._flux.copy()
+            chunk._flux[:, :max((start, 0)), ...] = 0
+            chunk._flux[:, min((stop, loge.size-1)):, ...] = 0
+            chunk.energy_range = 10**bounds
+
+            yield e_center, chunk
+
+    @property
+    def spectral_weight_params(self):
+        return (self._gamma_name,)
+
+    def spectral_weight(self, e_center, **kwargs):
+        return self._integral_flux(self._aeff, kwargs[self._gamma_name])/self._integral_flux(self._aeff)
+
+    def _apply_flux(self, effective_area, flux, livetime):
+        """apply flux without summing over flavor"""
+        if effective_area.shape[2] > 1:
+            return self._reduce_flux(effective_area, flux[..., None, None], livetime)
+        else:
+            return (effective_area*flux[..., None, None]*livetime).sum(axis=1)
+
+    @lru_cache(maxsize=64)
+    def _apply_flux_weights(self, **kwargs):
+        """
+        :returns: expectations by flavor (shape 6 x expectations)
+        """
+        energy = self._aeff.bin_edges[0]
+        centers = 0.5*(energy[1:] + energy[:-1])
+        specweight = self.spectral_weight(centers, **kwargs)
+        if specweight.ndim == 1:
+            specweight = specweight[None, :, None]
+        elif specweight.ndim == 2:
+            specweight = specweight[..., None]
+
+        flux = (self._flux*specweight)
+        # sum over neutrino energies
+        total = self._apply_flux(self._aeff.values, flux, self._livetime)
+        if not self._with_psi:
+            total = total.sum(axis=3)
+            assert total.ndim == 3
+        else:
+            assert total.ndim == 4
+
+        # up to now we've assumed that everything is azimuthally symmetric and
+        # dealt with zenith bins/healpix rings. repeat the values in each ring
+        # to broadcast onto a full healpix map.
+        if self.is_healpix:
+            total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
+        # FIXME is dim 1 still the angular dimension?
+        if total.shape[1] == 1:
+            total = numpy.squeeze(total, axis=1)
+
+        if not self._with_energy:
+            total = total.sum(axis=2)
+
+        return total
+
+    @lru_cache(maxsize=256)
+    def _apply_flavor_weights(self, **kwargs):
+        # peel off kwargs we consume
+        def param(k): return k+self._suffix
+        flavor_keys = {param(k) for k in (
+            'mu_fraction', 'e_tau_ratio', 'pgamma_fraction')}
+        flavor_kwargs = {k: kwargs[k]
+                         for k in kwargs.keys() if k in flavor_keys}
+
+        # pass remainder upstream
+        spec_kwargs = {k: kwargs[k]
+                       for k in kwargs.keys() if k not in flavor_keys}
+        expectations_by_flavor = self._apply_flux_weights(**spec_kwargs)
+
+        if param('mu_fraction') in kwargs or param('pgamma_fraction') in flavor_kwargs:
+            flavor_weight = 3 * \
+                numpy.ones((6,)+(1,)*(expectations_by_flavor.ndim-1))
+            if param('mu_fraction') in flavor_kwargs:
+                eratio, mu = flavor_kwargs[param(
+                    'e_tau_ratio')], flavor_kwargs[param('mu_fraction')]
+                e = eratio*(1-mu)
+                # assert e+mu <= 1.
+                flavor_weight[0:2, ...] *= e
+                flavor_weight[2:4, ...] *= mu
+                flavor_weight[4:6, ...] *= (1. - e - mu)
+            # See
+            # The Glashow resonance at IceCube: signatures, event rates and pp vs. p-gamma interactions
+            # Bhattacharya et al
+            # http://arxiv.org/abs/1108.3163
+            if param('pgamma_fraction') in flavor_kwargs:
+                pgamma_fraction = flavor_kwargs[param('pgamma_fraction')]
+                assert param(
+                    'mu_fraction') not in flavor_kwargs, "flavor fit and pp/pgamma are mutually exclusive"
+                assert pgamma_fraction >= 0 and pgamma_fraction <= 1
+                flavor_weight[0, ...] = 1 - pgamma_fraction*(1 - 0.78/0.5)
+                flavor_weight[1, ...] = 1 - pgamma_fraction*(1 - 0.22/0.5)
+                flavor_weight[2::2, ...] = 1 - pgamma_fraction*(1 - 0.61/0.5)
+                flavor_weight[3::2, ...] = 1 - pgamma_fraction*(1 - 0.39/0.5)
+            return (expectations_by_flavor*flavor_weight).sum(axis=0)
+        else:
+            return expectations_by_flavor.sum(axis=0)
+
+    def calculate_expectations(self, **kwargs):
+        # peel off kwargs we consume
+        def param(k): return k+self._suffix
+        keys = {param(k)
+                for k in ('mu_fraction', 'e_tau_ratio', 'pgamma_fraction')}
+        keys.update(self.spectral_weight_params)
+        return self._apply_flavor_weights(**{k: kwargs[k] for k in kwargs.keys() if k in keys})
+
+    def expectations(self, gamma=-2, **kwargs):
+        r"""
+        :param gamma: the spectral index :math:`\gamma`.
+        :returns: the observable distributions expected for a flux of
+        :math:`10^{-18} \frac{E_\nu}{\rm 100 \, TeV}^{\gamma} \,\, \rm  GeV^{-1} \, cm^{-2} \, s^{-1} \, sr^{-1}`
+        per neutrino flavor 
+        """
+        return self.calculate_expectations(gamma=gamma, **kwargs)
+
 
 class MuonDampedDiffuseAstro(DiffuseAstro):
-	def __init__(self, *args, **kwargs):
-		self._fixed_flavor_ratio = kwargs.pop('fixed_flavor_ratio', False)
-		super(MuonDampedDiffuseAstro, self).__init__(*args, **kwargs)
-		self._oscillate = IncoherentOscillation.create()
-	
-	@staticmethod
-	def pion_decay_flux(e_nu, ecrit_mu=1., ):
-		"""
-		effective parameterization of the neutrino flux from muon-damped pion decay
-		:param e_nu: neutrino energy
-		:param ecrit_mu: critical energy at which the muon decay time
-						 and cooling time are equal (see PRL 95, 181101 (2005))
-		:returns: an e_nu.size x 3 array containing the ratio of neutrino fluxes
-				  with and without muon cooling at the source
-		"""
-	
-		# muon synchrotron cooling (and later, pion cooling) steepens the flux
-		# by two powers above the critical energy
-		# parameterize this slope change like Hoerandel (2003), neglecting the
-		# [probably specious] pile-up effects at the spectral break 
-		e_knee = 0.3*ecrit_mu
-		epsilon = 5.
-		delta_gamma = 2.
-	
-		knee_flux = lambda e, e_knee: (1 + (e/e_knee)**epsilon)**(-delta_gamma/epsilon)
+    def __init__(self, *args, **kwargs):
+        self._fixed_flavor_ratio = kwargs.pop('fixed_flavor_ratio', False)
+        super(MuonDampedDiffuseAstro, self).__init__(*args, **kwargs)
+        self._oscillate = IncoherentOscillation.create()
 
-		flux = numpy.zeros(e_nu.shape + (3,))
-	
-		flux[:,:2] = knee_flux(e_nu, e_knee)[:,None]
-		flux[:,1] += knee_flux(e_nu, 15*e_knee)
-	
-		return flux
+    @staticmethod
+    def pion_decay_flux(e_nu, ecrit_mu=1., ):
+        """
+        effective parameterization of the neutrino flux from muon-damped pion decay
+        :param e_nu: neutrino energy
+        :param ecrit_mu: critical energy at which the muon decay time
+                                         and cooling time are equal (see PRL 95, 181101 (2005))
+        :returns: an e_nu.size x 3 array containing the ratio of neutrino fluxes
+                          with and without muon cooling at the source
+        """
 
-	@property
-	def spectral_weight_params(self):
-		return ('emu_crit', self._gamma_name)
+        # muon synchrotron cooling (and later, pion cooling) steepens the flux
+        # by two powers above the critical energy
+        # parameterize this slope change like Hoerandel (2003), neglecting the
+        # [probably specious] pile-up effects at the spectral break
+        e_knee = 0.3*ecrit_mu
+        epsilon = 5.
+        delta_gamma = 2.
 
-	def spectral_weight(self, e_center, **kwargs):
-		emu_crit = kwargs['emu_crit']
-		specweight = self._oscillate(*(self.pion_decay_flux(e_center, kwargs['emu_crit']).T))
-		if self._fixed_flavor_ratio:
-			avg = specweight.sum(axis=0, keepdims=True)/3.
-			specweight = avg.repeat(3, 0)
-		specweight *= ((e_center/1e5)**(kwargs[self._gamma_name]+2))[None,:]
-		return numpy.repeat(specweight, 2, axis=0)
+        def knee_flux(e, e_knee): return (
+            1 + (e/e_knee)**epsilon)**(-delta_gamma/epsilon)
+
+        flux = numpy.zeros(e_nu.shape + (3,))
+
+        flux[:, :2] = knee_flux(e_nu, e_knee)[:, None]
+        flux[:, 1] += knee_flux(e_nu, 15*e_knee)
+
+        return flux
+
+    @property
+    def spectral_weight_params(self):
+        return ('emu_crit', self._gamma_name)
+
+    def spectral_weight(self, e_center, **kwargs):
+        emu_crit = kwargs['emu_crit']
+        specweight = self._oscillate(
+            *(self.pion_decay_flux(e_center, kwargs['emu_crit']).T))
+        if self._fixed_flavor_ratio:
+            avg = specweight.sum(axis=0, keepdims=True)/3.
+            specweight = avg.repeat(3, 0)
+        specweight *= ((e_center/1e5)**(kwargs[self._gamma_name]+2))[None, :]
+        return numpy.repeat(specweight, 2, axis=0)
+
 
 class AhlersGZKFlux(object):
-	def __init__(self):
-		from scipy import interpolate
-		
-		logE, logWeight = numpy.log10(numpy.loadtxt(StringIO(
-		    """3.095e5	8.345e-13
+    def __init__(self):
+        from scipy import interpolate
+
+        logE, logWeight = numpy.log10(numpy.loadtxt(StringIO(
+            """3.095e5	8.345e-13
 		    4.306e5	1.534e-12
 		    5.777e5	2.305e-12
 		    7.091e5	3.411e-12
@@ -628,19 +672,23 @@ class AhlersGZKFlux(object):
 		    2.875e11	1.355e-12
 		    """))).T
 
-		self._interpolant = interpolate.interp1d(logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
-	def __call__(self, e_center):
-                return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
+        self._interpolant = interpolate.interp1d(
+            logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
+
+    def __call__(self, e_center):
+        return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
+
 
 class VanVlietGZKFlux(object):
-	"""
-	See Fig. 1 of https://arxiv.org/pdf/1901.01899.pdf
-	alpha = 2.0, Emax = 100 EeV
-	"""
-	def __init__(self):
-		from scipy import interpolate
-	
-		logE, logWeight = numpy.log10(numpy.loadtxt(StringIO("""
+    """
+    See Fig. 1 of https://arxiv.org/pdf/1901.01899.pdf
+    alpha = 2.0, Emax = 100 EeV
+    """
+
+    def __init__(self):
+        from scipy import interpolate
+
+        logE, logWeight = numpy.log10(numpy.loadtxt(StringIO("""
 			2.387e6	5.206e-11
 			3.370e6	7.387e-11
 			4.973e6	9.571e-11
@@ -669,9 +717,12 @@ class VanVlietGZKFlux(object):
 			3.520e10	6.377e-11
 			"""))).T
 
-		self._interpolant = interpolate.interp1d(logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
-	def __call__(self, e_center):
-		return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
+        self._interpolant = interpolate.interp1d(
+            logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
+
+    def __call__(self, e_center):
+        return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
+
 
 def atmos_flux(enu, model):
     """Returns the atmospheric diff flux at enu, averaged
@@ -682,12 +733,12 @@ def atmos_flux(enu, model):
     flux.knee_reweighting_model = 'gaisserH3a_elbert'
     cos_theta = np.linspace(-1, 1, 100)
     fluxes = []
-    for ct in center(cos_theta):        
+    for ct in center(cos_theta):
         fluxes.append(
             sum([flux.getFlux(
                 getattr(PDGCode, ''.join(combo)), enu, ct)
-                 for combo in itertools.product(('NuE', 'NuMu', 'NuTau'),
-                                                ('', 'Bar'))]))
+                for combo in itertools.product(('NuE', 'NuMu', 'NuTau'),
+                                               ('', 'Bar'))]))
 
     return np.mean(fluxes, axis=0)
 
@@ -715,127 +766,147 @@ def total_flux(enu):
 
 
 class ArbitraryFlux(DiffuseAstro):
-        def __init__(self, *args, **kwargs):
-                """ Base class for defining arbitrary diffuse fluxes which can be spectral-weighted
-                """
-                super(ArbitraryFlux, self).__init__(*args, **kwargs)
-                self._flux_func = None
+    def __init__(self, *args, **kwargs):
+        """ Base class for defining arbitrary diffuse fluxes which can be spectral-weighted
+        """
+        super(ArbitraryFlux, self).__init__(*args, **kwargs)
+        self._flux_func = None
 
+    def set_flux_func(self, flux_func):
+        """ Set the flux as a function of enu
+        """
+        self._flux_func = flux_func
+        self._invalidate_cache()
 
-        def set_flux_func(self, flux_func):
-                """ Set the flux as a function of enu
-                """
-                self._flux_func = flux_func
-                self._invalidate_cache()
+    @property
+    def spectral_weight_params(self):
+        return tuple()
 
-        @property
-        def spectral_weight_params(self):
-            return tuple()
-
-        def spectral_weight(self, e_center, **kwargs):
-                enu = self._aeff.bin_edges[0]
-                integrated = np.asarray([quad(self._flux_func, enu[i], enu[i+1])[0] for i, e in enumerate(enu[:-1])])
-                # Ahlers flux is for all flavors when we want the flux per flavor
-                return integrated*constants.cm2*constants.annum/(6*self._integral_flux(self._aeff))
+    def spectral_weight(self, e_center, **kwargs):
+        enu = self._aeff.bin_edges[0]
+        integrated = np.asarray(
+            [quad(self._flux_func, enu[i], enu[i+1])[0] for i, e in enumerate(enu[:-1])])
+        # Ahlers flux is for all flavors when we want the flux per flavor
+        return integrated*constants.cm2*constants.annum/(6*self._integral_flux(self._aeff))
 
 
 class AhlersGZK(ArbitraryFlux):
-	"""
-	Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
-	pure protons
-	see: http://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.083010
-	Fig 2. left panel, solid red line (protons with source evolution)
-	"""
-	def __init__(self, *args, **kwargs):
-		
-		super(AhlersGZK, self).__init__(*args, **kwargs)
-		self._flux_func = AhlersGZKFlux()
+    """
+    Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
+    pure protons
+    see: http://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.083010
+    Fig 2. left panel, solid red line (protons with source evolution)
+    """
+
+    def __init__(self, *args, **kwargs):
+
+        super(AhlersGZK, self).__init__(*args, **kwargs)
+        self._flux_func = AhlersGZKFlux()
+
 
 class VanVlietGZK(ArbitraryFlux):
-	def __init__(self, *args, **kwargs):
-		super(VanVlietGZK, self).__init__(*args, **kwargs)
-		self._flux_func = VanVlietGZKFlux()
+    def __init__(self, *args, **kwargs):
+        super(VanVlietGZK, self).__init__(*args, **kwargs)
+        self._flux_func = VanVlietGZKFlux()
+
 
 def transform_map(skymap):
-	"""
-	Interpolate a galactic skymap into equatorial coords
-	"""
-	r = healpy.Rotator(coord=('C', 'G'))
-	npix = skymap.size
-	theta_gal, phi_gal = healpy.pix2ang(healpy.npix2nside(npix), numpy.arange(npix))
-	theta_ecl, phi_ecl = r(theta_gal, phi_gal)
-	return healpy.pixelfunc.get_interp_val(skymap, theta_ecl, phi_ecl)
+    """
+    Interpolate a galactic skymap into equatorial coords
+    """
+    r = healpy.Rotator(coord=('C', 'G'))
+    npix = skymap.size
+    theta_gal, phi_gal = healpy.pix2ang(
+        healpy.npix2nside(npix), numpy.arange(npix))
+    theta_ecl, phi_ecl = r(theta_gal, phi_gal)
+    return healpy.pixelfunc.get_interp_val(skymap, theta_ecl, phi_ecl)
+
 
 class FermiGalacticEmission(DiffuseNuGen):
-	"""
-	Diffuse emission from the galaxy, modeled as 0.95 times the Fermi
-	:math:`\pi^0` map, extrapolated with a spectral index of 2.71.
-	"""
-	def __init__(self, effective_area, livetime=1.):
-		assert effective_area.is_healpix
-		# differential flux at 1 GeV [1/(GeV cm^2 sr s)]
-		map1GeV = numpy.load(os.path.join(data_dir, 'models', 'fermi_galactic_emission.npy'))
-		# downsample to resolution of effective area map
-		flux_constant = healpy.ud_grade(transform_map(map1GeV), effective_area.nside)
-		def intflux(e, gamma=-2.71):
-			return (e**(1+gamma))/(1+gamma)
-		e = effective_area.bin_edges[0]
-		# integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
-		flux = (intflux(e[1:]) - intflux(e[:-1]))
-		flux *= healpy.nside2pixarea(effective_area.nside) * constants.cm2 * constants.annum
-		flux = flux[None,:,None] * flux_constant[None,None,:]
-		
-		super(FermiGalacticEmission, self).__init__(effective_area, flux, livetime)
-		
-		# sum over opening angles and broadcast zenith angle bin over healpix rings
-		aeff = self._aeff.values.sum(axis=4).repeat(self._aeff.ring_repeat_pattern, axis=2)
-		# sum over neutrino flavors and energies
-		total = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')(aeff, self._flux[...,None], self._livetime).sum(axis=0)
-		
-		# dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
-		self.expectations = total
+    """
+    Diffuse emission from the galaxy, modeled as 0.95 times the Fermi
+    :math:`\pi^0` map, extrapolated with a spectral index of 2.71.
+    """
+
+    def __init__(self, effective_area, livetime=1.):
+        assert effective_area.is_healpix
+        # differential flux at 1 GeV [1/(GeV cm^2 sr s)]
+        map1GeV = numpy.load(os.path.join(
+            data_dir, 'models', 'fermi_galactic_emission.npy'))
+        # downsample to resolution of effective area map
+        flux_constant = healpy.ud_grade(
+            transform_map(map1GeV), effective_area.nside)
+
+        def intflux(e, gamma=-2.71):
+            return (e**(1+gamma))/(1+gamma)
+        e = effective_area.bin_edges[0]
+        # integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
+        flux = (intflux(e[1:]) - intflux(e[:-1]))
+        flux *= healpy.nside2pixarea(effective_area.nside) * \
+            constants.cm2 * constants.annum
+        flux = flux[None, :, None] * flux_constant[None, None, :]
+
+        super(FermiGalacticEmission, self).__init__(
+            effective_area, flux, livetime)
+
+        # sum over opening angles and broadcast zenith angle bin over healpix rings
+        aeff = self._aeff.values.sum(axis=4).repeat(
+            self._aeff.ring_repeat_pattern, axis=2)
+        # sum over neutrino flavors and energies
+        total = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')(aeff,
+                                                                   self._flux[..., None], self._livetime).sum(axis=0)
+
+        # dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
+        self.expectations = total
+
 
 def pmns_matrix(theta12, theta23, theta13, delta):
-	"""
-	Construct a 3-flavor PMNS mixing matrix, given 3 angles and a CP-violating phase
-	"""
-	comps = lambda angle: (numpy.sin(angle), numpy.cos(angle))
-	s12,c12 = comps(theta12)
-	s13,c13 = comps(theta13)
-	s23,c23 = comps(theta23)
-	phase = numpy.exp(complex(0, delta))
-	U = numpy.matrix([
-	    [c12*c13,                    s12*c13,                   s13/phase],
-	    [-s12*c23-c12*s13*s23*phase, c12*c23-s12*s13*s23*phase, c13*s23],
-	    [s12*s23-c12*s13*c23*phase, -c12*s23-s12*s13*c23*phase, c13*c23],
-	])
-	return U
+    """
+    Construct a 3-flavor PMNS mixing matrix, given 3 angles and a CP-violating phase
+    """
+    def comps(angle): return (numpy.sin(angle), numpy.cos(angle))
+    s12, c12 = comps(theta12)
+    s13, c13 = comps(theta13)
+    s23, c23 = comps(theta23)
+    phase = numpy.exp(complex(0, delta))
+    U = numpy.matrix([
+        [c12*c13,                    s12*c13,                   s13/phase],
+        [-s12*c23-c12*s13*s23*phase, c12*c23-s12*s13*s23*phase, c13*s23],
+        [s12*s23-c12*s13*c23*phase, -c12*s23-s12*s13*c23*phase, c13*c23],
+    ])
+    return U
+
 
 def transfer_matrix(U):
-	"""
-	Construct a matrix that transforms a flavor composition at the source to one at Earth
-	"""
-	prob = lambda alpha,beta: sum(abs(U[alpha,i])**2 * abs(U[beta,i])**2 for i in range(3))
-	return numpy.matrix([[prob(i,j) for j in range(3)] for i in range(3)])
+    """
+    Construct a matrix that transforms a flavor composition at the source to one at Earth
+    """
+    def prob(alpha, beta): return sum(
+        abs(U[alpha, i])**2 * abs(U[beta, i])**2 for i in range(3))
+    return numpy.matrix([[prob(i, j) for j in range(3)] for i in range(3)])
+
 
 class IncoherentOscillation(object):
-	"""
-	Functor to apply astronomical-baseline oscillations
-	"""
-	@classmethod
-	def create(cls, label='nufit_inverted'):
-		# taken from NuFit 2.0
-		# http://arxiv.org/abs/1409.5439
-		if label.lower() == 'nufit_inverted':
-			params = (33.48, 49.5, 8.51, 254)
-		elif label.lower() == 'nufit_normal':
-			params = (33.48, 42.3, 8.50, 306)
-		else:
-			raise ValueError("Unknown oscillation parameters '{}'".format(label))
-		return cls(*map(numpy.radians, params))
-	def __init__(self, theta12, theta23, theta13, delta):
-		self.P = transfer_matrix(pmns_matrix(theta12, theta23, theta13, delta))
-	def __call__(self, e, mu, tau):
-		original = numpy.array(numpy.broadcast_arrays(e, mu, tau), dtype=float)
-		oscillated = numpy.asarray(numpy.dot(self.P, original))
-		return oscillated
+    """
+    Functor to apply astronomical-baseline oscillations
+    """
+    @classmethod
+    def create(cls, label='nufit_inverted'):
+        # taken from NuFit 2.0
+        # http://arxiv.org/abs/1409.5439
+        if label.lower() == 'nufit_inverted':
+            params = (33.48, 49.5, 8.51, 254)
+        elif label.lower() == 'nufit_normal':
+            params = (33.48, 42.3, 8.50, 306)
+        else:
+            raise ValueError(
+                "Unknown oscillation parameters '{}'".format(label))
+        return cls(*map(numpy.radians, params))
+
+    def __init__(self, theta12, theta23, theta13, delta):
+        self.P = transfer_matrix(pmns_matrix(theta12, theta23, theta13, delta))
+
+    def __call__(self, e, mu, tau):
+        original = numpy.array(numpy.broadcast_arrays(e, mu, tau), dtype=float)
+        oscillated = numpy.asarray(numpy.dot(self.P, original))
+        return oscillated
