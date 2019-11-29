@@ -19,4 +19,4 @@ sparse_veto.pdf :
 
 .PHONY: all
 
-all: muon_performance.pdf surface_geometry.pdf cascade_aeff.pdf
+all: muon_performance.pdf surface_geometry.pdf cascade_aeff.pdf sparse_veto.pdf
