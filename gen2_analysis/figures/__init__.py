@@ -30,7 +30,7 @@ def figure_data(setup=None, teardown=None):
         if not spec.args or spec.args[0] != 'exposures':
             raise ValueError(
                 "a function registered with figure_data must take at least an `exposures` argument")
-        if len(spec.args) - len(spec.defaults) != 1:
+        if len(spec.args) - (len(spec.defaults) if spec.defaults else 0) != 1:
             raise ValueError("all secondary arguments must have defaults")
         name = wrapped.__module__[len(__name__)+1:] + '.' + wrapped.__name__
         _figure_data[name] = (wrapped, setup, teardown)
