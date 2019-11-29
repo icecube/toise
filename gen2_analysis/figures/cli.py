@@ -136,8 +136,9 @@ def make_figure_data():
         p.add_argument('-d', '--detector', default=[], action=DetectorConfigAction, nargs='+',
                        help='sequence of detector configuration/livetime pairs')
         p.add_argument('-o', '--outputfile', action='append', help='')
+        print(spec.args, spec.defaults)
         assert len(spec.args) - \
-            len(spec.defaults) == 1, "exposures argument is required"
+            ((len(spec.defaults) if spec.defaults else 0) == 1), "exposures argument is required"
         _add_options_for_args(p, spec, param_help)
     args = parser.parse_args().__dict__
     exposures = args.pop('detector')
