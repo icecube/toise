@@ -118,13 +118,13 @@ def surface_geometry():
     axes[0].scatter(pos[:86]['x'], pos[:86]['y'], s=1, color='C0', marker='H')
     axes[0].scatter(pos[86:]['x'], pos[86:]['y'], s=1, color='C1', marker='o')
     axes[0].scatter(radio[:, 0], radio[:, 1], s=5, color='C4',
-                    label='Gen2-Radio', marker='1')
+                    label='IceCube Gen2-Radio', marker='1')
 
     axes[1].scatter(upgrade[:, 0], upgrade[:, 1], s=1, color='C3')
     axes[1].scatter(pos[:86]['x'], pos[:86]['y'], s=1, color='C0', marker='H')
     # scatter_noscale(axes[1], radio[:,0], radio[:,1], s=5, color='C4', marker='1')
     axes[1].scatter(pos[86:]['x'], pos[86:]['y'], s=5,
-                    color='C1', label='IceCube-Gen2', marker='o')
+                    color='C1', label='IceCube Gen2-Optical', marker='o')
 
     axes[2].scatter(pos[:86]['x'], pos[:86]['y'], s=5,
                     color='C0', label='IceCube', marker='H')
