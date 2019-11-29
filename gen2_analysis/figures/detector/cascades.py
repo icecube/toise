@@ -142,7 +142,7 @@ def sparse_veto():
     line = ax.errorbar(npe, f['arr_2'], f['arr_5'], label='Double-spaced veto', marker='s', **style)[0]
     x, y = fit(f['arr_2'], f['arr_5'], (10**3.5, 10**4.7))
     ax.plot(x,y, color=line.get_color(), ls='--')
-    ax.plot(x/3, y, color=line.get_color(), ls='-')
+    # ax.plot(x/3, y, color=line.get_color(), ls='-')
 
     ax.loglog(nonposy='clip')
     ax.set_ylim((0.5, 1e6))
