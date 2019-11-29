@@ -1,6 +1,7 @@
 
 
-from gen2_analysis.figures import figure
+from gen2_analysis.figures import figure, figure_data
+from gen2_analysis.figures.diffuse.flavor import psi_binning
 
 import dashi
 import numpy as np
@@ -64,6 +65,46 @@ def volume():
     ax.set_xlabel('Deposited energy (GeV)')
     ax.set_ylabel('Effective volume (km$^3$)')
     ax.legend()
+    plt.tight_layout()
+    return fig
+
+@figure_data(setup=psi_binning)
+def effective_area(exposures):
+    from gen2_analysis import factory
+    assert len(exposures) == 1
+    aeff = factory.get(exposures[0][0])['cascades'][0]
+    area = aeff.values.sum(axis=(-2,-1))
+    meta = {
+        'energy': aeff.get_bin_edges('true_energy').tolist(),
+        'cos_zenith': aeff.get_bin_edges('true_zenith_band').tolist(),
+        'area': area.tolist()
+    }
+    return meta
+
+@figure
+def effective_area(datasets):
+    import matplotlib.pyplot as plt
+    import os
+    from gen2_analysis import plotting
+
+    fig = plt.figure(figsize=(3.375, 3.375))
+    ax = plt.gca()
+
+    pretty_labels = {'Gen2-InIce': 'Gen2-Optical'}
+
+    for dataset in datasets:
+        assert dataset['source'] == 'gen2_analysis.figures.detector.cascades.effective_area'
+        assert len(dataset['detectors']) == 1
+        energy = np.asarray(dataset['data']['energy'])
+        area = np.asarray(dataset['data']['area']).mean(axis=(0,2))
+        k = dataset['detectors'][0][0]
+        ax.loglog(*plotting.stepped_path(energy, area),
+              label=pretty_labels.get(k,k))
+
+    ax.set_xlabel('Neutrino energy (GeV)')
+    ax.set_ylabel('Neutrino effective area (m$^2$)')
+    ax.set_xlim(1e4, 5e8)
+    ax.legend(frameon=False)
     plt.tight_layout()
     return fig
 
