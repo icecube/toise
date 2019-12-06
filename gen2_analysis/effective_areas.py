@@ -371,8 +371,14 @@ class effective_area(object):
         self.bin_edges = edges
         self.values = aeff
         self.sky_binning = sky_binning
-        self.dimensions = ['type', 'true_energy',
-                           'true_zenith_band', 'reco_energy', 'reco_psi']
+        if aeff.ndim == 3:
+            self.dimensions = ['true_energy',
+                               'true_zenith_band', 'reco_energy']
+        elif aeff.ndim == 5:
+            self.dimensions = ['type', 'true_energy',
+                               'true_zenith_band', 'reco_energy', 'reco_psi']
+        else:
+            raise ValueError("Effective area table must have either 3 dimensions (muon bundle) or 5 (neutrinos). Got: {}".format(aeff.shape))
 
     def get_bin_edges(self, dim_name):
         return self.bin_edges[self.dimensions.index(dim_name)-1]
@@ -428,7 +434,7 @@ class effective_area(object):
     @property
     def nring(self):
         assert self.is_healpix
-        return self.values.shape[2]
+        return self.values.shape[self.dimensions.index('true_zenith_band')]
 
     @property
     def ring_repeat_pattern(self):
