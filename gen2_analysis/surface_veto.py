@@ -2,6 +2,7 @@
 from scipy.special import erf, erfc
 from scipy.optimize import fsolve
 from scipy import interpolate
+import healpy
 import pickle
 import os
 import numpy
@@ -367,16 +368,25 @@ class MuonBundleBackground(object):
         # flux = flux(MuonGun.depth(0), ct, 1)*edist(MuonGun.depth(0), ct, 1, 0, emuc)
 
         flux *= numpy.diff(emu)[:, None]
-        flux *= self._solid_angle[None, :]
+        if effective_area.is_healpix:
+            flux *= healpy.nside2pixarea(effective_area.nside)
+        else:
+            flux *= self._solid_angle[None, :]
 
-        self._rate = (
+        total = (
             flux[..., None]*self._aeff.values).sum(axis=0)*(constants.annum*livetime)
         self._livetime = livetime
+
+        # up to now we've assumed that everything is azimuthally symmetric and
+        # dealt with zenith bins/healpix rings. repeat the values in each ring
+        # to broadcast onto a full healpix map.
+        if effective_area.is_healpix:
+            total = total.repeat(effective_area.ring_repeat_pattern, axis=0)
 
         self.seed = 1.
         self.uncertainty = None
 
-        self.expectations = self._rate
+        self.expectations = total
 
     def point_source_background(self, zenith_index, psi_bins, livetime=None, n_sources=None, with_energy=True):
         """

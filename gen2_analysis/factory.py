@@ -60,9 +60,16 @@ def create_aeff(opts, **kwargs):
 
     for k in 'psi_bins', 'cos_theta':
         if k in kwargs:
-            kwargs[k] = numpy.asarray(kwargs[k])
+            v = kwargs[k]
         elif hasattr(opts, k):
-            kwargs[k] = numpy.asarray(getattr(opts, k))
+            v = getattr(opts, k)
+        else:
+            continue
+        try:
+            len(v)
+            kwargs[k] = numpy.asarray(v)
+        except TypeError:
+            kwargs[k] = v
 
     if hasattr(opts, 'psf'):
         kwargs['psf'] = getattr(opts, 'psf')
@@ -323,6 +330,7 @@ def scale_gen2_sensors(scale=1., ssmpe=True, mdom=True, with_cascades=True):
 
 default_configs = {
     'IceCube': dict(geometry='IceCube', spacing=125, cascade_energy_threshold=6e4, veto_area=1., veto_threshold=1e5),
+    'IceCube-TracksOnly': dict(geometry='IceCube', spacing=125, veto_area=1., veto_threshold=1e5),
     'Gen2-InIce': scale_gen2_sensors(3.),
     'Gen2-InIce-TracksOnly': scale_gen2_sensors(3., with_cascades=False),
     'Gen2-Radio': dict(geometry='Radio', nstations=200),
