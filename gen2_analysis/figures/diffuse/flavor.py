@@ -245,6 +245,23 @@ def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.
     meta['confidence_level'] = (stats.chi2.cdf(ts.T, 2)*100).tolist()
     return meta
 
+@figure_data(setup=psi_binning)
+def event_counts(exposures, astro=2.3, gamma=-2.5):
+    nominal = dict(astro=astro, gamma=gamma, atmo=0, prompt=0, muon=0)
+    assert len(exposures) == 1
+    llh = asimov_llh(exposures, **nominal)
+    flavors = {
+        'e': {'mu_fraction': 0, 'e_tau_ratio': 1},
+        'mu': {'mu_fraction': 1, 'e_tau_ratio': 0},
+        'tau': {'mu_fraction': 0, 'e_tau_ratio': 0},
+        'atmospheric': {'astro': 0, 'atmo': 1, 'prompt': 1, 'muon': 1}
+    }
+    prefix = exposures[0][0]
+    meta = {}
+    for label, values in flavors.items():
+        nominal.update(values)
+        meta[label] = {k[len(prefix)+1:]: v.sum() for k,v in llh.expectations(**nominal).items()}
+    return meta
 
 @figure_data(setup=psi_binning)
 def muon_damping_constraints(exposures, steps=100, emu_crit=2e6, clean=False):
