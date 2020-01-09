@@ -830,12 +830,13 @@ class FermiGalacticEmission(DiffuseNuGen):
 
     def __init__(self, effective_area, livetime=1.):
         assert effective_area.is_healpix
-        # differential flux at 1 GeV [1/(GeV cm^2 sr s)]
+        # differential all-flavor flux at 1 GeV [1/(GeV cm^2 sr s)]
         map1GeV = numpy.load(os.path.join(
             data_dir, 'models', 'fermi_galactic_emission.npy'))
-        # downsample to resolution of effective area map
+        # downsample to resolution of effective area map, and divide by 6 to
+        # convert from all-neutrino flux to flux per particle
         flux_constant = healpy.ud_grade(
-            transform_map(map1GeV), effective_area.nside)
+            transform_map(map1GeV), effective_area.nside)/6
 
         def intflux(e, gamma=-2.71):
             return (e**(1+gamma))/(1+gamma)
