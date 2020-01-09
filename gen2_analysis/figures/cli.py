@@ -114,6 +114,18 @@ class DetectorConfigAction(argparse.Action):
             config.append((detector, livetime))
         getattr(args, self.dest).append(sorted(config))
 
+def jsonify(obj):
+    """
+    Recursively cast to JSON native types
+    """
+    if hasattr(obj, 'tolist'):
+        return obj.tolist()
+    elif hasattr(obj, 'keys'):
+        return {jsonify(k): jsonify(obj[k]) for k in obj.keys()}
+    elif hasattr(obj, '__len__') and not isinstance(obj, str) and not isinstance(obj, unicode):
+        return [jsonify(v) for v in obj]
+    else:
+        return obj
 
 def make_figure_data():
     from gen2_analysis import figures
@@ -136,7 +148,6 @@ def make_figure_data():
         p.add_argument('-d', '--detector', default=[], action=DetectorConfigAction, nargs='+',
                        help='sequence of detector configuration/livetime pairs')
         p.add_argument('-o', '--outputfile', action='append', help='')
-        print(spec.args, spec.defaults)
         assert len(spec.args) - \
             ((len(spec.defaults) if spec.defaults else 0) == 1), "exposures argument is required"
         _add_options_for_args(p, spec, param_help)
@@ -156,7 +167,7 @@ def make_figure_data():
         for exposure, outfile in zip(exposures, outfiles):
             meta = {'source': func.__module__ + '.' +
                     func.__name__, 'detectors': exposure, 'args': args}
-            meta['data'] = func(tuple(exposure), **args)
+            meta['data'] = jsonify(func(tuple(exposure), **args))
             if not outfile.endswith('.json.gz'):
                 outfile = outfile+'.json.gz'
             with gzip.open(outfile, 'wb') as f:
