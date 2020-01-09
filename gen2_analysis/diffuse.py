@@ -860,6 +860,117 @@ class FermiGalacticEmission(DiffuseNuGen):
         # dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
         self.expectations = total
 
+class KRAGalacticFlux(object):
+    """
+    See Fig. 2 of arXiv:1504.00227
+    """
+
+    def __init__(self, cutoff_PeV=5):
+        from scipy import interpolate
+
+        if cutoff_PeV == 5:
+            logE, logWeight = numpy.log10(numpy.loadtxt(StringIO("""
+            0.011	1.224e-5
+            0.020	8.812e-6
+            0.042	6.029e-6
+            0.098	4.125e-6
+            0.201	3.123e-6
+            0.378	2.425e-6
+            1.000	1.659e-6
+            2.643	1.135e-6
+            8.998	7.018e-7
+            29.369	4.564e-7
+            84.451	2.752e-7
+            173.194	1.577e-7
+            386.506	6.505e-8
+            669.404	3.045e-8
+            899.764	1.836e-8
+            1261.588	9.751e-9
+            1625.583	5.879e-9
+            """))).T
+        elif cutoff_PeV == 50:
+            logE, logWeight = numpy.log10(numpy.loadtxt(StringIO("""
+            0.011	1.224e-5
+            0.020	8.812e-6
+            0.042	6.029e-6
+            0.098	4.125e-6
+            0.201	3.123e-6
+            0.378	2.424e-6
+            1.000	1.659e-6
+            2.643	1.164e-6
+            8.998	7.570e-7
+            29.369	5.448e-7
+            84.451	3.921e-7
+            173.194	2.822e-7
+            386.506	1.701e-7
+            826.858	1.000e-7
+            1432.067	6.342e-8
+            2007.947	4.450e-8
+            3784.265	2.191e-8
+            7131.993	7.764e-9
+            9189.729	5.050e-9
+            """))).T
+        else:
+            raise ValueError("can't handle cutoff {}".format(cutoff_PeV))
+
+        self._interpolant = interpolate.interp1d(
+            logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
+
+    def __call__(self, e_center):
+        # NB: flux is given as all-particle, here we return per-particle (/6)
+        return 10**(self._interpolant(numpy.log10(e_center)-3)-8)/e_center**2/6.
+
+
+class KRAGalacticDiffuseEmission(DiffuseNuGen):
+    r"""
+    Diffuse emission from the galaxy as modeled in 
+    
+      D.~Gaggero, D.~Grasso, A.~Marinelli, A.~Urbano and M.~Valli,
+      %``The gamma-ray and neutrino sky: A consistent picture of Fermi-LAT, Milagro, and IceCube results,''
+      Astrophys.\ J.\  {\bf 815}, no. 2, L25 (2015)
+      doi:10.1088/2041-8205/815/2/L25
+      [arXiv:1504.00227 [astro-ph.HE]].
+      %%CITATION = doi:10.1088/2041-8205/815/2/L25;%%
+      %99 citations counted in INSPIRE as of 09 Jan 2020
+    """
+
+    def __init__(self, effective_area, livetime=1., cutoff_PeV=5):
+        assert effective_area.is_healpix
+        # differential all-flavor flux at 1 GeV [1/(GeV cm^2 sr s)]
+        map1GeV = numpy.load(os.path.join(
+            data_dir, 'models', 'fermi_galactic_emission.npy'))
+        # average over inner galactic plane to get flux normalization compared to figure 2
+        lon, lat = healpy.pix2ang(healpy.npix2nside(map1GeV.size), np.arange(map1GeV.size), lonlat=True)
+        flux_unit = map1GeV[(abs(lat) < 4) & ((lon < 30) | (lon > 330))].mean()
+
+        # downsample to resolution of effective area map, and normalize to the
+        # patch shown in fig. 2
+        flux_constant = healpy.ud_grade(
+            transform_map(map1GeV), effective_area.nside)/flux_unit
+
+        enu = effective_area.bin_edges[0]
+        # integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
+        flux_func = KRAGalacticFlux(cutoff_PeV)
+        # integrate to mean of patch shown in fig. 2
+        flux = np.asarray(
+            [quad(flux_func, enu[i], enu[i+1])[0] for i, e in enumerate(enu[:-1])])
+        flux *= healpy.nside2pixarea(effective_area.nside) * \
+            constants.cm2 * constants.annum
+        flux = flux[None, :, None] * flux_constant[None, None, :]
+
+        super(KRAGalacticDiffuseEmission, self).__init__(
+            effective_area, flux, livetime)
+
+        # sum over opening angles and broadcast zenith angle bin over healpix rings
+        aeff = self._aeff.values.sum(axis=4).repeat(
+            self._aeff.ring_repeat_pattern, axis=2)
+        # sum over neutrino flavors and energies
+        total = numexpr.NumExpr('sum(aeff*flux*livetime, axis=1)')(aeff,
+                                                                   self._flux[..., None], self._livetime).sum(axis=0)
+
+        # dimensions of the keys in expectations are now reconstructed energy, sky bin (healpix pixel)
+        self.expectations = total
+
 
 def pmns_matrix(theta12, theta23, theta13, delta):
     """
