@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from tqdm import tqdm
 from functools import partial
-
+from StringIO import StringIO
 
 def make_components(aeffs, emin=1e2, emax=1e11):
     # zero out effective area beyond active range
@@ -177,13 +177,87 @@ def flux_error(datasets):
     plt.tight_layout(0.1)
     return ax.figure
 
+def get_ic_contour(source='lars'):
+    # 99% confidence interval
+    if source == 'lars':
+        return np.loadtxt(StringIO("""2.164	3.154
+                                      2.248	2.749
+                                      2.374	2.917
+                                      2.572	3.505
+                                      2.712	4.620
+                                      2.765	6.259
+                                      2.748	7.752
+                                      2.679	9.366
+                                      2.565	10.358
+                                      2.419	9.726
+                                      2.329	8.413
+                                      2.268	6.890
+                                      2.217	5.494
+                                      2.169	4.274
+                                      """))
+    elif source == 'aachen':
+        dat = np.loadtxt(StringIO("""1.716	0.225
+                                     1.751	0.199
+                                     1.792	0.203
+                                     1.836	0.211
+                                     1.897	0.231
+                                     1.982	0.266
+                                     2.072	0.322
+                                     2.158	0.386
+                                     2.249	0.467
+                                     2.342	0.590
+                                     2.396	0.673
+                                     2.454	0.804
+                                     2.497	0.949
+                                     2.513	1.047
+                                     2.520	1.131
+                                     2.522	1.267
+                                     2.518	1.376
+                                     2.514	1.479
+                                     2.494	1.584
+                                     2.465	1.712
+                                     2.416	1.818
+                                     2.357	1.875
+                                     2.294	1.850
+                                     2.245	1.798
+                                     2.185	1.686
+                                     2.128	1.546
+                                     2.092	1.445
+                                     2.055	1.339
+                                     2.023	1.239
+                                     1.995	1.150
+                                     1.961	1.034
+                                     1.921	0.905
+                                     1.887	0.801
+                                     1.849	0.685
+                                     1.743	0.370
+                                     1.715	0.291
+                                     """))
+        # factor of 3 for all-flavor
+        dat[:,1] *= 3
+        return dat
+        
+def ic_butterfly(energy, source='lars'):
+    ic_contour = get_ic_contour(source)
+    flux = energy**2*1e-18*(ic_contour[:,1][:,None]*(energy[None,:]/1e5)**(-ic_contour[:,0][:,None]))
+    return flux.min(axis=0), flux.max(axis=0)
 
 @figure
 def unfolded_flux(datasets):
     import matplotlib.pyplot as plt
+    from matplotlib.container import ErrorbarContainer
 
+    fig = plt.figure(figsize=(3.5,3))
     ax = plt.gca()
-    plot_kwargs = dict(linestyle='None', marker='o')
+
+    # plot underlying fluxes
+    x = np.logspace(4,10,51)
+    # ApJ 2015 best fit
+    ax.plot(x, 3*2.3e-8*(x/1e5)**(-2.5+2), ls='--', color='lightgrey', lw=0.75, zorder=0)
+    # + hard component (soft component norm reduced to give similar flux at low energy)
+    ax.plot(x, 3*(1e-8*(x/1e5)**(-2.5+2) + 0.5e-8*(x/1e5)**(-2+2)), ls=':', color='k', lw=0.75)
+
+    plot_kwargs = dict(linestyle='None', marker='o', markersize=3)
     for dataset in datasets:
         xlimits = np.array(dataset['data']['xlimits'])
         ylimits = np.array(dataset['data']['ylimits'])
@@ -201,13 +275,24 @@ def unfolded_flux(datasets):
                           xerr=None,
                           yerr=yerr,
                           # uplims=m[mask],
+                          label='Gen2-InIce+Radio ({:.0f} years)'.format(dict(dataset['detectors'])['Gen2-InIce']),
                           **plot_kwargs)
+
+    x = np.logspace(np.log10(25e3), np.log10(2.8e6), 101)
+    fill = ax.fill_between(x, *ic_butterfly(x, 'lars'), facecolor='lightgrey', edgecolor='None', label='IceCube (ApJ 2015)')
+    x = np.logspace(np.log10(1.94e5), np.log10(7.8e6), 101)
+    fill = ax.fill_between(x, *ic_butterfly(x, 'aachen'), facecolor='None', edgecolor='#566573', label='IceCube (tracks only, ApJ 2016)')
 
     ax.loglog(nonposy='clip')
     ax.set_xlim((1e4, 2e9))
     ax.set_ylim((2e-9, 1e-6))
-    ax.set_xlabel('Neutrino energy [GeV]')
-    ax.set_ylabel('Relative uncertainty [%]')
-    ax.legend()
+    ax.set_xlabel('Neutrino energy (GeV)')
+    ax.set_ylabel(r'$E^2 \Phi_{\nu} \,\, ({\rm GeV \, cm^{-2} \, sr^{-1} \, s^{-1}})$')
+
+    # sort such that error bars go first
+    handles, labels = ax.get_legend_handles_labels()
+    order = sorted(range(len(handles)), key=lambda i: not isinstance(handles[i], ErrorbarContainer))
+    ax.legend([handles[i] for i in order], [labels[i] for i in order], fontsize=8, frameon=False)
+
     plt.tight_layout(0.1)
     return ax.figure
