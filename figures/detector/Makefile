@@ -1,4 +1,6 @@
 
+all: muon_performance.pdf surface_geometry.pdf cascade_aeff.pdf sparse_veto.pdf
+
 muon_performance.pdf:
 	gen2-plot detector.tracks.performance -o $@
 
@@ -16,7 +18,3 @@ cascade_aeff.pdf : cascade_aeff.IceCube.json.gz cascade_aeff.Gen2-InIce.json.gz
 
 sparse_veto.pdf :
 	gen2-plot detector.cascades.sparse_veto -o $@
-
-.PHONY: all
-
-all: muon_performance.pdf surface_geometry.pdf cascade_aeff.pdf sparse_veto.pdf
