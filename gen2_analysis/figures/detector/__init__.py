@@ -1,6 +1,16 @@
 
 from gen2_analysis.figures import figure
 
+from gen2_analysis import surfaces
+import gzip
+import numpy as np
+
+def get_string_heads(geometry, spacing, **kwargs):
+    with gzip.GzipFile(surfaces.get_geometry_file(geometry, spacing)) as f:
+        geo = np.loadtxt(f, dtype=np.dtype(
+            [('string', int), ('om', int)] + [(c, float) for c in 'xyz']))
+        pos = geo[geo['om'] == 1]
+        return pos[list('xy')]
 
 @figure
 def surface_geometry():
@@ -12,15 +22,7 @@ def surface_geometry():
     from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
     fig, axes = plt.subplots(1, 4, figsize=(8, 2.5))
 
-    from gen2_analysis import surfaces
-    import gzip
 
-    def get_string_heads(geometry, spacing, **kwargs):
-        with gzip.GzipFile(surfaces.get_geometry_file(geometry, spacing)) as f:
-            geo = np.loadtxt(f, dtype=np.dtype(
-                [('string', int), ('om', int)] + [(c, float) for c in 'xyz']))
-            pos = geo[geo['om'] == 1]
-            return pos[list('xy')]
 
     pos = get_string_heads('Sunflower', 240)
     upgrade = np.asarray([[18.289999999999935, -51.05374999999998],  # 87
