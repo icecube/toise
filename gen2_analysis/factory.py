@@ -278,8 +278,8 @@ def gen2_throughgoing_muon_angular_resolution_correction(energy, scale, ssmpe=Tr
         # see: https://github.com/fbradascio/IceCube/blob/b8556b7b3d3c53a1cfab4bf53737bebff1264707/SensitivityStudy_SSMPE_vs_MPE.ipynb
         # https://doi.org/10.1051/epjconf/201920705002
         # NB: this improvement was evaluated at 2x PDOM sensitivty
-        scale *= numpy.polyval([0.01266943, -0.1901559,
-                                0.80568256,  0.04948373], numpy.log10(energy/2))
+        scale *= numpy.minimum(1, numpy.polyval([0.01266943, -0.1901559,
+                                0.80568256,  0.04948373], numpy.log10(energy/2)))
     if mdom:
         # see: https://events.icecube.wisc.edu/contributionDisplay.py?contribId=148&sessionId=1&confId=100
         scale *= (1-0.2)
