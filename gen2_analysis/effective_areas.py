@@ -123,7 +123,7 @@ class HESEishSelectionEfficiency(object):
         from . import surfaces
         outer = get_fiducial_surface(geometry, spacing)
         side_padding = spacing/2.
-        top_padding = 100.
+        top_padding = 180 # top + dust layer exclusion
         fiducial = surfaces.ExtrudedPolygon.from_file(
             surfaces.get_geometry_file(geometry, spacing), padding=-side_padding)
 
@@ -135,7 +135,7 @@ class HESEishSelectionEfficiency(object):
         self._efficiency = self._fiducial_volume/outer.volume()
 
     def __call__(self, deposited_energy, cos_theta):
-        return numpy.where(deposited_energy >= self._threshold, self._efficiency, 0.)
+        return 0.75*self._efficiency/(1+numpy.exp(-2.5*numpy.log(deposited_energy/self._threshold)))
 
 
 def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0, scale=1.):
