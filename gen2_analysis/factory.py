@@ -349,11 +349,13 @@ default_psi_bins = {
     'radio': numpy.linspace(0, numpy.radians(15)**2, 50)**(1./2),
 }
 
+default_cos_theta_bins = numpy.linspace(-1, 1, 21)
+
 for k, config in default_configs.items():
     psi_bins = dict(default_psi_bins)
     psi_bins.update(config.pop('psi_bins', {}))
     kwargs = {
-        'cos_theta': config.pop('cos_theta', numpy.linspace(-1, 1, 21)),
+        'cos_theta': config.pop('cos_theta', default_cos_theta_bins),
         'psi_bins':  psi_bins
     }
     add_configuration(k, make_options(**config), **kwargs)
