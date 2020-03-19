@@ -247,21 +247,47 @@ def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.
 
 @figure_data(setup=psi_binning)
 def event_counts(exposures, astro=2.3, gamma=-2.5):
-    nominal = dict(astro=astro, gamma=gamma, atmo=0, prompt=0, muon=0)
+    e, mu = 0.93/3, 1.05/3
+    nominal = dict(astro=astro, gamma=gamma, atmo=0, prompt=0, muon=0,  e_tau_ratio=e/(1-mu), mu_fraction=mu)
     assert len(exposures) == 1
     llh = asimov_llh(exposures, **nominal)
     flavors = {
-        'e': {'mu_fraction': 0, 'e_tau_ratio': 1},
-        'mu': {'mu_fraction': 1, 'e_tau_ratio': 0},
-        'tau': {'mu_fraction': 0, 'e_tau_ratio': 0},
+        'e': {'mu_fraction': 0, 'e_tau_ratio': 1, 'astro': e*astro},
+        'mu': {'mu_fraction': 1, 'e_tau_ratio': 0, 'astro': mu*astro},
+        'tau': {'mu_fraction': 0, 'e_tau_ratio': 0, 'astro': (1-e-mu)*astro},
         'atmospheric': {'astro': 0, 'atmo': 1, 'prompt': 1, 'muon': 1}
     }
     prefix = exposures[0][0]
-    meta = {}
+    energy_thresholds = {k[len(prefix)+1:]: v[0]._aeff.get_bin_edges('reco_energy')[:-1] for k,v in llh.components['astro']._components.items()}
+    meta = {
+        'reco_energy_threshold': energy_thresholds,
+        'event_counts': {}
+    }
     for label, values in flavors.items():
-        nominal.update(values)
-        meta[label] = {k[len(prefix)+1:]: v.sum() for k,v in llh.expectations(**nominal).items()}
+        params = dict(nominal)
+        params.update(values)
+        meta['event_counts'][label] = {k[len(prefix)+1:]: v.sum(axis=0)[::-1].cumsum()[::-1] for k,v in llh.expectations(**params).items()}
+        
     return meta
+
+@figure
+def event_counts(datasets):
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(1,1)
+    
+    for dataset in datasets:
+        for i, (channel, energy) in enumerate(dataset['data']['reco_energy_threshold'].items()):
+            # ax = axes.flat[i]
+            if channel != 'double_cascades':
+                continue
+            else:
+                ax = axes
+            sig = dataset['data']['event_counts']['tau'][channel]
+            bkg = np.sum([dataset['data']['event_counts'][flavor][channel] for flavor in dataset['data']['event_counts'] if flavor != 'tau'], axis=0)
+            ax.loglog(energy, sig, label='tau', color='C0')
+            ax.loglog(energy, bkg, label='not tau', color='C1')
+
+    plt.tight_layout()
 
 @figure_data(setup=psi_binning)
 def muon_damping_constraints(exposures, steps=100, emu_crit=2e6, clean=False):
