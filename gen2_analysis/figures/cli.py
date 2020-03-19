@@ -178,7 +178,11 @@ def make_figure_data():
 
 
 def load_gzip(fname):
-    with gzip.open(fname) as f:
+    if fname.endswith('.gz'):
+        open_file = gzip.open
+    else:
+        open_file = open
+    with open_file(fname) as f:
         return json.load(f)
 
 
