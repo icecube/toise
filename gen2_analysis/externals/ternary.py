@@ -29,7 +29,7 @@ class TernaryAxes(Axes):
         Axes.__init__(self, *args, **kwargs)
         self.cla()
         # C is for center.
-        self.set_aspect(aspect='equal', adjustable='box-forced', anchor='C')
+        self.set_aspect(aspect='equal', adjustable='box', anchor='C')
 
     def cla(self):
         super(TernaryAxes, self).cla()
