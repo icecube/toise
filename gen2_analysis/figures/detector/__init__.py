@@ -4,6 +4,7 @@ from gen2_analysis.figures import figure
 from gen2_analysis import surfaces
 import gzip
 import numpy as np
+import itertools
 
 def get_string_heads(geometry, spacing, **kwargs):
     with gzip.GzipFile(surfaces.get_geometry_file(geometry, spacing)) as f:
@@ -11,6 +12,81 @@ def get_string_heads(geometry, spacing, **kwargs):
             [('string', int), ('om', int)] + [(c, float) for c in 'xyz']))
         pos = geo[geo['om'] == 1]
         return pos[list('xy')]
+
+def half_fantasy_radio_geometry(sector, spacing=1.5e3, nstations=200):
+    def ray(points):
+        x0 = points[0]
+        dx = np.diff(points, axis=0)[0, :]
+        return lambda x: x0[1] + dx[1]/dx[0]*(x-x0[0])
+    edge = sector[1:3]
+    top = ray(sector[2:4])
+    bottom = ray(sector[0:2])
+
+    # basis vectors along the skiway edge of the dark sector
+    dx = np.diff(edge, axis=0)[0, :]
+    dx /= np.hypot(*dx)
+    perpdx = -np.asarray([dx[1], -dx[0]])
+    x0 = edge[0]
+
+    locations = []
+
+    stations = nstations*50
+    for row in itertools.count():
+        corner = x0 + row*perpdx*spacing
+        for col in itertools.count():
+            pos = corner + col*dx*spacing
+            if pos[1] > top(pos[0]):
+                break
+            locations.append(pos)
+            if len(locations) >= stations:
+                break
+        for col in itertools.count(1):
+            pos = corner - col*dx*spacing
+            if pos[1] < bottom(pos[0]):
+                break
+            locations.append(pos)
+            if len(locations) >= stations:
+                break
+        if len(locations) >= stations:
+            break
+
+    locs = np.vstack(locations)
+
+    order = np.hypot(*locs.T).argsort()
+    return locs[order][:nstations]
+
+def get_surface_geometry():
+    import pandas as pd
+    upgrade = np.asarray([[18.289999999999935, -51.05374999999998],  # 87
+                          [47.289999999999964, -57.01249999999996],  # 88
+                          [14.289999999999935, -80.56374999999997],  # 89
+                          [57.28999999999999, -83.68499999999997],  # 90
+                          [89.29000000000005, -58.99875],  # 91
+                          [62.62333333333336, -35.16374999999999],  # 92
+                          [26.95666666666662, -31.191249999999968],  # 93
+                          ])
+    sectors = {
+        "Dark Sector": np.array([
+            [-6745.5344331313745, -6666.666666666667],
+            [360.24866210820073, -704.0174330560367],
+            [929.3377603199988,  732.0277663199995],
+            [-1230.6941085521246,  6666.666666666667],
+            [-1230.6941085521246,  6666.666666666667],
+            [-11166.666666666666,  6666.666666666667],
+            [-12500.0,  5333.333333333334],
+            [-12500.0, -5333.333333333334],
+            [-11166.666666666666, -6666.666666666667],
+            [-6745.5344331313745, -6666.666666666667],
+        ])
+    }
+    radio = half_fantasy_radio_geometry(sectors['Dark Sector'])
+    pos = get_string_heads('Sunflower', 240)
+    x, y = pos['x'], pos['y']
+    labels = ['IceCube']*x[:86].shape[0] + ['Upgrade']*upgrade.shape[0] + ['Gen2']*x[86:].shape[0] + ['Radio']*radio.shape[0]
+    return pd.DataFrame(dict(subdetector=labels,
+        x=np.concatenate([x[:86],upgrade[:,0],x[86:],radio[:,0]]),
+        y=np.concatenate([y[:86],upgrade[:,1],y[86:],radio[:,1]]))
+    )
 
 @figure
 def surface_geometry():
@@ -75,8 +151,6 @@ def surface_geometry():
         return lambda x: x0[1] + dx[1]/dx[0]*(x-x0[0])
 
     def half_fantasy_radio_geometry(sector, spacing=1.5e3, nstations=200):
-        ax = plt.gca()
-        ax.set_aspect('equal', 'datalim')
         edge = sector[1:3]
         top = ray(sector[2:4])
         bottom = ray(sector[0:2])
