@@ -378,6 +378,7 @@ def muon_damping(datasets, preliminary=False):
     """
     from gen2_analysis.externals import ternary
     import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
     from scipy import optimize, interpolate, stats
 
     fig = plt.figure(figsize=(5, 4))
@@ -397,16 +398,27 @@ def muon_damping(datasets, preliminary=False):
     assert len(datasets) == 1
     meta = datasets[0]['data']['earth']
     ecrit = datasets[0]['args']['emu_crit']
+    def color_with_alpha(color, alpha):
+        rgba = list(mcolors.to_rgba(color))
+        rgba[-1] = alpha
+        return rgba
     for i in range(2):
         ax = ternary.flavor_triangle(fig, subplotspec=griddy[0, i])
         position_labels(ax)
         source_points = ax.ab.collections[:3]
+        cs = ax.ab.contourf(meta['nue_fraction'][i],
+                           meta['numu_fraction'][i],
+                           meta['confidence_level'][i],
+                           levels=[0, 68, 95],
+                           colors=[color_with_alpha('C1',0.7),color_with_alpha('C1',0.3)],
+                           )
         cs = ax.ab.contour(meta['nue_fraction'][i],
                            meta['numu_fraction'][i],
                            meta['confidence_level'][i],
                            levels=[68, 95],
                            colors='C1',
-                           linestyles=['-', '--']
+                           linestyles='-',
+                           linewidths=0.5,
                            )
     ax = plt.subplot(griddy[1, :])
 
@@ -438,7 +450,7 @@ def muon_damping(datasets, preliminary=False):
         except ValueError:
             yhi = 1
         return y0, [y0 - ylo, yhi-y0]
-    for cl, alpha in zip((0.9, 0.68), (0.2, 0.6)):
+    for cl, alpha in zip((0.9, 0.68), (0.3, 0.7)):
         y, yerr = zip(*[get_y(meta['numu_fraction'][i],
                               meta['test_statistic'][i], crit_ts=stats.chi2(1).ppf(cl)) for i in range(2)])
 
