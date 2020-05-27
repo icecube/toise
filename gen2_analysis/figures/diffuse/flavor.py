@@ -352,6 +352,24 @@ def triangle(datasets):
 
     return ax.figure
 
+def make_error_boxes(x, y, xerr, yerr, facecolor='r',
+                     edgecolor='None', alpha=0.5, **kwargs):
+
+    from matplotlib.collections import PatchCollection
+    from matplotlib.patches import Rectangle
+    
+    # Create list for all the error patches
+    errorboxes = []
+
+    # Loop over data points; create box from errors at each point
+    for xd, yd, xe, ye in zip(x, y, np.asarray(xerr).T, np.asarray(yerr).T):
+        rect = Rectangle((xd - xe[0], yd - ye[0]), xe.sum(), ye.sum())
+        errorboxes.append(rect)
+
+    # Create patch collection with specified colour/alpha
+    pc = PatchCollection(errorboxes, facecolor=facecolor, alpha=alpha,
+                         edgecolor=edgecolor, **kwargs)
+    return pc
 
 @figure
 def muon_damping(datasets):
@@ -385,7 +403,7 @@ def muon_damping(datasets):
         source_points = ax.ab.collections[:3]
         cs = ax.ab.contour(meta['nue_fraction'][i],
                            meta['numu_fraction'][i],
-                           meta['confidence_level'][i], levels=[68, 95], colors='k', linestyles=['--', '-'])
+                           meta['confidence_level'][i], levels=[68, 95], colors='C1', linestyles=['-', '--'])
     ax = plt.subplot(griddy[1, :])
 
     e = np.logspace(4, 8, 101)
@@ -418,8 +436,9 @@ def muon_damping(datasets):
         return y0, [y0 - ylo, yhi-y0]
     y, yerr = zip(*[get_y(meta['numu_fraction'][i],
                           meta['test_statistic'][i]) for i in range(2)])
-    ax.errorbar(x, y, xerr=xerr, yerr=yerr,
-                linestyle='None', color='k', marker='s')
+
+    ax.add_collection(make_error_boxes(x, y, xerr=xerr, yerr=yerr,
+                facecolor='C1', alpha=1))
 
     ax.set_xlabel(r'$E_{\nu}$ (GeV)')
     ax.set_ylabel(r'$\nu_{\mu}$ fraction at source')
