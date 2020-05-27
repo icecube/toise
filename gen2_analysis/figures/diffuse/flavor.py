@@ -372,13 +372,13 @@ def make_error_boxes(x, y, xerr, yerr, facecolor='r',
     return pc
 
 @figure
-def muon_damping(datasets):
+def muon_damping(datasets, preliminary=False):
     """
     Plot exclusion contours in flavor composition
     """
     from gen2_analysis.externals import ternary
     import matplotlib.pyplot as plt
-    from scipy import optimize, interpolate
+    from scipy import optimize, interpolate, stats
 
     fig = plt.figure(figsize=(5, 4))
     w, h = fig.bbox_inches.width, fig.bbox_inches.height
@@ -403,7 +403,11 @@ def muon_damping(datasets):
         source_points = ax.ab.collections[:3]
         cs = ax.ab.contour(meta['nue_fraction'][i],
                            meta['numu_fraction'][i],
-                           meta['confidence_level'][i], levels=[68, 95], colors='C1', linestyles=['-', '--'])
+                           meta['confidence_level'][i],
+                           levels=[68, 95],
+                           colors='C1',
+                           linestyles=['-', '--']
+                           )
     ax = plt.subplot(griddy[1, :])
 
     e = np.logspace(4, 8, 101)
@@ -422,23 +426,24 @@ def muon_damping(datasets):
         return xc, xerr
     x, xerr = get_x(np.logspace(4, 8, 3))
 
-    def get_y(numu_frac, ts):
+    def get_y(numu_frac, ts, crit_ts=1):
         f = interpolate.interp1d(numu_frac, ts, bounds_error=True)
         y0 = optimize.fminbound(f, 0, 1)
         try:
-            ylo = optimize.bisect(lambda y: f(y)-1, 0, y0)
+            ylo = optimize.bisect(lambda y: f(y)-crit_ts, 0, y0)
         except ValueError:
             ylo = 0
         try:
-            yhi = optimize.bisect(lambda y: f(y)-1, y0, 1)
+            yhi = optimize.bisect(lambda y: f(y)-crit_ts, y0, 1)
         except ValueError:
             yhi = 1
         return y0, [y0 - ylo, yhi-y0]
-    y, yerr = zip(*[get_y(meta['numu_fraction'][i],
-                          meta['test_statistic'][i]) for i in range(2)])
+    for cl, alpha in zip((0.9, 0.68), (0.2, 0.6)):
+        y, yerr = zip(*[get_y(meta['numu_fraction'][i],
+                              meta['test_statistic'][i], crit_ts=stats.chi2(1).ppf(cl)) for i in range(2)])
 
-    ax.add_collection(make_error_boxes(x, y, xerr=xerr, yerr=yerr,
-                facecolor='C1', alpha=1))
+        ax.add_collection(make_error_boxes(x, y, xerr=xerr, yerr=yerr,
+                    facecolor='C1', alpha=alpha))
 
     ax.set_xlabel(r'$E_{\nu}$ (GeV)')
     ax.set_ylabel(r'$\nu_{\mu}$ fraction at source')
@@ -450,8 +455,9 @@ def muon_damping(datasets):
     leg.get_title().set_multialignment('center')
     leg.get_title().set_fontsize('small')
 
-    ax.add_artist(plt.Text(0.15, 0.9, 'IceCube-Gen2\npreliminary', color='C3',
-                           ha='center', va='top', multialignment='center',
-                           transform=ax.transAxes))
+    if preliminary:
+        ax.add_artist(plt.Text(0.15, 0.9, 'IceCube-Gen2\npreliminary', color='C3',
+                               ha='center', va='top', multialignment='center',
+                               transform=ax.transAxes))
 
     return fig
