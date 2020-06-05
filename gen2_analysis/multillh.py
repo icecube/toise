@@ -41,6 +41,8 @@ class Combination(object):
                 self.max = component.max
             if hasattr(component, 'seed'):
                 self.seed = component.seed
+        if not hasattr(self, 'seed'):
+            self.seed = 1.
 
     def prior(self, value, **kwargs):
         v = self._components.values()[0][0]
@@ -269,8 +271,11 @@ class LLHEval(object):
             return -self.llh(**pdict)
 
         if len(discrete_params) == 0:
-            bestfit = scipy.optimize.fmin_l_bfgs_b(
-                minllh, seeds, bounds=bounds, approx_grad=True, **minimizer_params)
+            if freeparams:
+                bestfit = scipy.optimize.fmin_l_bfgs_b(
+                    minllh, seeds, bounds=bounds, approx_grad=True, **minimizer_params)
+            else:
+                bestfit = (dict(fixedparams), None)
             #print fixedparams['ice_model'], bestfit[1], bestfit[0]
             fixedparams.update(dict(zip(freeparams, bestfit[0])))
             return fixedparams
@@ -280,9 +285,12 @@ class LLHEval(object):
             for points in itertools.product(*tuple(fixedparams[k] for k in discrete_params)):
                 for k, p in zip(discrete_params, points):
                     fixedparams[k] = p
-                bestfit = scipy.optimize.fmin_l_bfgs_b(
-                    minllh, seeds, bounds=bounds, approx_grad=True)
-                # print fixedparams['ice_model'], bestfit[1], bestllh, bestfit[0]
+                if freeparams:
+                    bestfit = scipy.optimize.fmin_l_bfgs_b(
+                        minllh, seeds, bounds=bounds, approx_grad=True)
+                    # print fixedparams['ice_model'], bestfit[1], bestllh, bestfit[0]
+                else:
+                    bestfit = dict(freeparams), -self.llh(**fixedparams)
                 if bestfit[1] < bestllh:
                     bestparams = dict(fixedparams)
                     bestparams.update(dict(zip(freeparams, bestfit[0])))
