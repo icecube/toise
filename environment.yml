@@ -1,0 +1,24 @@
+name: gen2-analysis
+channels:
+  - conda-forge
+  - jvansanten
+dependencies:
+  - python=2.7
+  - numpy
+  - scipy>=0.15
+  - healpy
+  - ipykernel
+  # conda-forge pytables 3.5.0 segfaults on perfectly
+  # normal datasets
+  - pytables<3.5.0
+  - pandas
+  - clint
+  - tqdm
+  - toolz
+  - newnuflux
+  - dashi
+  - photospline
+  - pip
+  - pip:
+    - easy-cache
+    - -e .
