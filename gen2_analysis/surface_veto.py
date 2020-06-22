@@ -128,6 +128,8 @@ class GeometricVetoCoverage(object):
             coverage = get_geometric_coverage_for_area(
                 self.geometry, self.spacing, self.area, ct_bins, 100000)
             self.cache[key] = coverage
+            if not os.path.isdir(os.path.dirname(self.cache_file)):
+                os.makedirs(os.path.dirname(self.cache_file))
             pickle.dump(self.cache, open(self.cache_file, 'w'))
             return coverage
 
