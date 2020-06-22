@@ -10,7 +10,7 @@ if not 'ICECUBE_PASSWORD' in environ:
 cwd = path.join(path.dirname(__file__), 'gen2_analysis', 'data')
 if not path.isdir(cwd):
     mkdir(cwd)
-check_call(['curl', '--fail', '-u', 'icecube:'+environ['ICECUBE_PASSWORD'], '-O', 'http://convey.icecube.wisc.edu/data/user/jvansanten/projects/2015/gen2_benchmark/data/archive.tar.gz'], cwd=cwd)
+check_call(['curl', '--fail', '-u', 'icecube:'+environ['ICECUBE_PASSWORD'], '-O', 'https://convey.icecube.wisc.edu/data/user/jvansanten/projects/2015/gen2_benchmark/data/archive.tar.gz'], cwd=cwd)
 check_call(['tar', 'xzf', 'archive.tar.gz'], cwd=cwd)
 unlink(path.join(path.dirname(__file__), 'gen2_analysis', 'data', 'archive.tar.gz'))
 
