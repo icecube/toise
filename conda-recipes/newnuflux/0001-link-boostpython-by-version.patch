@@ -1,0 +1,13 @@
+Index: setup.py
+===================================================================
+--- setup.py	(revision 161839)
++++ setup.py	(working copy)
+@@ -14,7 +14,7 @@
+ 	    glob('private/NewNuFlux/Fluxes/Legacy*.cpp')
+ 	    + glob('private/NewNuFlux/*.cpp')
+ 	    + ['private/pybindings/module.cxx']),
+-	libraries=['boost_python'],
++	libraries=['boost_python27'],
+ 	library_dirs=['{boost_prefix}/lib'.format(**locals())],
+ 	extra_compile_args=['-DNO_PHOTOSPLINE', '-DNO_HDF5', '-DUSE_NUMPY', '-std=c++11', '-Wno-unused-local-typedef', '-Wno-delete-non-virtual-dtor'],
+ )

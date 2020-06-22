@@ -5,22 +5,25 @@ package:
 source:
   svn_rev: 161839
   svn_url: http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
+  patches:
+    - 0001-link-boostpython-by-version.patch
 
 build:
-  number: 3
+  number: 4
 
 requirements:
   build:
     - {{ compiler('cxx') }}
   host:
     - setuptools
-    - python
+    - python=2.7
     - numpy
     - boost
   run:
-    - python
+    - python=2.7
     - {{ pin_compatible('numpy') }}
-    - {{ pin_compatible('boost') }}
+    # setuptools links to x.x.x-versioned library
+    - {{ pin_compatible('boost', max_pin='x.x.x') }}
 
 test:
   imports:

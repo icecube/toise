@@ -6,16 +6,20 @@ source:
   git_rev: master
   git_url: git@github.com:IceCube-SPNO/dashi.git
 
+build:
+  noarch: python
+  number: 1
+
 requirements:
   build:
-    - python
+    - python=2.7
     - setuptools
 
   run:
-    - python
-    - numpy
+    - python=2.7
+    - {{ pin_compatible('numpy') }}
     - scipy
-    - matplotlib
+    - matplotlib-base
 
 test:
   imports:
