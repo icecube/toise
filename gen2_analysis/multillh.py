@@ -80,32 +80,42 @@ class Combination(object):
         return Combination({k: (func(component), livetime) for k, (component, livetime) in self._components.items()})
 
     def differential_chunks(self, *args, **kwargs):
-        generators = dict()
-        # due to how the differential ranges are stepped
-        # through, need to specify emin and set for all components
-        tempmin, tempmax = self._get_energy_range()
-        kwargs['emin'] = max(kwargs.get('emin', -numpy.inf), tempmin)
-        kwargs['emax'] = min(kwargs.get('emax', numpy.inf), tempmax)
-
-        for label, (component, livetime) in self._components.items():
-            generators[label] = (
-                component.differential_chunks(*args, exclusive=True, **kwargs),
-                livetime
-            )
+        # create chunk generators and sort by energy range
+        generators = sorted(
+            [{
+                'label': label,
+                'livetime': livetime,
+                'emin': max(component.energy_range[0], kwargs.get('emin', -numpy.inf)),
+                'emax': min(component.energy_range[1], kwargs.get('emax', numpy.inf)),
+                'chunks': component.differential_chunks(*args, exclusive=True, **kwargs)
+            } for label, (component, livetime) in self._components.items()],
+            key = lambda item: (item['emin'], item['emax'])
+        )
+        # merged chunks
         all_done = False
         while not all_done:
             components = dict()
             eranges = []
             ecenters = []
-            for label, (generator, livetime) in generators.items():
-                try:
-                    e_center, component = next(generator)
-                except StopIteration:
+            e_center = None
+            for item in generators:
+                # since the generators are sorted by emin, the first is guaranteed to have
+                # the smallest (i.e. next) available e_center
+                if e_center is None:
+                    try:
+                        e_center, component = next(item['chunks'])
+                    except StopIteration:
+                        continue
+                # add chunks from remaining generators whose energy ranges overlap the current e_center
+                elif e_center > item['emin'] and e_center < item['emax']:
+                    e_center, component = next(item['chunks'])
+                else:
                     continue
-                components[label] = (component, livetime)
-                eranges.append(component.energy_range)
-                ecenters.append(e_center)
-                logging.getLogger().debug('label: %s, enu: %.2g' % (label, e_center))
+                if e_center is not None:
+                    components[item['label']] = (component, item['livetime'])
+                    eranges.append(component.energy_range)
+                    ecenters.append(e_center)
+                    logging.getLogger().debug('label: %s, enu: %.2g' % (label, e_center))
             if not components:
                 all_done = True
             else:
