@@ -713,7 +713,7 @@ def create_starting_aeff(energy_resolution=get_energy_resolution(channel='cascad
                              "IceCube", channel='cascade'),
                          psi_bins=numpy.sqrt(numpy.linspace(
                              0, numpy.radians(20)**2, 10)),
-                         neutrino_energy=numpy.logspace(4, 9, 51),
+                         neutrino_energy=numpy.logspace(4, 12, 81),
                          cos_theta=numpy.linspace(-1, 1, 21),):
     """
     Create an effective area for neutrinos interacting inside the volume
