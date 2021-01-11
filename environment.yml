@@ -8,6 +8,7 @@ dependencies:
   - scipy>=0.15
   - healpy
   - ipykernel
+  - autograd
   # conda-forge pytables 3.5.0 segfaults on perfectly
   # normal datasets
   - pytables<3.5.0
