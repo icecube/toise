@@ -1,6 +1,3 @@
-#!/bin/sh /cvmfs/icecube.opensciencegrid.org/py2-v1/icetray-start
-#METAPROJECT icerec/trunk
-
 import logging
 logging.basicConfig(level='WARN')
 
@@ -43,9 +40,9 @@ import sys, os
 import numpy
 
 
-from icecube.gen2_analysis import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
-from icecube.gen2_analysis import factory
-from icecube.gen2_analysis.util import data_dir, center
+from gen2_analysis import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
+from gen2_analysis import factory
+from gen2_analysis.util import data_dir, center
 
 import cPickle as pickle
 from clint.textui import progress
