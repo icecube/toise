@@ -119,13 +119,15 @@ if opts.figure_of_merit == 'survey_volume':
 	factory.add_configuration('Gen2', factory.make_options(**opts.__dict__), **kwargs)
 	
 	def make_components(aeff, zi):
+		nu_aeff, muon_aeff = aeff # split them up
+		
 		energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
-		atmo = diffuse.AtmosphericNu.conventional(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-		prompt = diffuse.AtmosphericNu.prompt(aeff, opts.livetime, hard_veto_threshold=energy_threshold)
-		astro = diffuse.DiffuseAstro(aeff, opts.livetime)
+		atmo = diffuse.AtmosphericNu.conventional(nu_aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+		prompt = diffuse.AtmosphericNu.prompt(nu_aeff, opts.livetime, hard_veto_threshold=energy_threshold)
+		astro = diffuse.DiffuseAstro(nu_aeff, opts.livetime)
 		astro.seed = 2
 		
-		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi)
+		ps = pointsource.SteadyPointSource(nu_aeff, opts.livetime, zenith_bin=zi)
 		bkg = atmo.point_source_background(zenith_index=zi)
 		astro_bkg = astro.point_source_background(zenith_index=zi)
 		
@@ -140,11 +142,14 @@ if opts.figure_of_merit == 'survey_volume':
 		components = bundle.get_components()
 		ps = components.pop('ps')
 		components['gamma'] = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
+		components['ps_gamma'] =  multillh.NuisanceParam(-2, 0.5, min=-2.7, max=-1.7)
 	
-		fixed = dict(atmo=1, gamma=components['gamma'].seed, astro=2)
+		fixed = dict(atmo=1, gamma=components['gamma'].seed, ps_gamma=components['ps_gamma'].seed, astro=2)
 		
-		dp.append(1e-12*pointsource.discovery_potential(ps, components, **fixed))
-		print dp[-1]
+		mdf, ns, nb = pointsource.discovery_potential(ps, components, **fixed)
+		dp.append(1e-12*mdf)
+		# dp.append(1e-12*pointsource.discovery_potential(ps, components, **fixed))
+		# print dp[-1]
 		# s = ps.expectations(**fixed)['tracks'].sum(axis=0)
 		# b = bkg.expectations['tracks'].sum(axis=0)
 		# if (~numpy.isnan(s/b)).any():
