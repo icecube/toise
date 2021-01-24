@@ -106,11 +106,17 @@ def get_expectations(llh, **nominal):
 	return exes
 
 if opts.figure_of_merit == 'survey_volume':
-	
-	cos_theta = tuple(numpy.linspace(-1, 1, 21))
+
+	cos_theta = factory.default_cos_theta_bins
 	opts.cos_theta = cos_theta
-	factory.add_configuration('IceCube', factory.make_options(geometry='IceCube', spacing=125., cos_theta=cos_theta))
-	factory.add_configuration('Gen2', factory.make_options(**opts.__dict__))
+
+	psi_bins = dict(factory.default_psi_bins)
+	kwargs = {
+		'cos_theta': opts.cos_theta,
+		'psi_bins':  psi_bins
+	}
+	factory.add_configuration('IceCube', factory.make_options(geometry='IceCube', spacing=125.), **kwargs)
+	factory.add_configuration('Gen2', factory.make_options(**opts.__dict__), **kwargs)
 	
 	def make_components(aeff, zi):
 		energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90)
