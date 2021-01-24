@@ -9,7 +9,7 @@ def get_gcd(geometry="Sunflower", spacing=200):
     if geometry == "EdgeWeighted":
         gcd = 'IceCubeHEX_{geometry}_spacing{spacing}m_ExtendedDepthRange.GCD.i3.bz2'.format(
             **locals())
-    elif geometry == "Sunflower":
+    elif "Sunflower" in geometry:
         gcd = 'IceCubeHEX_{geometry}_{spacing}m_v3_ExtendedDepthRange.GCD.i3.bz2'.format(
             **locals())
     elif geometry == "Banana":
@@ -27,7 +27,7 @@ def get_geometry_file(geometry="Sunflower", spacing=200):
     if geometry == "EdgeWeighted":
         gcd = 'IceCubeHEX_{geometry}_spacing{spacing}m_ExtendedDepthRange.GCD.txt.gz'.format(
             **locals())
-    elif geometry == "Sunflower":
+    elif "Sunflower" in geometry:
         gcd = 'IceCubeHEX_{geometry}_{spacing}m_v3_ExtendedDepthRange.GCD.txt.gz'.format(
             **locals())
     elif geometry == "Banana":
