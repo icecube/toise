@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from icecube.gen2_analysis import plotting, effective_areas
+from gen2_analysis import plotting, effective_areas
 
 configs = [
     ('IceCube', 125.),
@@ -24,7 +24,7 @@ with plotting.pretty():
         else:
             kwargs = dict(label='%s %dm' % (geo, spacing))
         
-        ax.semilogx(e, seleff(e, 0.,)*seleff._fiducial_volume/1e9, **kwargs)
+        ax.semilogx(e, seleff(e, 0.,)*seleff._outer_volume/1e9, **kwargs)
         ax.legend(frameon=True, framealpha=0.8, loc='upper left').get_frame().set_linewidth(0)
     ax.set_ylabel('Fiducial volume [km$^3$]')
     for ax in [ax]:
