@@ -13,11 +13,11 @@ configs = [
     ('Sunflower', 300),
 ]
 
-with plotting.pretty():
+with plotting.pretty(tex=False):
     e = np.logspace(2, 9, 101)
     ax = plt.gca()
     for i, (geo, spacing) in enumerate(configs):
-        seleff = effective_areas.HESEishSelectionEfficiency(geo, spacing, 1e6)
+        seleff = effective_areas.HESEishSelectionEfficiency(geo, spacing, 1e5)
     
         if geo == 'IceCube':
             kwargs = dict(color='k', label=geo)
@@ -25,6 +25,7 @@ with plotting.pretty():
             kwargs = dict(label='%s %dm' % (geo, spacing))
         
         ax.semilogx(e, seleff(e, 0.,)*seleff._outer_volume/1e9, **kwargs)
+        print('Geom {}, max fiducial volume is {}'.format(geo, np.max(seleff(e, 0.,)*seleff._outer_volume/1e9)))
         ax.legend(frameon=True, framealpha=0.8, loc='upper left').get_frame().set_linewidth(0)
     ax.set_ylabel('Fiducial volume [km$^3$]')
     for ax in [ax]:
