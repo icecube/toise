@@ -24,8 +24,12 @@ with plotting.pretty(tex=False):
         else:
             kwargs = dict(label='%s %dm' % (geo, spacing))
         
-        ax.semilogx(e, seleff(e, 0.,)*seleff._outer_volume/1e9, **kwargs)
-        print('Geom {}, max fiducial volume is {}'.format(geo, np.max(seleff(e, 0.,)*seleff._outer_volume/1e9)))
+        fiducial_volumes = seleff(e, 0.,)*seleff._outer_volume/1e9
+        saturated_fiducial_volume = np.max(fiducial_volumes)
+        print("Geom {}_{} volumes. saturated fiducial: {:.2f} km^3, max geometric: {:.2f} km^3".format(geo,spacing,
+            saturated_fiducial_volume, seleff._outer_volume/1e9))
+
+        ax.semilogx(e, fiducial_volumes, **kwargs)
         ax.legend(frameon=True, framealpha=0.8, loc='upper left').get_frame().set_linewidth(0)
     ax.set_ylabel('Fiducial volume [km$^3$]')
     for ax in [ax]:
