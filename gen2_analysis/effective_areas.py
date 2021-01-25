@@ -133,6 +133,7 @@ class HESEishSelectionEfficiency(object):
         self._fiducial_volume = fiducial.get_cap_area()*(fiducial.length + 2 *
                                                          side_padding - top_padding)
         self._efficiency = self._fiducial_volume/outer.volume()
+        self._outer_volume = outer.volume()
 
     def __call__(self, deposited_energy, cos_theta):
         return 0.75*self._efficiency/(1+numpy.exp(-2.5*numpy.log(deposited_energy/self._threshold)))
