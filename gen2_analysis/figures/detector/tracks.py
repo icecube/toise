@@ -17,13 +17,14 @@ def performance(tabulated_psf=False):
     def median_opening_angle(psf, energy, cos_theta):
         def f(psi): return psf(psi, energy, cos_theta)-0.5
         try:
-            return bisect(f, 0, radians(5))
+            return bisect(f, 0, np.radians(5))
         except:
             return np.radians(5)
 
     psf = angular_resolution.SplineKingPointSpreadFunction()
-    psf_tab = angular_resolution.get_angular_resolution(
-        'Sunflower', 240, psf_class=(0, 1))
+    if tabulated_psf:
+        psf_tab = angular_resolution.get_angular_resolution(
+            'Sunflower', 240, psf_class=(0, 1))
     psf_ic = angular_resolution.get_angular_resolution('IceCube')
     aeff = effective_areas.MuonEffectiveArea('Sunflower', 240)
 
