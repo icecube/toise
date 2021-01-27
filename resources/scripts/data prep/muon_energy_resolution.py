@@ -15,9 +15,9 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
     from matplotlib import gridspec, cm
     from matplotlib.colors import LogNorm
     from matplotlib.ticker import NullFormatter
-    from icecube.gen2_analysis import plotting 
+    from gen2_analysis import plotting 
 
-    with plotting.pretty():
+    with plotting.pretty(tex=False):
         fig = plt.figure(figsize=(7,4))
         sp = dashi.histfuncs.h2profile(h2)
         for i in range(2):
