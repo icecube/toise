@@ -15,7 +15,8 @@ def get_angular_resolution(geometry="Sunflower", spacing=200, scale=1., psf_clas
         fname = "aachen_psf.fits"
     elif psf_class is not None:
         fname = '%s_%s_kingpsf%d' % (geometry, spacing, psf_class[1])
-        return KingPointSpreadFunction(fname, psf_class=psf_class, scale=scale)
+        # return KingPointSpreadFunction(fname, psf_class=psf_class, scale=scale)
+        return SplineKingPointSpreadFunction(fname)
     else:
         fname = "11900_MUONGUN_%s_%sm_recos.fits" % (geometry, spacing)
     return PointSpreadFunction(fname, scale)
