@@ -12,7 +12,7 @@ The geometries considered are:
 In order to make them work in the framework for the geometry keyword, instead of calling the `Sunflower`, you should insteadd call, e.g. the `Sunflower_hcr`.
 
 ## Tabulating Simulation Results
-The reconstruction [scripts](https://code.icecube.wisc.edu/projects/icecube/browser/IceCube/sandbox/Gen2-Scripts/branches/midscale/Gen2_Simple_Recos.py) produce three output files. An `*i3*` file, a `*GEN2.hdf5` file, and `*IC86_SMT8.hdf5` file. The first is an I3 file with all the reconstruction scripts, but the last two used [hdfwriter](https://docs.icecube.aq/combo/trunk/projects/hdfwriter/index.html) to save the reconstruction results for each event to hdf5 files. For the `GEN2`, that is the reconstruction using all Gen2+IC86 strings, while the `IC86_SMT8` uses just IC86 strings.
+The reconstruction [scripts](https://code.icecube.wisc.edu/projects/icecube/browser/IceCube/sandbox/Gen2-Scripts/branches/midscale/Gen2_Simple_Recos.py) produce three output files. An `*i3*` file, a `*GEN2.hdf5` file, and `*IC86_SMT8.hdf5` file. The first is an I3 file with all the reconstruction results, but the last two used [hdfwriter](https://docs.icecube.aq/combo/trunk/projects/hdfwriter/index.html) to save the reconstruction results for each event to hdf5 files. For the `GEN2`, that is the reconstruction using all Gen2+IC86 strings, while the `IC86_SMT8` uses just IC86 strings.
 
 After all the reconstructions have been run, the HDF5 files for each individual run need to be merged together. This can be done with a utility function in cvmfs, the `hdfwriter-merge` function, which will squish all the hdf5 files together. You can call it like:
 
