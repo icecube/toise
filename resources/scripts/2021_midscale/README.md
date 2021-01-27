@@ -1,4 +1,4 @@
-## About
+# About
 For the midscale proposal, we calculated figures of merit (FOMs) for several "punched out" geometries. These scripts were used to calculate the FOMs.
 
 The geometries considered are:
@@ -11,6 +11,17 @@ The geometries considered are:
 
 In order to make them work in the framework for the geometry keyword, instead of calling the `Sunflower`, you should insteadd call, e.g. the `Sunflower_hcr`.
 
+## Where is the Data
+
+The base simulation (`BaseProc`) is located here: `/data/wipac/HEE/simulation/level2/no-domsim/11900/Sunflower_240m/BaseProc/`
+
+The baseline reconstructions, performed for the Gen2 White Paper, are here: `/data/wipac/HEE/simulation/level2/no-domsim/11900/Sunflower_240m/BaseReco/`
+
+The GCD file is here: `/data/wipac/HEE/geometries/Sunflower/IceCubeHEX_Sunflower_240m_v3_ExtendedDepthRange.GCD.i3.bz2`.
+
+For the reconstructions run with dropped strings, you can run the recos yourself, or find some in `/data/user/brianclark/Gen2_optical/`
+
+# Figures of Merit
 ## Tabulating Simulation Results
 The reconstruction [scripts](https://code.icecube.wisc.edu/projects/icecube/browser/IceCube/sandbox/Gen2-Scripts/branches/midscale/Gen2_Simple_Recos.py) produce three output files. An `*i3*` file, a `*GEN2.hdf5` file, and `*IC86_SMT8.hdf5` file. The first is an I3 file with all the reconstruction results, but the last two used [hdfwriter](https://docs.icecube.aq/combo/trunk/projects/hdfwriter/index.html) to save the reconstruction results for each event to hdf5 files. For the `GEN2`, that is the reconstruction using all Gen2+IC86 strings, while the `IC86_SMT8` uses just IC86 strings.
 
