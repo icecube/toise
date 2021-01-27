@@ -11,10 +11,23 @@ The geometries considered are:
 
 In order to make them work in the framework for the geometry keyword, instead of calling the `Sunflower`, you should insteadd call, e.g. the `Sunflower_hcr`.
 
+## Tabulating Simulation Results
+The reconstruction [scripts](https://code.icecube.wisc.edu/projects/icecube/browser/IceCube/sandbox/Gen2-Scripts/branches/midscale/Gen2_Simple_Recos.py) produce three output files. An `*i3*` file, a `*GEN2.hdf5` file, and `*IC86_SMT8.hdf5` file. The first is an I3 file with all the reconstruction scripts, but the last two used [hdfwriter](https://docs.icecube.aq/combo/trunk/projects/hdfwriter/index.html) to save the reconstruction results for each event to hdf5 files. For the `GEN2`, that is the reconstruction using all Gen2+IC86 strings, while the `IC86_SMT8` uses just IC86 strings.
+
+After all the reconstructions have been run, the HDF5 files for each individual run need to be merged together. This can be done with a utility function in cvmfs, the `hdfwriter-merge` function, which will squish all the hdf5 files together. You can call it like:
+
+```
+hdfwriter-merge -o data_sunflower_hcr.hdf5 /path/to/files/*GEN2*
+```
+
+The filename convention of `data_sunflower_{geometry}.hdf5` is needed for the PSF extraction (below).
+
 ## Calculating and Plotting Point Spread Functions and Muon Effective Areas
 To calculate the PSF and muon selection efficiencies (which are needed for the muon effective areas), we should run `python extract_PSF.py`. This is basically a scripted version of Jakob's gists [here](https://gist.github.com/jvansanten/5eff16a895f6287eeaf9674e60d751a9#file-psf-fitting-ipynb).
 
 The PSF extractor takes two arguments. `-n` to name the geometry. E.g. `-n hcr`. If you want to get the plain Sunflower, pass the keyword `Sunflower`. Otherwise the `hcr` will be handled correctly by the script on its own. There is a flag for "make diagnostic plots", which is `-p True`. Otherwise, no plots are produced.
+
+The PSF extractor ingests the output of the compiled tabulated simulation results (see the previous section), where the compiled results are expected to be of the name `data_sunflower_{geometry}.hdf5`. E.g. `data_sunflower_standalone.hdf5`.
 
 The outputs of the PSF extractor are 3 fits files. Two represents the PSF (the `*king*.fits` files). These files should be moved into the `gen2-analysis/gen2_analysis/data/psf` directory. And one represents the muon selection efficiency (the `_cut.fits` file). This one should be moved into the `gen2-analysis/gen2_analysis/data/selection_efficiency` folder.
 
