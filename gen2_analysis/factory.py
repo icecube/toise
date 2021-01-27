@@ -77,21 +77,29 @@ def create_aeff(opts, **kwargs):
         kwargs['psf'] = angular_resolution.get_angular_resolution(
             opts.geometry, opts.spacing, opts.angular_resolution_scale, opts.psf_class)
 
+    # hack -- always use the standard sunflower for energy resolutions
+    resolution_geometry = opts.geometry
+    fiducial_geometry = opts.geometry
+    if 'Sunflower' in opts.geometry:
+        if opts.geometry is not 'Sunflower' :
+            resolution_geometry = 'Sunflower'
+            print("Warning! Hack! For energy resolution, overriding the requested geometry ({}) with the standard ({})".format(opts.geometry, resolution_geometry))
+
     neutrino_aeff = effective_areas.create_throughgoing_aeff(
         energy_resolution=effective_areas.get_energy_resolution(
-            opts.geometry, opts.spacing),
+            resolution_geometry, opts.spacing),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(
-            opts.geometry, opts.spacing),
+            fiducial_geometry, opts.spacing),
         energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
         **kwargs)
 
     bundle_aeff = effective_areas.create_bundle_aeff(
         energy_resolution=effective_areas.get_energy_resolution(
-            opts.geometry, opts.spacing),
+            resolution_geometry, opts.spacing),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(
-            opts.geometry, opts.spacing),
+            fiducial_geometry, opts.spacing),
         energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
         **kwargs)
 
