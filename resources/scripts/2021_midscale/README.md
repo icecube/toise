@@ -55,7 +55,7 @@ The PSF extractor ingests the output of the compiled tabulated simulation result
 
 The outputs of the PSF extractor are 3 fits files. Two represents the PSF (the `*king*.fits` files). These files should be moved into the `gen2-analysis/gen2_analysis/data/psf` directory. And one represents the muon selection efficiency (the `_cut.fits` file). This one should be moved into the `gen2-analysis/gen2_analysis/data/selection_efficiency` folder.
 
-The fits files Brian used are available at `/data/user/brianclark/Gen2_optical/midscale/psf/`.
+The fits files Brian used are available at `/data/user/brianclark/Gen2_optical/midscale/psf/` and `/data/user/brianclark/Gen2_optical/midscale/selection_efficiency/`.
 
 # Figures of Merit
 
