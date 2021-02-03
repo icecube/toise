@@ -27,6 +27,7 @@ def median_opening_angle(psf, energy, cos_theta):
 psf = angular_resolution.SplineKingPointSpreadFunction(spline_name)
 psf_ic = angular_resolution.get_angular_resolution('IceCube')
 aeff = effective_areas.MuonEffectiveArea(geo_name, 240)
+aeff_ic = effective_areas.MuonEffectiveArea('IceCube', 125)
 
 loge = np.arange(3.5, 8.5, 0.5) + 0.25
 loge_centers = 10**util.center(loge)
@@ -99,13 +100,17 @@ plt.tight_layout(0.1, w_pad=0.5)
 
 fig.savefig('muon_aeff_psf_{}.png'.format(geo_name), dpi=200)
 
-# quickly, calculate the psf at 100 TeV at the horizon
-the_energy = 1e5
-the_cos_theta = 0
-the_med_angle = np.degrees(psf.get_quantile(0.5, the_energy, the_cos_theta))
-the_area = aeff(the_energy, the_cos_theta)/1e6
-the_area_downgoing = aeff(the_energy, -0.5)/1e6
-print('Median angular resolution at horizon {} is {} deg'.format(plotting.format_energy('%d', the_energy), the_med_angle))
-print('Effective area at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area))
-print('Effective area at {} at cos(theta)=-0.5 is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area_downgoing))
-
+# quickly, calculate the psf at at various energies
+the_energies = [1e5, 1e6, 1e7]
+for the_energy in the_energies:
+    the_cos_theta = 0
+    the_med_angle = np.degrees(psf.get_quantile(0.5, the_energy, the_cos_theta))
+    the_area = aeff(the_energy, the_cos_theta)/1e6
+    the_area_downgoing = aeff(the_energy, -0.5)/1e6
+    ic_area = aeff_ic(the_energy, the_cos_theta)/1e6
+    print('Energy {}'.format(plotting.format_energy('%d', the_energy)))
+    print('  Median angular resolution at horizon {} is {} deg'.format(plotting.format_energy('%d', the_energy), the_med_angle))
+    print('  Effective area at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area))
+    print('  Effective area at {} at cos(theta)=-0.5 is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area_downgoing))
+    print('  IceCube area at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), ic_area))
+    print('-----')
