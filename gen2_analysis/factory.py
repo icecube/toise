@@ -187,6 +187,12 @@ class aeff_factory(object):
 
     def _create(self, opts, **kwargs):
         aeffs = {}
+
+        if "custom_radio" in opts:
+            if opts.custom_radio==True:
+                aeffs['radio_events'] = opts.aeffs
+                return aeffs
+        
         if opts.geometry in ('ARA', 'Radio'):
             psi_bins = kwargs.pop('psi_bins')
             for k in 'cos_theta', 'neutrino_energy':
@@ -314,6 +320,11 @@ def add_configuration(name, opts, **kwargs):
     """
     aeff_factory.get().add(name, opts, **kwargs)
 
+def add_aeffs(name, aeffs):
+    """
+    Add a calculated effective area to the cache
+    """
+    add_configuration(name, make_options(**dict(aeffs=aeffs, geometry=name, custom_radio=True)))
 
 set_kwargs = aeff_factory.get().set_kwargs
 
