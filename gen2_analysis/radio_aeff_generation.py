@@ -25,7 +25,7 @@ from classification_efficiency import get_classification_efficiency
 from util import *
 
 
-def _load_rno_veff(filename="run_input_500km2_01_surface_4LPDA_1dipole_RNOG_1.50km_config_Alv2009_nonoise_100ns_D01surface_4LPDA_1dipole_250MHz_dipoles_RNOG_200m_3.00km_D02single_dipole_250MHz_e.json", trigger="dipole_2.5sigma"):
+def _load_rno_veff(filename= data_dir + "/aeff/run_input_500km2_01_surface_4LPDA_1dipole_RNOG_1.50km_config_Alv2009_nonoise_100ns_D01surface_4LPDA_1dipole_250MHz_dipoles_RNOG_200m_3.00km_D02single_dipole_250MHz_e.json", trigger="dipole_2.5sigma"):
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
@@ -58,12 +58,11 @@ def _load_rno_veff(filename="run_input_500km2_01_surface_4LPDA_1dipole_RNOG_1.50
         ([2*cos_zenith[0] - cos_zenith[1]], cos_zenith))
     omega = 2*np.pi*np.diff(cos_zenith)
     print("WARNING: aeff is being normalised to per sr")
-    print("energies", energy)
     print(veff['veff'].unstack(level=-1).values.reshape((energy.size-1, cos_zenith.size-1)))
     return (energy, cos_zenith), veff['veff'].unstack(level=-1).values.reshape((energy.size-1, cos_zenith.size-1)) / omega[None, :]
 
 
-def _load_radio_review_veff(filename="review_array_dict_e.pkl", trigger=None):
+def _load_radio_review_veff(filename = data_dir + "/aeff/review_array_dict_e.pkl", trigger=None):
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
@@ -167,52 +166,6 @@ def _interpolate_rno_veff(energy_edges, ct_edges=None, filename="jaml.file"):
         center_ct = np.clip(center(ct_edges),min(center(edges[1]))+1e-3,max(center(edges[1]))-1e-3)
         
         return (energy_edges, ct_edges), interp(center_ct)
-"""
-def create_radio_aeff(
-        nstations=305,
-        energy_resolution=get_energy_resolution(channel='radio'),
-        psf=get_angular_resolution(channel='radio'),
-        psi_bins=np.sqrt(np.linspace(0, np.radians(20)**2, 10)),
-        veff_filename = dict(e='nu_e_Gen2_100m_1.5sigma.json', mu='nu_mu_Gen2_100m_1.5sigma.json'),
-        cos_theta=np.linspace(-1, 1, 21), neutrino_energy=np.logspace(6, 12, 61)):
-    #Create an effective area for a nameless radio array
-    nside = None
-    if isinstance(cos_theta, int):
-        nside = cos_theta
-
-    # Step 1: Density of final states per meter
-    (e_nu, cos_theta, e_shower), aeff = calculate_cascade_production_density(
-        cos_theta, neutrino_energy)
-
-    # Step 2: Effective volume in terms of shower energy
-    # NB: this includes selection efficiency (usually step 3)
-    edges_e, veff_e = _interpolate_radio_veff(e_shower, cos_theta, filename=veff_filename['e'])
-    edges_mu, veff_mu = _interpolate_radio_veff(e_shower, cos_theta, filename=veff_filename['mu'])
-    aeff[0:2,...] *= (veff_e.T)[None,None,...]*nstations # electron neutrino
-    aeff[2:4,...] *= (veff_mu.T)[None,None,...]*nstations # muon neutrino
-    aeff[4:6,...] *= (veff_mu.T)[None,None,...]*nstations # tau neutrino
-    total_aeff = aeff
-
-    # Step 4: apply smearing for angular resolution
-    # Add an overflow bin if none present
-    if np.isfinite(psi_bins[-1]):
-        psi_bins = np.concatenate((psi_bins, [np.inf]))
-    cdf = eval_psf(psf, center(e_shower), center(cos_theta), psi_bins[:-1])
-
-    total_aeff = np.empty(aeff.shape + (psi_bins.size-1,))
-    # expand differential contributions along the opening-angle axis
-    total_aeff[..., :-1] = aeff[..., None]*np.diff(cdf, axis=2)[None, ...]
-    # put the remainder in the overflow bin
-    total_aeff[..., -1] = aeff*(1-cdf[..., -1])[None, None, ...]
-    print("CDFAXIS",total_aeff[0,30,10,30])
-    # Step 5: apply smearing for energy resolution
-    response = energy_resolution.get_response_matrix(e_shower, e_shower)
-    total_aeff = np.apply_along_axis(np.inner, 3, total_aeff, response)
-
-    edges = (e_nu, cos_theta, e_shower, psi_bins)
-
-    return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
-"""
 
 
 
@@ -378,7 +331,7 @@ class radio_aeff:
 
         aeff = get_muon_distribution(cos_theta, neutrino_energy)
         edges = [neutrino_energy, cos_theta, neutrino_energy]
-        print(cos_theta)
+        #print(cos_theta)
         self.logger.warning("Energy/direction resolution smearing not applied for atm. muons for now!")
         
         # apply smearing for shower energy resolution
