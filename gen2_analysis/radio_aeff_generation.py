@@ -11,7 +11,7 @@ logger = logging.getLogger("aeff calculation")
 
 
 import os
-import np
+import numpy
 import itertools
 import healpy
 import warnings
@@ -68,7 +68,7 @@ def _load_radio_review_veff(filename="review_array_dict_e.pkl", trigger=None):
     :returns: a tuple (edges, veff). veff has units of m^3
     """
     import pandas as pd
-    import np as np
+    import numpy as np
     import json
 
     if not filename.startswith('/'):
@@ -312,6 +312,13 @@ class StationOverlap:
         '''
 
 
+#from radio_response import StationOverlap
+from radio_response import radio_analysis_efficiency
+from radio_response import RadioPointSpreadFunction
+from radio_response import RadioEnergyResolution
+from effective_areas import calculate_cascade_production_density
+from effective_areas import effective_area
+
 class radio_aeff:
     def __init__(self, config=os.path.realpath(os.path.join(os.path.dirname(__file__), 'radio_config.yaml')), psi_bins=None):
         self.configfile = config
@@ -363,7 +370,7 @@ class radio_aeff:
         self.psi_bins = psi_bins
 
     def create_muon_background(self,
-            energy_resolution=get_energy_resolution(channel='rno'),
+            energy_resolution=RadioEnergyResolution(),
             cos_theta=np.linspace(-1, 1, 21), neutrino_energy=np.logspace(6, 12, 61)):
         from radio_muon_background import get_muon_distribution
         psi_bins = self.psi_bins
@@ -388,8 +395,8 @@ class radio_aeff:
         return effective_area(edges, aeff, 'cos_theta')
 
     def create(self,
-            energy_resolution=get_energy_resolution(channel='rno'),
-            psf=get_angular_resolution(channel='rno'),
+            energy_resolution=RadioEnergyResolution(),
+            psf=RadioPointSpreadFunction(),
             cos_theta=np.linspace(-1, 1, 21), neutrino_energy=np.logspace(6, 12, 61)):
 
         psi_bins = self.psi_bins
