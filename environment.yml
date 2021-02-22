@@ -13,6 +13,7 @@ dependencies:
   # normal datasets
   - pytables<3.5.0
   - pandas
+  - pyyaml
   - clint
   - tqdm
   - toolz
