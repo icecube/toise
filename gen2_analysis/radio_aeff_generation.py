@@ -62,7 +62,7 @@ def _load_rno_veff(filename= data_dir + "/aeff/run_input_500km2_01_surface_4LPDA
     return (energy, cos_zenith), veff['veff'].unstack(level=-1).values.reshape((energy.size-1, cos_zenith.size-1)) / omega[None, :]
 
 
-def _load_radio_review_veff(filename = data_dir + "/aeff/review_array_dict_e.pkl", trigger=None):
+def _load_radio_review_veff(filename = data_dir + "/aeff/review_array_dict_e.json", trigger=None):
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
@@ -85,7 +85,10 @@ def _load_radio_review_veff(filename = data_dir + "/aeff/review_array_dict_e.pkl
         return triggerlist_set
     if trigger==None:
         #simply take the first
+        logger.warning("no trigger name requested, simply taking the first... this may be dangerous")
         trigger = _list_of_triggers(dataframe)[0]
+    
+    logger.warning("using trigger: {}".format(trigger))
 
     def _extract_veff(df, triggername):
         veff = np.array([df.veff[i][triggername][0] for i in range(len(df))])
@@ -121,19 +124,19 @@ def _load_radio_review_veff(filename = data_dir + "/aeff/review_array_dict_e.pkl
 
 
 
-def _interpolate_rno_veff(energy_edges, ct_edges=None, filename="jaml.file"):
+def _interpolate_rno_veff(energy_edges, ct_edges=None, filename="jaml.file", trigger=None):
     from scipy import interpolate
     #print("interpolating effective area")
-    edges, veff = _load_radio_review_veff(filename)
+    edges, veff = _load_radio_review_veff(filename, trigger)
     #print("shape", np.shape(veff))
     # NB: occasionally there are NaN effective volumes. intepolate through them
     def interp_masked(arr, x, xp):
         valid = ~np.ma.masked_invalid(arr).mask
-
+        
         if np.sum(valid)==0:
-            return -np.inf*np.ones_like(x)
+            return -10*np.ones_like(x)
         else:
-            interpolator = interpolate.interp1d(xp, arr, fill_value='extrapolate')
+            interpolator = interpolate.interp1d(xp, arr, bounds_error=False, fill_value=-10)
             interpolation_result = interpolator(x)
 
 
@@ -201,68 +204,6 @@ def rno_analysis_efficiency(E, minval, maxval, log_turnon_gev, log_turnon_width)
 
 
 
-class StationOverlap:
-    ''' overlap is parametrised for different values of station spacing as function of energy'''
-    overlap_fit_data = {
-        0:     [1.16915194, 0.76565583],
-        100:   [14.71768875,  0.59238456],
-        250:   [16.15636026,  0.50626117],
-        500:   [16.92610908,  0.520047  ],
-        750:   [17.49885381,  0.45712464],
-        1000:  [17.90166045,  0.48601167],
-        1250:  [18.26189115,  0.5322479 ],
-        1500:  [18.6003936,   0.55918667],
-        2000:  [19.1751211,   0.58951958],
-        2500:  [19.64801491,  0.58333683],
-        3000:  [20.06492668,  0.56412106]}
-    
-    def __init__(self, spacing):
-        self.find_spacing(spacing)
-        
-    def find_spacing(self, spacing):
-        print("requested spacing %f" %spacing)
-        spacings = np.array(self.overlap_fit_data.keys())
-        best = spacings[np.abs(spacings - spacing).argmin()]
-        print("using nearest available:", best)
-        self.spacing = best
-        
-    def overlap_sigmoid(self, x, loge_turn, loge_halfmax):
-        # sigmoid function in logE for overlap between 0 and 1
-        logx = np.log10(x)
-        # choose factors conveniently
-        # loge_halfmax should correspond to units in logE from turnover, where 0.25/0.75 of max are reached
-        # = number of orders of magnitude in x between 0.25..0.75*(max-min) range
-        b = np.log(3)/loge_halfmax
-    
-        y_low=0 # in the limit of zero energy there will be no overlap
-        y_high=1 # in the limit of infinite energy 100% overlap can be expected
-
-        y = ((y_low-y_high) / (1 + (np.exp(b*(logx-loge_turn))))) + y_high
-        return  y
-
-    def overlap_sigmoid_fit(self, energies, the_overlap):
-        #print(loge, the_eff)
-        res, vals = optimize.curve_fit(self.overlap_sigmoid, energies, the_overlap)
-        return res
-    
-    def get_overlap(self, e):
-        turn  = self.overlap_fit_data[self.spacing][0]
-        width = self.overlap_fit_data[self.spacing][1]
-        return self.overlap_sigmoid(e, turn, width)
-
-        '''
-        Idea, apply downscaling to account for station overlap, like:
-        Caveat!: This needs modification if applied!!!
-
-        if 'spacing_m' in configuration['detector_setup']:
-            spacing = configuration['detector_setup']['spacing_m']
-            print('requested station spacing: %f' %spacing)
-            overlap = StationOverlap(spacing)
-
-            scale_factor = 1.-overlap.get_overlap(e_nu[:-1]*1e9)
-            print('scale factor:', e_nu, scale_factor)
-            aeff = np.apply_along_axis(np.multiply, 1, aeff, scale_factor)
-        '''
 
 
 #from radio_response import StationOverlap
@@ -271,10 +212,14 @@ from radio_response import RadioPointSpreadFunction
 from radio_response import RadioEnergyResolution
 from effective_areas import calculate_cascade_production_density
 from effective_areas import effective_area
+import os
 
 class radio_aeff:
-    def __init__(self, config=os.path.realpath(os.path.join(os.path.dirname(__file__), 'radio_config.yaml')), psi_bins=None):
+    def __init__(self, config='radio_config.yaml', psi_bins=None):
+        if not os.path.isfile(config):
+            config = os.path.realpath(os.path.join(os.path.dirname(__file__), config))
         self.configfile = config
+
         # set parameters provided in config file
         self.restore_config()
         self.logger = logger
@@ -329,7 +274,15 @@ class radio_aeff:
         psi_bins = self.psi_bins
         configuration = self.configuration
 
-        aeff = get_muon_distribution(cos_theta, neutrino_energy)
+        if 'nstations' in configuration['detector_setup']:
+            nstations = configuration['detector_setup']['nstations']
+            self.logger.info("using number of stations from config")
+        else:
+            nstations = 1
+            self.logger.warning("Number of stations not passed in config. Using single station proxy.")
+        veff_scale = nstations #simulation was done for ~100 stations
+
+        aeff = get_muon_distribution(cos_theta, neutrino_energy)*veff_scale
         edges = [neutrino_energy, cos_theta, neutrino_energy]
         #print(cos_theta)
         self.logger.warning("Energy/direction resolution smearing not applied for atm. muons for now!")
@@ -377,9 +330,11 @@ class radio_aeff:
         self.logger.debug('STEP 2: Trigger effective volume per station in terms of shower energy')
 
         veff_filename = configuration['effective_volume']
-        edges_e, veff_e = _interpolate_rno_veff(e_showering, cos_theta, filename=veff_filename['e'])
-        edges_mu, veff_mu = _interpolate_rno_veff(e_showering, cos_theta, filename=veff_filename['mu'])
-        edges_tau, veff_tau = _interpolate_rno_veff(e_showering, cos_theta, filename=veff_filename['tau'])
+        if not 'trigger_name' in veff_filename:
+            veff_filename['trigger_name'] = None
+        edges_e, veff_e = _interpolate_rno_veff(e_showering, cos_theta, filename=veff_filename['e'], trigger=veff_filename['trigger_name'])
+        edges_mu, veff_mu = _interpolate_rno_veff(e_showering, cos_theta, filename=veff_filename['mu'], trigger=veff_filename['trigger_name'])
+        edges_tau, veff_tau = _interpolate_rno_veff(e_showering, cos_theta, filename=veff_filename['tau'], trigger=veff_filename['trigger_name'])
 
         if 'simulated_stations' not in veff_filename:
             veff_filename['simulated_stations'] = 1
@@ -468,3 +423,24 @@ class radio_aeff:
         edges = (e_nu, cos_theta, e_showering, psi_bins)
         self.logger.info('generated aeff of shape {}'.format(np.shape(total_aeff)))
         return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+
+
+def combine_aeffs(aeff1, aeff2):
+    import copy
+    if not aeff1.compatible_with(aeff2):
+        logger.error("provided incompatible aeffs to combine function")
+    else:
+        aeff = copy.deepcopy(aeff1)
+
+        def overlap(E):
+            loge = [7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11.]
+            ovl = [0.004, 0.007, 0.019, 0.074, 0.153, 0.245, 0.323, 0.368, 0.393]
+            interpolator = interpolate.interp1d(loge, ovl, fill_value='extrapolate')
+            interpolation_result = np.maximum(interpolator(np.log10(E)),0)
+            return (interpolation_result+1.)**-1
+            
+        print(overlap(aeff.get_bin_centers('true_energy')))
+        aeff.values = (aeff1.values + aeff2.values)*overlap(aeff.get_bin_centers('true_energy'))[None,:,None,None,None]
+        return aeff        
+
+
