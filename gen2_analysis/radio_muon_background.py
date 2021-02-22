@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
+# from RNOG paper
+
 def get_muon_distribution(cosz_edges = np.linspace(-1,1,21), energy_edges = np.logspace(6,12,61)):
     ### zenith dependence
     zenith_vs_fraction = np.array([[15 , 0],[20 , 0.1201],
@@ -55,7 +57,7 @@ def get_muon_distribution(cosz_edges = np.linspace(-1,1,21), energy_edges = np.l
     muon_distribution = np.outer(cosz_binned, n_muons_binned)
 
 
-    extended_muon_distribution = muon_distribution[...,None]*np.eye(60)
+    extended_muon_distribution = muon_distribution[...,None]*np.eye(60)/100.
     extended_muon_distribution = np.swapaxes(extended_muon_distribution,0,1)
-    print("total muons:", np.sum(extended_muon_distribution))
+    print("total muons per station:", np.sum(extended_muon_distribution))
     return extended_muon_distribution
