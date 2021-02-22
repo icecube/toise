@@ -8,7 +8,8 @@ apply_energy_resolution: False
 
 #############
 ### detector setup scales effective area with number of stations,
-nstations: 144
+detector_setup:
+    nstations: 144
 
 #############
 ### effective volume of radio review simulations: 144 deep (+surface) + 169 surface-only stations
@@ -17,6 +18,7 @@ effective_volume:
     e: 'review_array_dict_e.json'
     mu: 'review_array_dict_mu.json'
     tau: 'review_array_dict_tau.json'
+    trigger_name: "combined_array"
     # number of stations for which the veffs were generated. The veffs will be downscaled by that factor to a per-station veff.
     simulated_stations: 144
 
