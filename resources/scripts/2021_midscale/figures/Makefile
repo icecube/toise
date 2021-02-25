@@ -3,11 +3,11 @@
 
 PHASE2_GEOMETRY := corner
 
-disc_potential_corner_E-2.0.png: sensitivity_Sunflower_corner_-2.0.json gen2_ic86_1yr_sens_-2.0.json.gz
-	python ../plot_sens.py -n corner -g -2.0
+disc_potential_$(PHASE2_GEOMETRY)_E-2.0.png: sensitivity_Sunflower_$(PHASE2_GEOMETRY)_-2.0.json gen2_ic86_1yr_sens_-2.0.json.gz
+	python ../plot_sens.py -n $(PHASE2_GEOMETRY) -g -2.0
 
-sensitivity_Sunflower_corner_-2.0.json:
-	python ../calc_sens.py -n corner -g -2.0
+sensitivity_Sunflower_$(PHASE2_GEOMETRY)_-2.0.json:
+	python ../calc_sens.py -n $(PHASE2_GEOMETRY) -g -2.0
 
 gen2_ic86_1yr_sens_-2.0.json.gz:
 	gen2-figure-data pointsource.flare.sensitivity -d Gen2-InIce-TracksOnly 1 IceCube-TracksOnly 1 --gamma -2 -o gen2_ic86_1yr_sens_-2.0
