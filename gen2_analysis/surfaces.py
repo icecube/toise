@@ -186,7 +186,7 @@ class UprightSurface(object):
     def _integrate_area(a, b, cap, sides):
         return (cap*(b**2-a**2) + sides*(numpy.arccos(a) - numpy.arccos(b) - numpy.sqrt(1-a**2)*a + numpy.sqrt(1-b**2)*b))/2.
 
-    def entendue(self, cosMin=-1., cosMax=1.):
+    def etendue(self, cosMin=-1., cosMax=1.):
         """
         Integrate A * d\Omega over the given range of zenith angles
 
@@ -222,7 +222,7 @@ class UprightSurface(object):
         :param cosMax: cosine of the minimum zenith angle
         :returns: the average projected area in the zenith angle range
         """
-        return self.entendue(cosMin, cosMax)/(2*numpy.pi*(cosMax-cosMin))
+        return self.etendue(cosMin, cosMax)/(2*numpy.pi*(cosMax-cosMin))
 
     def volume(self):
         return self.get_cap_area()*self.length
