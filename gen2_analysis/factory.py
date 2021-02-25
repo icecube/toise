@@ -7,6 +7,7 @@ import cPickle as pickle
 from . import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
 from . import classification_efficiency
 from .util import data_dir, center
+from . import surfaces
 
 
 def make_key(opts, kwargs):
@@ -350,6 +351,16 @@ default_configs = {
     'Sunflower_240_NoCasc': dict(geometry='Sunflower', spacing=240, veto_area=75., veto_threshold=1e5),
     'KM3NeT': dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.2),
 }
+
+
+# Add midscale geometry candidates
+# FIXME: add corner22, scan22 geometries
+for midscale in 'corner', 'sparse', 'hcr':
+    surface = surfaces.get_fiducial_surface("Sunflower_"+midscale, spacing=240, padding=0)
+    # artificially fix veto area to the footprint of the geometry
+    area = surface.azimuth_averaged_area(1)/1e6
+    default_configs['Gen2-Phase2-'+midscale] = dict(geometry="Sunflower_"+midscale, spacing=240, veto_area=area, veto_threshold=1e5)
+
 
 default_psi_bins = {
     'tracks': numpy.linspace(0, numpy.radians(1.5)**2, 150)**(1./2),
