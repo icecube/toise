@@ -202,16 +202,21 @@ class aeff_factory(object):
                 elif hasattr(opts, k):
                     kwargs[k] = numpy.asarray(getattr(opts, k))
             kwargs['psi_bins'] = psi_bins['radio']
-            kwargs['nstations'] = opts.nstations
-            if hasattr(opts, 'veff_filename'):
-                kwargs['veff_filename'] = opts.veff_filename
-            if opts.geometry == 'ARA':
-                kwargs['depth'] = opts.depth
-                aeffs['radio_events'] = (
-                    effective_areas.create_ara_aeff(**kwargs), None)
+            if hasattr(opts, 'config_file'):
+                from . import radio_aeff_generation
+                radio = radio_aeff_generation.radio_aeff(psi_bins=psi_bins['radio'], config=opts.config_file)
+                aeffs['radio_events'] = (radio.create(), radio.create_muon_background())
             else:
-                aeffs['radio_events'] = (
-                    effective_areas.create_radio_aeff(**kwargs), None)
+                kwargs['nstations'] = opts.nstations
+                if hasattr(opts, 'veff_filename'):
+                    kwargs['veff_filename'] = opts.veff_filename
+                if opts.geometry == 'ARA':
+                    kwargs['depth'] = opts.depth
+                    aeffs['radio_events'] = (
+                        effective_areas.create_ara_aeff(**kwargs), None)
+                else:
+                    aeffs['radio_events'] = (
+                        effective_areas.create_radio_aeff(**kwargs), None)
         else:
             psi_bins = kwargs.pop('psi_bins')
             nu, mu = create_aeff(opts, psi_bins=psi_bins['tracks'], **kwargs)
@@ -361,6 +366,7 @@ default_configs = {
     'IceCube_NoCasc': dict(geometry='IceCube', spacing=125, veto_area=1., veto_threshold=1e5),
     'Sunflower_240_NoCasc': dict(geometry='Sunflower', spacing=240, veto_area=75., veto_threshold=1e5),
     'KM3NeT': dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.2),
+    'Gen2-Phase2-Radio': dict(geometry='Radio', config_file=os.path.join(os.path.dirname(__file__), 'radio_config_16.yaml')),
 }
 
 
