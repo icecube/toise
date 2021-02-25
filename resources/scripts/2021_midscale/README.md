@@ -23,6 +23,8 @@ For the reconstructions run with dropped strings, you can run the recos yourself
 
 # Preparation for the Framework
 
+As of 2021-02-25, the files that Brian used are part of the data bundle that is (re)downloaded when the gen2-analysis package is installed.
+
 ## Making New Geometry Files
 The framework needs to know the location of the DOMs and strings in "plain text" e.g., not in I3 file format. These various geomeries are stored in `gen2-analysis/gen2_analysis/data/geometries`.
 
