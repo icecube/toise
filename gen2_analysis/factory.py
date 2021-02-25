@@ -359,7 +359,8 @@ for midscale in 'corner', 'sparse', 'hcr':
     surface = surfaces.get_fiducial_surface("Sunflower_"+midscale, spacing=240, padding=0)
     # artificially fix veto area to the footprint of the geometry
     area = surface.azimuth_averaged_area(1)/1e6
-    default_configs['Gen2-Phase2-'+midscale] = dict(geometry="Sunflower_"+midscale, spacing=240, veto_area=area, veto_threshold=1e5)
+    default_configs['Gen2-Phase2-'+midscale] = dict(geometry="Sunflower_"+midscale, spacing=240, veto_area=area, veto_threshold=1e5, cascade_energy_threshold=2e5)
+    default_configs['Gen2-Phase2-'+midscale+'-TracksOnly'] = dict(geometry="Sunflower_"+midscale, spacing=240, veto_area=area, veto_threshold=1e5)
 
 
 default_psi_bins = {
