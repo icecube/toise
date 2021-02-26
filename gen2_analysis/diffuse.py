@@ -479,7 +479,7 @@ class DiffuseAstro(DiffuseNuGen):
         else:
             return (effective_area*flux[..., None, None]*livetime).sum(axis=1)
 
-    @lru_cache(maxsize=64)
+    @lru_cache(maxsize=512)
     def _apply_flux_weights(self, **kwargs):
         """
         :returns: expectations by flavor (shape 6 x expectations)
@@ -515,7 +515,7 @@ class DiffuseAstro(DiffuseNuGen):
 
         return total
 
-    @lru_cache(maxsize=256)
+    @lru_cache(maxsize=512)
     def _apply_flavor_weights(self, **kwargs):
         # peel off kwargs we consume
         def param(k): return k+self._suffix
