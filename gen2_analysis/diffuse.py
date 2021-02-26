@@ -789,7 +789,7 @@ class ArbitraryFlux(DiffuseAstro):
         self._flux_func = None
 
     def set_flux_func(self, flux_func):
-        """ Set the flux as a function of enu
+        """ Set the *all-flavor* flux as a function of enu
         """
         self._flux_func = flux_func
         self._invalidate_cache()
