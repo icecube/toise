@@ -59,6 +59,10 @@ The outputs of the PSF extractor are 3 fits files. Two represents the PSF (the `
 
 The fits files Brian used are available at `/data/user/brianclark/Gen2_optical/midscale/psf/` and `/data/user/brianclark/Gen2_optical/midscale/selection_efficiency/`.
 
+## Calculating muon energy resolution
+
+The muon energy resolution can be parameterized with extract_energy_resolution.py, whose usage is similar to extract_PSF.py.
+
 # Figures of Merit
 
 ## PSF Muon Effective Areas
