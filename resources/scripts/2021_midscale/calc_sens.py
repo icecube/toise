@@ -74,7 +74,7 @@ meta_major = {'detectors' : exposures}
 meta = {'cos_zenith': factory.default_cos_theta_bins}
 dlabel = the_geom
 for zi in tqdm(range(20), desc=dlabel):
-	fom = figures_of_merit.PointSource({'IceCube-TracksOnly': 0, 'Gen2-InIce-TracksOnly': 0, component_name : 1}, zi)
+	fom = figures_of_merit.PointSource({ component_name : 1}, zi)
 	for flabel, q in figures.items():
 		kwargs = {'gamma': gamma, 'decades': decades}
 		if not flabel.startswith('differential'):
