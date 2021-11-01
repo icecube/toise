@@ -97,7 +97,7 @@ diffuse.spectrum.unfolding.10yr.json.gz:
 	gen2-figure-data diffuse.spectrum.unfold --gzk-norm 0.1 -d IceCube 15 Gen2-Phase2-$(PHASE2_GEOMETRY) 10 Gen2-Phase2-Radio 10 -o $@ --clean
 
 diffuse.spectrum.unfolding.10yr.pdf: diffuse.spectrum.unfolding.10yr.json.gz
-	gen2-plot diffuse.spectrum.unfolded_flux --label 'Gen2-Phase2 InIce+Radio' $^ -o $@
+	gen2-plot diffuse.spectrum.unfolded_flux_multimessenger --label 'Gen2-Phase2 InIce+Radio' $^ -o $@
 
 unfolding: diffuse.spectrum.unfolding.10yr.pdf
 .PHONY:: unfolding
