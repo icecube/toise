@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
+from setuptools import find_packages
 from subprocess import check_call, PIPE
 from os import path, unlink, environ, mkdir
 
@@ -23,7 +24,7 @@ setup(name='gen2-analysis',
       author='Jakob van Santen',
       author_email='jvansanten@icecube.wisc.edu',
       url='http://icecube.wisc.edu/~jvansanten/gen2_analysis/',
-      packages=['gen2_analysis'],
+      packages=find_packages(),
       package_data={'gen2_analysis': ['data/**/*']},
       entry_points={
           'console_scripts': [
