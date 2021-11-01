@@ -1,4 +1,3 @@
-
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
@@ -7,50 +6,60 @@ import os
 from scipy import interpolate
 from gen2_analysis.util import *
 
-class radio_inelasticities():
+
+class radio_inelasticities:
     def __init__(self):
-        self.files = {'EM': data_dir + '/inelasticity/2D_inelasticity_EM.npy',
-            'EMHAD': data_dir + '/inelasticity/2D_inelasticity_EMHAD.npy',
-            'HAD': data_dir + '/inelasticity/2D_inelasticity_HAD.npy'} 
+        self.files = {
+            "EM": data_dir + "/inelasticity/2D_inelasticity_EM.npy",
+            "EMHAD": data_dir + "/inelasticity/2D_inelasticity_EMHAD.npy",
+            "HAD": data_dir + "/inelasticity/2D_inelasticity_HAD.npy",
+        }
 
         self.inelasticities = {}
         for channel in self.files:
-            self.inelasticities[channel] = np.cumsum(np.load(self.files[channel]), axis=1)
-        #print(self.inelasticities)
+            self.inelasticities[channel] = np.cumsum(
+                np.load(self.files[channel]), axis=1
+            )
+        # print(self.inelasticities)
 
         bins_E = np.arange(16.4, 20, 0.2)[1:]
         bins_logEfinal = np.arange(-5, 0.01, 0.1)[1:]
 
         self.by_interpolator = {}
         for channel in self.files:
-            self.by_interpolator[channel] = interpolate.RectBivariateSpline(bins_E, bins_logEfinal, self.inelasticities[channel])
-
+            self.by_interpolator[channel] = interpolate.RectBivariateSpline(
+                bins_E, bins_logEfinal, self.inelasticities[channel]
+            )
 
     def get_fraction(self, energy, eout_low, eout_high, channel="HAD"):
         logE = np.log10(energy)
 
-        flow = self.by_interpolator[channel](logE, np.log10(eout_low/energy))
-        fhigh = self.by_interpolator[channel](logE, np.log10(eout_high/energy))
-        #print(energy, [eout_low, eout_high], fhigh-flow)
-        return fhigh-flow
+        flow = self.by_interpolator[channel](logE, np.log10(eout_low / energy))
+        fhigh = self.by_interpolator[channel](logE, np.log10(eout_high / energy))
+        # print(energy, [eout_low, eout_high], fhigh-flow)
+        return fhigh - flow
 
     def smear_energy_slice(self, eslice, bin_edges, channel="HAD"):
         # empty slice of same shape
         eslice_copy = np.zeros_like(eslice)
         for b in range(len(eslice)):
-            #unsmeared content
+            # unsmeared content
             content = eslice[b]
-            #smear the content over all below
-            for sb in range(b+1): #no need to smear to higher bins #use eV
-                eslice_copy[sb] += content*self.get_fraction(bin_edges[b+1]*1e9, bin_edges[sb]*1e9, bin_edges[sb+1]*1e9, channel)
+            # smear the content over all below
+            for sb in range(b + 1):  # no need to smear to higher bins #use eV
+                eslice_copy[sb] += content * self.get_fraction(
+                    bin_edges[b + 1] * 1e9,
+                    bin_edges[sb] * 1e9,
+                    bin_edges[sb + 1] * 1e9,
+                    channel,
+                )
         return eslice_copy
 
     ### for aeff tuple use:
-    #aeff_smeared = np.apply_along_axis(smear_energy_slice, 3, aeff.values, aeff.get_bin_edges('reco_energy'))
+    # aeff_smeared = np.apply_along_axis(smear_energy_slice, 3, aeff.values, aeff.get_bin_edges('reco_energy'))
 
 
-
-'''
+"""
 fin = []
 
 fig, ax = plt.subplots(1, 1, figsize=(7, 7))
@@ -147,4 +156,4 @@ plt.show()
 
 print(H_norm_rows.T)
 print(np.shape(H_norm_rows.T))
-'''
+"""
