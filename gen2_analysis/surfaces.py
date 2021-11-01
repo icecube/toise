@@ -284,7 +284,7 @@ class ExtrudedPolygon(UprightSurface):
         positions = numpy.empty((len(directions), 3))
         while accepted < size:
             cpos = numpy.random.uniform(size=(blocksize, 2))*scale + offset
-            mask = numpy.array(map(self._point_in_hull, cpos))
+            mask = numpy.array(list(map(self._point_in_hull, cpos)))
             cpos = cpos[mask]
             if len(cpos) + accepted > size:
                 cpos = cpos[:size-accepted]
@@ -315,7 +315,7 @@ class ExtrudedPolygon(UprightSurface):
             prob /= prob[:, -1:]
             p = numpy.random.uniform(size=block)
             target = numpy.array([prob[i, :].searchsorted(p[i])
-                                  for i in xrange(block)])
+                                  for i in range(block)])
 
             # first, handle sides
             sides = target < len(self._areas) - 2
@@ -376,12 +376,11 @@ class ExtrudedPolygon(UprightSurface):
             if omgeo.omtype != omgeo.IceTop:
                 strings[omkey.string].append(list(omgeo.position))
         mean_xy = [numpy.mean(positions, axis=0)[0:2]
-                   for positions in strings.values()]
+                   for positions in list(strings.values())]
         zmax = max(max(p[2] for p in positions)
-                   for positions in strings.values())
+                   for positions in list(strings.values()))
         zmin = min(min(p[2] for p in positions)
-                   for positions in strings.values())
-        print numpy.array(mean_xy)
+                   for positions in list(strings.values()))
 
         self = cls(mean_xy, [zmin, zmax])
         if padding != 0:
@@ -562,7 +561,7 @@ class Cylinder(UprightSurface):
             prob /= prob[:, -1:]
             p = numpy.random.uniform(size=block)
             target = numpy.array([prob[i, :].searchsorted(p[i])
-                                  for i in xrange(block)])
+                                  for i in range(block)])
 
             # first, handle sides
             sides = target == 0

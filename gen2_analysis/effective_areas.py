@@ -11,11 +11,11 @@ import healpy
 import warnings
 import copy
 
-from surfaces import get_fiducial_surface
-from energy_resolution import get_energy_resolution
-from angular_resolution import get_angular_resolution
-from classification_efficiency import get_classification_efficiency
-from util import *
+from .surfaces import get_fiducial_surface
+from .energy_resolution import get_energy_resolution
+from .angular_resolution import get_angular_resolution
+from .classification_efficiency import get_classification_efficiency
+from .util import *
 
 
 def load_jvs_mese():
@@ -220,8 +220,8 @@ def _interpolate_production_efficiency(cos_zenith, fname='muon_efficiency.hdf5',
         for family, anti in itertools.product(flavors, ('', '_bar')):
             h = dashi.histload(hdf, '/nu'+family+anti)
             edges = [numpy.log10(h.binedges[0]), h.binedges[1]] + \
-                map(numpy.log10, h.binedges[2:])
-            centers = map(center, edges)
+                list(map(numpy.log10, h.binedges[2:]))
+            centers = list(map(center, edges))
             newcenters = [centers[0], numpy.clip(
                 cos_zenith, centers[1].min(), centers[1].max())] + centers[2:]
             y = numpy.where(~(h.bincontent <= 0),
@@ -232,7 +232,7 @@ def _interpolate_production_efficiency(cos_zenith, fname='muon_efficiency.hdf5',
                 centers, y, bounds_error=True, fill_value=-numpy.inf)
 
             xi = numpy.vstack(
-                map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
+                [x.flatten() for x in numpy.meshgrid(*newcenters, indexing='ij')]).T
             assert numpy.isfinite(xi).all()
 
             # NB: we use nearest-neighbor interpolation here because
@@ -242,7 +242,7 @@ def _interpolate_production_efficiency(cos_zenith, fname='muon_efficiency.hdf5',
             # (-inf in log space). Ignoring that bin significantly
             # underestimates the muon flux from steeply falling neutrino spectra.
             v = interpolant(xi, 'nearest').reshape(
-                map(lambda x: x.size, newcenters))
+                [x.size for x in newcenters])
 
             v[~numpy.isfinite(v)] = -numpy.inf
 
@@ -807,7 +807,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 
     with open(fpath) as fara:
         # parse file and strip out empty lines
-        lines = itertools.ifilter(None, (line.rstrip() for line in fara))
+        lines = filter(None, (line.rstrip() for line in fara))
 
         energy = []
         cos_theta = []
@@ -840,7 +840,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
     newcenters = [center(loge_edges), numpy.clip(
         center(ct_edges), centers[1].min(), centers[1].max())]
     xi = numpy.vstack(
-        map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
+        [x.flatten() for x in numpy.meshgrid(*newcenters, indexing='ij')]).T
     assert numpy.isfinite(xi).all()
 
     interpolant = interpolate.RegularGridInterpolator(
@@ -855,7 +855,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
     # (-inf in log space). Ignoring that bin significantly
     # underestimates the muon flux from steeply falling neutrino spectra.
     v = interpolant(xi,  method='nearest').reshape(
-        map(lambda x: x.size, newcenters))
+        [x.size for x in newcenters])
 
     # assume flavor-independence for ARA by extending same aeff across all flavors
     return (10**loge_edges, ct_edges), numpy.repeat(v[None, ...], 6, axis=0)

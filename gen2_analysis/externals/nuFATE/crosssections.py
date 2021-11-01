@@ -49,8 +49,8 @@ def fit_differential(nutype, target, channel):
     dpdx = np.asarray([nucrossdiff(e, e*X_GRID)*e for e in ENU_GRID])
     log_dpdx = np.log(
         dpdx/np.exp(total_spline([np.log(ENU_GRID)[..., None]]) - TOTAL_XSEC_BIAS)) + DPDX_BIAS
-    knots = map(pad_knots, map(lambda (c, n): np.linspace(
-        min(c), max(c), n), zip(centers, nknots)))
+    knots = list(map(pad_knots, list(map(lambda c, n: np.linspace(
+        min(c), max(c), n), list(zip(centers, nknots))))))
     z, w = photospline.ndsparse.from_data(
         log_dpdx, np.where(np.isfinite(log_dpdx), 1, 0))
     return photospline.glam_fit(z, w, centers, knots, [2]*2, [1e-16, 1e-16], [2]*2)
@@ -85,8 +85,8 @@ def fit_differential_secondary(nutype, final_nutype, target, channel, nknots=[20
     dpdx = np.asarray([crossdiff(xsec.differential, e, e*X_GRID, polarization)
                        * e for e in ENU_GRID])/xsec.total(ENU_GRID[..., None])
     log_dpdx = np.log(dpdx) + DPDX_BIAS
-    knots = map(pad_knots, map(lambda (c, n): np.linspace(
-        min(c), max(c), n), zip(centers, nknots)))
+    knots = list(map(pad_knots, list(map(lambda c, n: np.linspace(
+        min(c), max(c), n), list(zip(centers, nknots))))))
     z, w = photospline.ndsparse.from_data(
         log_dpdx, np.where(np.isfinite(log_dpdx), 1, 0))
     return photospline.glam_fit(z, w, centers, knots, [2]*2, [1e-16, 1e-16], [2]*2)
@@ -117,8 +117,8 @@ def fit_differential_final_state(nutype, target, channel, nknots=[20, 50], smoot
     dpdx = np.asarray([crossdiff(xsec.differential, e, e*X_GRID, polarization)
                        * e for e in ENU_GRID])/xsec.total(ENU_GRID[..., None])
     log_dpdx = np.log(dpdx) + DPDX_BIAS
-    knots = map(pad_knots, map(lambda (c, n): np.linspace(
-        min(c), max(c), n), zip(centers, nknots)))
+    knots = list(map(pad_knots, list(map(lambda c, n: np.linspace(
+        min(c), max(c), n), list(zip(centers, nknots))))))
     z, w = photospline.ndsparse.from_data(
         log_dpdx, np.where(np.isfinite(log_dpdx), 1, 0))
     return photospline.glam_fit(z, w, centers, knots, [2]*2, [1e-16, 1e-16], [2]*2)

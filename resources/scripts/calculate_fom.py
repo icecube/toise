@@ -44,7 +44,7 @@ from gen2_analysis import effective_areas, diffuse, pointsource, angular_resolut
 from gen2_analysis import factory
 from gen2_analysis.util import data_dir, center
 
-import cPickle as pickle
+import pickle
 from clint.textui import progress
 from functools import partial
 
@@ -85,7 +85,7 @@ def print_result(value, **kwargs):
 	line = '%(geometry)12s | %(spacing)dm | %(veto_label)20s | %(name)60s | %(value).2f' % mapping
 	if len(kwargs) > 0:
 		line += ' (%s)' % (', '.join(['%s=%.1f' % (k, v) for k, v in kwargs.items()]))
-	print line
+	print(line)
 
 def get_expectations(llh, **nominal):
 	exes = dict()
@@ -136,7 +136,7 @@ if opts.figure_of_merit == 'survey_volume':
 	dp = []
 	
 	sindec = numpy.linspace(-1, 1, 21)
-	for zi in xrange(20):
+	for zi in range(20):
 		bundle = factory.component_bundle({'IceCube': 0., 'Gen2': opts.livetime}, partial(make_components, zi=zi))
 		
 		components = bundle.get_components()
@@ -158,7 +158,7 @@ if opts.figure_of_merit == 'survey_volume':
 		# 	# print s/b
 		# # bkgs.append(bkg.expectations['tracks'][:,:20].sum())
 	dp = numpy.array(dp)[::-1]
-	print dp
+	print(dp)
 	
 	volume = survey_volume(sindec, dp)
 	
@@ -194,7 +194,7 @@ elif opts.figure_of_merit == 'ps_time_evolution':
 	
 	livetimes = numpy.linspace(*opts.livetimes)
 	dps = numpy.zeros(livetimes.size)
-	for i in progress.bar(range(livetimes.size)):
+	for i in progress.bar(list(range(livetimes.size))):
 		lt = livetimes[i]
 		dps[i] = 1e-12*pointsource.discovery_potential(scale_livetime(ps, lt), {k: scale_livetime(v, lt) for k,v in diffuse.items()}, **fixed)
 	
@@ -222,12 +222,12 @@ elif opts.figure_of_merit == 'differential_discovery_potential':
 	values = dict()
 	
 	sindec = center(numpy.linspace(-1, 1, 20)[::-1])
-	for zi in xrange(0, 19, 1):	
+	for zi in range(0, 19, 1):	
 		ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi)
 		atmo_bkg = atmo.point_source_background(zenith_index=zi)
 		astro_bkg = astro.point_source_background(zenith_index=zi)
 		if astro.expectations(gamma=gamma.seed)['tracks'][zi,:].sum() > 0:
-			print astro_bkg.expectations(gamma=gamma.seed)['tracks'].sum()
+			print(astro_bkg.expectations(gamma=gamma.seed)['tracks'].sum())
 			assert astro_bkg.expectations(gamma=gamma.seed)['tracks'].sum() > 0
 		dps = []
 		nses = []
@@ -296,7 +296,7 @@ elif opts.figure_of_merit == 'gzk':
 	components = bundle.get_components()
 	components['gamma'] =  multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
 	gzk = components.pop('gzk')
-	aeff = bundle.aeffs.values()[0]
+	aeff = list(bundle.aeffs.values())[0]
 	
 	pev = numpy.where(aeff.bin_edges[2][1:] > 5e7)[0][0]
 	def pev_events(observables):
@@ -399,7 +399,7 @@ elif opts.figure_of_merit == 'diffuse_index':
 			pylab.plot(g, [ts_diff(g_) for g_ in g])
 			color = pylab.gca().lines[-1].get_color()
 	
-			print (lo-hi)/2.
+			print((lo-hi)/2.)
 			pylab.axvline(lo, color=color)
 			pylab.axvline(hi, color=color)
 			pylab.show()

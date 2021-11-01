@@ -222,8 +222,8 @@ if __name__ == "__main__":
 
 	f,ax = create_figure(loc=[0.15, 0.14, 0.84, 0.83])
 	lh, ll = [], []
-	plot_fermi_igrb_2014(ax, lh, ll, label='Diffuse $\upgamma$ (Fermi LAT)', marker='D', color='darkorange', ecolor='k')
-	plot_unfolding(ax, lh, ll, *ic_flux, label='Cosmic $\upnu$ (IceCube, this work)', plotlimits=True, linewidth=1, capthick=0.5)
+	plot_fermi_igrb_2014(ax, lh, ll, label=r'Diffuse $\upgamma$ (Fermi LAT)', marker='D', color='darkorange', ecolor='k')
+	plot_unfolding(ax, lh, ll, *ic_flux, label=r'Cosmic $\upnu$ (IceCube, this work)', plotlimits=True, linewidth=1, capthick=0.5)
 	plot_auger(ax, lh, ll, label='Cosmic rays (Auger)', marker='o', color='tomato')
 	plot_ta(ax, lh, ll, label='Cosmic rays (TA)', color='mediumseagreen')
 	l = plot_legend(ax, lh, ll, loc='upper center', ncol=2, numpoints=1, fontsize=9, columnspacing=0.4, handletextpad=0.1)

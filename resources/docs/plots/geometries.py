@@ -13,7 +13,7 @@ def string_heads(gcdfile):
     omgeo = f.pop_frame(icetray.I3Frame.Geometry)['I3Geometry'].omgeo
     f.close()
     strings = dict()
-    for omkey, geo in omgeo.iteritems():
+    for omkey, geo in omgeo.items():
         if omkey.om == 1:
             strings[omkey.string] = geo.position
     return np.array([(strings[k][0], strings[k][1]) for k in sorted(strings.keys())])

@@ -18,7 +18,7 @@ def jsonify(obj):
 		return obj.tolist()
 	elif hasattr(obj, 'keys'):
 		return {jsonify(k): jsonify(obj[k]) for k in obj.keys()}
-	elif hasattr(obj, '__len__') and not isinstance(obj, str) and not isinstance(obj, unicode):
+	elif hasattr(obj, '__len__') and not isinstance(obj, str):
 		return [jsonify(v) for v in obj]
 	else:
 		return obj
@@ -58,7 +58,7 @@ factory.add_aeffs(the_geom, (radio_aeff, radio_aeff_muons))
 livetime = args.livetime
 exposures = []
 exposures.append((the_geom, livetime))
-print('The exposures is {}'.format(exposures))
+print(('The exposures is {}'.format(exposures)))
 
 # what figures do we need
 figures = OrderedDict([
@@ -93,7 +93,7 @@ meta_major = {'detectors' : exposures}
 
 meta = {'cos_zenith': factory.default_cos_theta_bins}
 dlabel = the_geom
-for zi in tqdm(range(20), desc=dlabel):
+for zi in tqdm(list(range(20)), desc=dlabel):
 	fom = figures_of_merit.PointSource({the_geom : 1}, zi)
 	for flabel, q in figures.items():
 		kwargs = {'gamma': gamma, 'decades': decades}

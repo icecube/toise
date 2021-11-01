@@ -56,7 +56,7 @@ def fit_psf(h, smooth=1e-6):
 	for i, o in enumerate(order):
 		penalties[o][i] = smooth
 	penalties[order[0]][0] *= 1e7
-	print penalties
+	print(penalties)
 	
 	return glam.fit(z, w, centers, knots, order, penalties=penalties, monodim=2)
 	

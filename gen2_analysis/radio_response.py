@@ -4,7 +4,7 @@ from scipy import interpolate
 import os
 from scipy.special import erf
 
-from energy_resolution import EnergySmearingMatrix
+from .energy_resolution import EnergySmearingMatrix
 
 import logging
 logger = logging.getLogger("radio resolution param")
@@ -198,10 +198,10 @@ class StationOverlap:
         self.find_spacing(spacing)
 
     def find_spacing(self, spacing):
-        print("requested spacing %f" %spacing)
-        spacings = np.array(self.overlap_fit_data.keys())
+        print(("requested spacing %f" %spacing))
+        spacings = np.array(list(self.overlap_fit_data.keys()))
         best = spacings[np.abs(spacings - spacing).argmin()]
-        print("using nearest available:", best)
+        print(("using nearest available:", best))
         self.spacing = best
 
     def overlap_sigmoid(self, x, loge_turn, loge_halfmax):

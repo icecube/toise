@@ -12,7 +12,7 @@ parser.add_argument("-p",type=bool,help="make plots?", required=False, dest='do_
 args = parser.parse_args()
 the_geom = args.geom
 the_file = 'data_sunflower_{}.hdf5'.format(the_geom)
-print("the file {}".format(the_file))
+print(("the file {}".format(the_file)))
 
 
 @memoize
@@ -58,7 +58,7 @@ def load_dataset(hdf_fname):
 df = load_dataset(the_file)
 
 # just see what we're working with in terms of statistics
-print(df.describe())
+print((df.describe()))
 
 bins = np.linspace(2, 12, 51)
 

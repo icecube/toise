@@ -7,7 +7,7 @@ import numpy
 import scipy.optimize
 import scipy.stats
 import scipy.interpolate
-from util import *
+from .util import *
 
 
 class PSLikelihood(object):
@@ -65,7 +65,7 @@ class EnergyPDF(object):
         h = numpy.histogramdd((E, cos_theta), bins=bins, weights=weights)[0]
         h /= h.sum(axis=0, keepdims=True)
         h /= numpy.diff(bins[0])[:, None]
-        centers = map(padded_center, [numpy.log10(bins[0]), bins[1]])
+        centers = list(map(padded_center, [numpy.log10(bins[0]), bins[1]]))
         y = numpy.empty(tuple(n+2 for n in h.shape))
         y[(slice(1, -1),)*h.ndim] = h
 
@@ -205,7 +205,7 @@ def sample_events(query, ns=0, sindec=0, livetime=1):
     sample['psi'][:nb] = opening_angle(
         source_zenith, query['zenith'][atmo_idx], 0., numpy.random.uniform(0, 2*numpy.pi, size=nb))
 
-    print sample['psi'][:nb]
+    print((sample['psi'][:nb]))
 
     # fill in some signal events near the desired declination
     mask = abs(numpy.cos(source_zenith) - query['neutrino_ct']) < 0.05
@@ -217,7 +217,7 @@ def sample_events(query, ns=0, sindec=0, livetime=1):
     sample['psi'][-ns:] = subquery['psi']
     sample['cos_theta'][-ns:] = numpy.cos(subquery['zenith'])
 
-    print sample['psi'][-ns:]
+    print((sample['psi'][-ns:]))
 
     return sample
 

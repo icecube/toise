@@ -70,20 +70,20 @@ def pretty_style(tex=True):
     import palettable
     import matplotlib
     style = {
-        u'axes.prop_cycle': matplotlib.cycler(color=palettable.colorbrewer.qualitative.Set1_9.mpl_colors),
-        u'figure.figsize': (3.375, 3.375),
-        u'legend.frameon': False,
-        u'legend.fontsize': 'small',
-        u'lines.linewidth': 1.5,
-        u'grid.linewidth': 0.1,
-        u'grid.linestyle': '-',
-        u'axes.titlesize': 'medium',
-        u'image.cmap': 'viridis',
+        'axes.prop_cycle': matplotlib.cycler(color=palettable.colorbrewer.qualitative.Set1_9.mpl_colors),
+        'figure.figsize': (3.375, 3.375),
+        'legend.frameon': False,
+        'legend.fontsize': 'small',
+        'lines.linewidth': 1.5,
+        'grid.linewidth': 0.1,
+        'grid.linestyle': '-',
+        'axes.titlesize': 'medium',
+        'image.cmap': 'viridis',
     }
     if tex:
-        style[u'font.family'] = 'serif'
-        style[u'font.serif'] = 'Computer Modern'
-        style[u'text.usetex'] = True
+        style['font.family'] = 'serif'
+        style['font.serif'] = 'Computer Modern'
+        style['text.usetex'] = True
     return style
 
 

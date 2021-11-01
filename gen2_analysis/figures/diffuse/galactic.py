@@ -75,7 +75,7 @@ def fermi_pi0(exposures, astro=2.3, astro_gamma=-2.5, galactic_emission='fermi')
     meta['upper_limit'] = ul
     
     meta['signal_spectrum'] = {
-        'energy': source.bin_edges.values()[0][1],
+        'energy': list(source.bin_edges.values())[0][1],
         'events': multillh.get_expectations(llh, astro=astro, gamma=astro_gamma, galactic=1)['galactic']['IceCube-TracksOnly_unshadowed_tracks'].sum(axis=0)
     }
     

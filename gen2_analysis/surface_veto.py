@@ -214,8 +214,8 @@ def gaisser_flux(energy, ptype):
     else:
         z = ptype % 100
 
-    codes = sorted(filter(lambda v: isinstance(
-        v, int), ParticleType.__dict__.values()))
+    codes = sorted([v for v in list(ParticleType.__dict__.values()) if isinstance(
+        v, int)])
     idx = codes.index(ptype)
 
     # normalizations for each element
@@ -304,7 +304,7 @@ def bundle_flux_at_depth(emu, cos_theta):
         H/He/CNO/MgAlSi/Fe
     """
     # make everything an array
-    emu, cos_theta = map(numpy.asarray, (emu, cos_theta))
+    emu, cos_theta = list(map(numpy.asarray, (emu, cos_theta)))
     emu_center = 10**(center(numpy.log10(emu)))
     shape = numpy.broadcast(emu_center, cos_theta).shape
     # primary spectrum for each element
@@ -318,8 +318,8 @@ def bundle_flux_at_depth(emu, cos_theta):
     de = (10**(numpy.log10(penergy) + logstep/2.) -
           10**(numpy.log10(penergy) - logstep/2.))
 
-    ptypes = [getattr(ParticleType, pt) for pt in 'PPlus',
-              'He4Nucleus', 'N14Nucleus', 'Al27Nucleus', 'Fe56Nucleus']
+    ptypes = [getattr(ParticleType, pt) for pt in ('PPlus',
+              'He4Nucleus', 'N14Nucleus', 'Al27Nucleus', 'Fe56Nucleus')]
     A = [[pt/100, 1][pt == ParticleType.PPlus] for pt in ptypes]
     for i, (ptype, a) in enumerate(zip(ptypes, A)):
         # hobo-integrate the flux over primary energy bins

@@ -17,7 +17,7 @@ with plotting.pretty():
     fig = plt.figure(figsize=(8,4))
     griddy = GridSpec(1, 2)
     emu = np.logspace(2, 6, 101)
-    ax1, ax2 = (plt.subplot(griddy[i]) for i in xrange(2))
+    ax1, ax2 = (plt.subplot(griddy[i]) for i in range(2))
     for i, (geo, spacing) in enumerate(configs):
         mueff = effective_areas.get_muon_selection_efficiency(geo, spacing)
     
