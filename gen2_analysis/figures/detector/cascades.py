@@ -60,6 +60,7 @@ def volume():
         efficiency = effective_areas.HESEishSelectionEfficiency(config['geometry'], config['spacing'], config['cascade_energy_threshold'])
         surface = effective_areas.get_fiducial_surface(config['geometry'], config['spacing'])
         ax.plot(edep, efficiency(edep, 0)*surface.volume()/1e9, label=pretty_labels.get(k,k))
+        print('Saturated veff is {}'.format(np.max(efficiency(edep, 0)*surface.volume()/1e9)))
 
     ax.semilogx()
     ax.set_xlabel('Deposited energy (GeV)')

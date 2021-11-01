@@ -7,6 +7,7 @@ import cPickle as pickle
 from . import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
 from . import classification_efficiency
 from .util import data_dir, center
+from . import surfaces
 
 
 def make_key(opts, kwargs):
@@ -77,21 +78,29 @@ def create_aeff(opts, **kwargs):
         kwargs['psf'] = angular_resolution.get_angular_resolution(
             opts.geometry, opts.spacing, opts.angular_resolution_scale, opts.psf_class)
 
+    # hack -- always use the standard sunflower for energy resolutions
+    resolution_geometry = opts.geometry
+    fiducial_geometry = opts.geometry
+    if 'Sunflower' in opts.geometry:
+        if opts.geometry is not 'Sunflower' :
+            resolution_geometry = 'Sunflower'
+            print("Warning! Hack! For energy resolution, overriding the requested geometry ({}) with the standard ({})".format(opts.geometry, resolution_geometry))
+
     neutrino_aeff = effective_areas.create_throughgoing_aeff(
         energy_resolution=effective_areas.get_energy_resolution(
-            opts.geometry, opts.spacing),
+            resolution_geometry, opts.spacing),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(
-            opts.geometry, opts.spacing),
+            fiducial_geometry, opts.spacing),
         energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
         **kwargs)
 
     bundle_aeff = effective_areas.create_bundle_aeff(
         energy_resolution=effective_areas.get_energy_resolution(
-            opts.geometry, opts.spacing),
+            resolution_geometry, opts.spacing),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(
-            opts.geometry, opts.spacing),
+            fiducial_geometry, opts.spacing),
         energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
         **kwargs)
 
@@ -179,6 +188,12 @@ class aeff_factory(object):
 
     def _create(self, opts, **kwargs):
         aeffs = {}
+
+        if "custom_radio" in opts:
+            if opts.custom_radio==True:
+                aeffs['radio_events'] = opts.aeffs
+                return aeffs
+        
         if opts.geometry in ('ARA', 'Radio'):
             psi_bins = kwargs.pop('psi_bins')
             for k in 'cos_theta', 'neutrino_energy':
@@ -187,16 +202,21 @@ class aeff_factory(object):
                 elif hasattr(opts, k):
                     kwargs[k] = numpy.asarray(getattr(opts, k))
             kwargs['psi_bins'] = psi_bins['radio']
-            kwargs['nstations'] = opts.nstations
-            if hasattr(opts, 'veff_filename'):
-                kwargs['veff_filename'] = opts.veff_filename
-            if opts.geometry == 'ARA':
-                kwargs['depth'] = opts.depth
-                aeffs['radio_events'] = (
-                    effective_areas.create_ara_aeff(**kwargs), None)
+            if hasattr(opts, 'config_file'):
+                from . import radio_aeff_generation
+                radio = radio_aeff_generation.radio_aeff(psi_bins=psi_bins['radio'], config=opts.config_file)
+                aeffs['radio_events'] = (radio.create(), radio.create_muon_background())
             else:
-                aeffs['radio_events'] = (
-                    effective_areas.create_radio_aeff(**kwargs), None)
+                kwargs['nstations'] = opts.nstations
+                if hasattr(opts, 'veff_filename'):
+                    kwargs['veff_filename'] = opts.veff_filename
+                if opts.geometry == 'ARA':
+                    kwargs['depth'] = opts.depth
+                    aeffs['radio_events'] = (
+                        effective_areas.create_ara_aeff(**kwargs), None)
+                else:
+                    aeffs['radio_events'] = (
+                        effective_areas.create_radio_aeff(**kwargs), None)
         else:
             psi_bins = kwargs.pop('psi_bins')
             nu, mu = create_aeff(opts, psi_bins=psi_bins['tracks'], **kwargs)
@@ -306,6 +326,11 @@ def add_configuration(name, opts, **kwargs):
     """
     aeff_factory.get().add(name, opts, **kwargs)
 
+def add_aeffs(name, aeffs):
+    """
+    Add a calculated effective area to the cache
+    """
+    add_configuration(name, make_options(**dict(aeffs=aeffs, geometry=name, custom_radio=True)))
 
 set_kwargs = aeff_factory.get().set_kwargs
 
@@ -341,7 +366,19 @@ default_configs = {
     'IceCube_NoCasc': dict(geometry='IceCube', spacing=125, veto_area=1., veto_threshold=1e5),
     'Sunflower_240_NoCasc': dict(geometry='Sunflower', spacing=240, veto_area=75., veto_threshold=1e5),
     'KM3NeT': dict(geometry='IceCube', spacing=125, veto_area=0., veto_threshold=None, angular_resolution_scale=0.2),
+    'Gen2-Phase2-Radio': dict(geometry='Radio', config_file=os.path.join(os.path.dirname(__file__), 'radio_config_16.yaml')),
 }
+
+
+# Add midscale geometry candidates
+# FIXME: add corner22, scan22 geometries
+for midscale in 'corner', 'sparse', 'hcr':
+    surface = surfaces.get_fiducial_surface("Sunflower_"+midscale, spacing=240, padding=0)
+    # artificially fix veto area to the footprint of the geometry
+    area = surface.azimuth_averaged_area(1)/1e6
+    default_configs['Gen2-Phase2-'+midscale] = dict(geometry="Sunflower_"+midscale, spacing=240, veto_area=area, veto_threshold=1e5, cascade_energy_threshold=2e5)
+    default_configs['Gen2-Phase2-'+midscale+'-TracksOnly'] = dict(geometry="Sunflower_"+midscale, spacing=240, veto_area=area, veto_threshold=1e5)
+
 
 default_psi_bins = {
     'tracks': numpy.linspace(0, numpy.radians(1.5)**2, 150)**(1./2),

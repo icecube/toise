@@ -68,8 +68,9 @@ def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors='k', **kwargs):
 
 def pretty_style(tex=True):
     import palettable
+    import matplotlib
     style = {
-        u'axes.color_cycle': palettable.colorbrewer.qualitative.Set1_9.mpl_colors,
+        u'axes.prop_cycle': matplotlib.cycler(color=palettable.colorbrewer.qualitative.Set1_9.mpl_colors),
         u'figure.figsize': (3.375, 3.375),
         u'legend.frameon': False,
         u'legend.fontsize': 'small',
