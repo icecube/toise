@@ -1,0 +1,34 @@
+name: test
+on:
+  push: null
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: test
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache conda pacakges
+        uses: actions/cache@v2
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            conda-${{ env.CACHE_NUMBER }}-${{hashFiles('conda-linux-64.lock') }}
+
+      - name: Set up conda environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: false
+          activate-environment: test-env
+          environment-file: conda-linux-64.lock
+
+      - name: run python
+        run: |
+          python -c "import numpy"
