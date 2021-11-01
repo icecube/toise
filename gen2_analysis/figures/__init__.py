@@ -1,4 +1,3 @@
-
 import inspect
 
 _figure_data = {}
@@ -27,14 +26,16 @@ def figure_data(setup=None, teardown=None):
             spec = inspect.getargspec(wrapped)
         except TypeError:
             raise TypeError("{} is not a function".format(wrapped))
-        if not spec.args or spec.args[0] != 'exposures':
+        if not spec.args or spec.args[0] != "exposures":
             raise ValueError(
-                "a function registered with figure_data must take at least an `exposures` argument")
+                "a function registered with figure_data must take at least an `exposures` argument"
+            )
         if len(spec.args) - (len(spec.defaults) if spec.defaults else 0) != 1:
             raise ValueError("all secondary arguments must have defaults")
-        name = wrapped.__module__[len(__name__)+1:] + '.' + wrapped.__name__
+        name = wrapped.__module__[len(__name__) + 1 :] + "." + wrapped.__name__
         _figure_data[name] = (wrapped, setup, teardown)
         return wrapped
+
     return wrapper
 
 
@@ -42,6 +43,6 @@ def figure(wrapped):
     """
     Register a function that plots a figure
     """
-    name = wrapped.__module__[len(__name__)+1:] + '.' + wrapped.__name__
+    name = wrapped.__module__[len(__name__) + 1 :] + "." + wrapped.__name__
     _figures[name] = wrapped
     return wrapped

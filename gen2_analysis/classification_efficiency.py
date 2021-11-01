@@ -1,20 +1,23 @@
-
 """
 Energy-dependent event classification efficiencies, e.g. for separating
 contained-vertex events into single cascades, starting tracks, and double cascades.
 """
 
 import numpy as np
-from . util import data_dir
+from .util import data_dir
 import json
 import os
 
 
-def get_classification_efficiency(geometry='IceCube', spacing=125):
-    if geometry == 'IceCube':
-        return ClassificationEfficiency('icecube_doublecascade_efficiency.json', (6e4, 1e7))
+def get_classification_efficiency(geometry="IceCube", spacing=125):
+    if geometry == "IceCube":
+        return ClassificationEfficiency(
+            "icecube_doublecascade_efficiency.json", (6e4, 1e7)
+        )
     elif 240 <= spacing <= 260:
-        return ClassificationEfficiency('sparsecube_doublecascade_efficiency.json', (6e4, 1e7))
+        return ClassificationEfficiency(
+            "sparsecube_doublecascade_efficiency.json", (6e4, 1e7)
+        )
 
 
 class ClassificationEfficiency(object):
@@ -24,7 +27,7 @@ class ClassificationEfficiency(object):
         :param x: energy in GeV
         :returns: classification efficiency in percent
         """
-        return a*(x/1e3)**b
+        return a * (x / 1e3) ** b
 
     @staticmethod
     def logpoly(x, *params):
@@ -32,11 +35,11 @@ class ClassificationEfficiency(object):
         :param x: energy in GeV
         :returns: classification efficiency in percent
         """
-        return np.polyval(params[::-1], np.log(x/1e3))
+        return np.polyval(params[::-1], np.log(x / 1e3))
 
     @staticmethod
     def sigmoid(x, a, b, c, d, m):
-        """ 
+        """
         General sigmoid function
         a adjusts amplitude
         b adjusts y offset
@@ -46,11 +49,11 @@ class ClassificationEfficiency(object):
         :param x: energy in GeV
         :returns: classification efficiency in percent
         """
-        return ((a-d) / (1 + (np.exp(b*np.log(x/1e3)-c))**m)) + d
+        return ((a - d) / (1 + (np.exp(b * np.log(x / 1e3) - c)) ** m)) + d
 
     def __init__(self, filename, energy_range=(0, np.inf)):
-        if not filename.startswith('/'):
-            filename = os.path.join(data_dir, 'selection_efficiency', filename)
+        if not filename.startswith("/"):
+            filename = os.path.join(data_dir, "selection_efficiency", filename)
         with open(filename) as f:
             self._params = json.load(f)
         classes = set()
@@ -74,7 +77,7 @@ class ClassificationEfficiency(object):
             raise ValueError("neutrino_flavor must be 0 <= nu < 6")
         if not event_class in self.classes:
             raise ValueError("Unknown event class {}".format(event_class))
-        flavor = ['nue', 'numu', 'nutau'][neutrino_flavor/2]
+        flavor = ["nue", "numu", "nutau"][neutrino_flavor / 2]
         func, params = self._params[flavor][event_class]
         x = np.clip(deposited_energy, *self._energy_range)
-        return np.clip(func(x, *params)/100, 0, 1)
+        return np.clip(func(x, *params) / 100, 0, 1)

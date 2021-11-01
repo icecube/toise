@@ -1,4 +1,3 @@
-
 import numpy as np
 from toolz import memoize
 from itertools import product
@@ -24,15 +23,16 @@ class NeutrinoCascade(object):
         assert energy_nodes.ndim == 1
         self.energy_nodes = energy_nodes
         # find logarithmic distance between nodes
-        dloge = (np.log(
-            self.energy_nodes[-1])-np.log(self.energy_nodes[0]))/(len(self.energy_nodes)-1)
+        dloge = (np.log(self.energy_nodes[-1]) - np.log(self.energy_nodes[0])) / (
+            len(self.energy_nodes) - 1
+        )
         # ratio between the interval centered on the node energy and the node energy itself
-        self._width = 2*np.sinh(dloge/2.)
+        self._width = 2 * np.sinh(dloge / 2.0)
         # Comparing with NuFate paper: multiply by E_j (= E_in) to account
         # for log scale, then by E_i^2/E_j^2 to account for variable change
         # phi -> E^2*phi
         ei, ej = np.meshgrid(energy_nodes, energy_nodes)
-        self.differential_element = 2*dloge*(ei**2/ej)
+        self.differential_element = 2 * dloge * (ei ** 2 / ej)
 
     def transfer_matrix_element(self, i, flavor, out_flavor, column_density):
         """
@@ -49,7 +49,7 @@ class NeutrinoCascade(object):
         """
         # construct a differential flux that is nonzero in only 1 energy bin
         # and integrates to 1
-        flux0 = 1./(self._width*self.energy_nodes[i])
+        flux0 = 1.0 / (self._width * self.energy_nodes[i])
         flux = np.where(np.arange(self.energy_nodes.size) == i, flux0, 0)
         if out_flavor != flavor:
             # initial flux of nue/numu is zero
@@ -59,10 +59,10 @@ class NeutrinoCascade(object):
         w, v, ci = self.decompose_in_eigenbasis(flux, flavor, out_flavor)
 
         # attenuate components
-        wf = np.exp(w[..., None]*np.asarray(column_density)[None, ...])
+        wf = np.exp(w[..., None] * np.asarray(column_density)[None, ...])
         # transform back to energy basis and pseudo-integrate to obtain a
         # survival probability
-        return np.dot(v, wf*ci[..., None]).T/flux0
+        return np.dot(v, wf * ci[..., None]).T / flux0
 
     def transfer_matrix(self, cos_zenith, depth=0.5):
         """
@@ -79,8 +79,7 @@ class NeutrinoCascade(object):
             trajectory.
         """
         # find [number] column density of nucleons along the trajectory in cm^-2
-        t = np.atleast_1d(np.vectorize(get_t_earth)(
-            np.arccos(cos_zenith), depth)*Na)
+        t = np.atleast_1d(np.vectorize(get_t_earth)(np.arccos(cos_zenith), depth) * Na)
 
         num = self.energy_nodes.size
         transfer_matrix = np.zeros((6, 6) + t.shape + (num, num))
@@ -88,14 +87,16 @@ class NeutrinoCascade(object):
             # nu_e, nu_mu: CC absorption and NC downscattering
             for flavor in range(4):
                 transfer_matrix[flavor, flavor, :, i, :] = self.transfer_matrix_element(
-                    i, flavor, flavor, t)
+                    i, flavor, flavor, t
+                )
 
             # nu_tau: CC absorption and NC downscattering, plus neutrinos
             # from tau decay
             for flavor in range(4, 6):
                 for out_flavor in range(flavor % 2, flavor, 2):
                     secondary, tau = np.hsplit(
-                        self.transfer_matrix_element(i, flavor, out_flavor, t), 2)
+                        self.transfer_matrix_element(i, flavor, out_flavor, t), 2
+                    )
                     transfer_matrix[flavor, flavor, :, i, :] = tau
                     transfer_matrix[flavor, out_flavor, :, i, :] = secondary
 
@@ -103,7 +104,7 @@ class NeutrinoCascade(object):
 
     def _attenuation_for_flavor(self, flux, flavor, out_flavor, column_density):
         assert np.asarray(flux).shape == self.energy_nodes.shape
-        flux0 = self.energy_nodes**2*flux
+        flux0 = self.energy_nodes ** 2 * flux
         flux = flux0
         if out_flavor != flavor:
             # initial flux of nue/numu is zero
@@ -112,10 +113,10 @@ class NeutrinoCascade(object):
         # decompose flux in the eigenbasis of cascade equation solution
         w, v, ci = self.decompose_in_eigenbasis(flux, flavor, out_flavor)
         # attenuate components
-        wf = np.exp(w[..., None]*np.asarray(column_density)[None, ...])
+        wf = np.exp(w[..., None] * np.asarray(column_density)[None, ...])
         # transform back to energy basis and pseudo-integrate to obtain a
         # survival probability
-        return np.dot(v, wf*ci[..., None]).T/flux0
+        return np.dot(v, wf * ci[..., None]).T / flux0
 
     def attenuation(self, flux, cos_zenith, depth=0.5, scale=1):
         """
@@ -130,8 +131,9 @@ class NeutrinoCascade(object):
         """
         # find [number] column density of nucleons along the trajectory in cm^-2
         # a higher cross-section is equivalent to a larger column depth
-        t = scale*np.atleast_1d(np.vectorize(get_t_earth)
-                                (np.arccos(cos_zenith), depth)*Na)
+        t = scale * np.atleast_1d(
+            np.vectorize(get_t_earth)(np.arccos(cos_zenith), depth) * Na
+        )
 
         flux = np.atleast_2d(flux)
         if flux.shape[0] == 1:
@@ -143,14 +145,19 @@ class NeutrinoCascade(object):
         # nu_e, nu_mu: CC absorption and NC downscattering
         for flavor in range(4):
             flux[flavor, ...] = self._attenuation_for_flavor(
-                flux[flavor, :], flavor, flavor, t)
+                flux[flavor, :], flavor, flavor, t
+            )
 
         # nu_tau: CC absorption and NC downscattering, plus neutrinos
         # from tau decay
         for flavor in range(4, 6):
             for out_flavor in range(flavor % 2, flavor, 2):
-                secondary, tau = np.hsplit(self._attenuation_for_flavor(
-                    flux[flavor, :], flavor, out_flavor, t), 2)
+                secondary, tau = np.hsplit(
+                    self._attenuation_for_flavor(
+                        flux[flavor, :], flavor, out_flavor, t
+                    ),
+                    2,
+                )
                 # one contribution each to nu_e and nu_mu
                 flux[out_flavor, ...] += secondary
             # only one contribution to nu_tau
@@ -162,7 +169,9 @@ class NeutrinoCascade(object):
     @memoize
     def _get_cross_section(flavor, target, channel, secondary_flavor=None):
         if secondary_flavor:
-            return DISCrossSection.create_secondary(flavor, secondary_flavor, target, channel)
+            return DISCrossSection.create_secondary(
+                flavor, secondary_flavor, target, channel
+            )
         else:
             return DISCrossSection.create(flavor, target, channel)
 
@@ -174,13 +183,23 @@ class NeutrinoCascade(object):
         :returns: an array of length N of cross-sections in cm^2
         """
         assert isinstance(flavor, int) and 0 <= flavor < 6
-        total = sum((self._get_cross_section(flavor+1, target, channel).total(self.energy_nodes)
-                     for (target, channel) in product(['n', 'p'], ['CC', 'NC'])), np.zeros_like(self.energy_nodes))/2.
+        total = (
+            sum(
+                (
+                    self._get_cross_section(flavor + 1, target, channel).total(
+                        self.energy_nodes
+                    )
+                    for (target, channel) in product(["n", "p"], ["CC", "NC"])
+                ),
+                np.zeros_like(self.energy_nodes),
+            )
+            / 2.0
+        )
         if flavor == 1:
             # for nuebar, add Glashow resonance cross-section
             # divide by 2 to account for the average number of electrons per
             # nucleon in an isoscalar medium
-            total += GlashowResonanceCrossSection().total(self.energy_nodes)/2.
+            total += GlashowResonanceCrossSection().total(self.energy_nodes) / 2.0
         return total
 
     @memoize
@@ -193,24 +212,44 @@ class NeutrinoCascade(object):
         """
         assert isinstance(flavor, int) and 0 <= flavor < 6
         assert isinstance(out_flavor, int) and 0 <= out_flavor < 6
-        assert (flavor % 2) == (out_flavor %
-                                2), "no lepton-number-violating interactions"
-        e_nu, e_sec = np.meshgrid(
-            self.energy_nodes, self.energy_nodes, indexing='ij')
+        assert (flavor % 2) == (
+            out_flavor % 2
+        ), "no lepton-number-violating interactions"
+        e_nu, e_sec = np.meshgrid(self.energy_nodes, self.energy_nodes, indexing="ij")
         total = np.zeros_like(e_nu)
         if out_flavor == flavor:
-            total += sum((self._get_cross_section(flavor+1, target, channel).differential(
-                e_nu, e_sec) for (target, channel) in product(['n', 'p'], ['NC'])), total)/2.
+            total += (
+                sum(
+                    (
+                        self._get_cross_section(
+                            flavor + 1, target, channel
+                        ).differential(e_nu, e_sec)
+                        for (target, channel) in product(["n", "p"], ["NC"])
+                    ),
+                    total,
+                )
+                / 2.0
+            )
         if flavor == 1:
             # for nuebar, add Glashow resonance cross-section, assuming equal
             # branching ratios to e/mu/tau
             # divide by 2 to account for the average number of electrons per
             # nucleon in an isoscalar medium
-            total += GlashowResonanceCrossSection().differential(e_nu, e_sec)/2.
+            total += GlashowResonanceCrossSection().differential(e_nu, e_sec) / 2.0
         if flavor in (4, 5):
             # for nutau(bar), add regeneration cross-section
-            total += sum((self._get_cross_section(flavor+1, target, channel, out_flavor+1).differential(
-                e_nu, e_sec) for (target, channel) in product(['n', 'p'], ['CC'])), np.zeros_like(e_nu))/2.
+            total += (
+                sum(
+                    (
+                        self._get_cross_section(
+                            flavor + 1, target, channel, out_flavor + 1
+                        ).differential(e_nu, e_sec)
+                        for (target, channel) in product(["n", "p"], ["CC"])
+                    ),
+                    np.zeros_like(e_nu),
+                )
+                / 2.0
+            )
         return total
 
     def decompose_in_eigenbasis(self, flux, flavor, out_flavor):
@@ -238,7 +277,13 @@ class NeutrinoCascade(object):
         :param flavor: incoming neutrino type (0-6)
         :param out_flavor: outgoing neutrino type (0-6)
         """
-        return np.triu((self.differential_cross_section(flavor, out_flavor)*self.differential_element).T, 1)
+        return np.triu(
+            (
+                self.differential_cross_section(flavor, out_flavor)
+                * self.differential_element
+            ).T,
+            1,
+        )
 
     @memoize
     def get_eigenbasis(self, flavor, out_flavor):
@@ -253,36 +298,67 @@ class NeutrinoCascade(object):
         :param out_flavor: outgoing neutrino flavor
         :returns: (eigenvalues,eigenvectors) of M
         """
-        downscattering = self._source_matrix(
-            flavor, flavor) - self._sink_matrix(flavor)
+        downscattering = self._source_matrix(flavor, flavor) - self._sink_matrix(flavor)
         if out_flavor == flavor:
             RHSMatrix = downscattering
         else:
             secondary_production = self._source_matrix(flavor, out_flavor)
             secondary_downscattering = self._source_matrix(
-                out_flavor, out_flavor) - self._sink_matrix(out_flavor)
+                out_flavor, out_flavor
+            ) - self._sink_matrix(out_flavor)
             # in the flavor-mixing case, the right-hand side is:
             # nue/mu NC   nue/mu production
             # 0           nutau NC + regeneration
-            RHSMatrix = np.vstack([
-                np.hstack([secondary_downscattering,
-                           secondary_production]),
-                np.hstack([np.zeros_like(downscattering), downscattering]),
-            ])
+            RHSMatrix = np.vstack(
+                [
+                    np.hstack([secondary_downscattering, secondary_production]),
+                    np.hstack([np.zeros_like(downscattering), downscattering]),
+                ]
+            )
         w, v = np.linalg.eig(RHSMatrix)
         return w, v
 
 
 class NeutrinoCascadeToShowers(NeutrinoCascade):
-
     def __differential_cross_section(self, enu, ef, flavor, channel):
-        return sum((DISCrossSection.create(flavor+1, target, channel).differential(enu, ef) for target in ['n', 'p']), np.zeros_like(ef))/2.
+        return (
+            sum(
+                (
+                    DISCrossSection.create(flavor + 1, target, channel).differential(
+                        enu, ef
+                    )
+                    for target in ["n", "p"]
+                ),
+                np.zeros_like(ef),
+            )
+            / 2.0
+        )
 
     def __total_cross_section(self, enu, flavor, channel):
-        return sum((DISCrossSection.create(flavor+1, target, channel).total(enu) for target in ['n', 'p']), np.zeros_like(enu))/2.
+        return (
+            sum(
+                (
+                    DISCrossSection.create(flavor + 1, target, channel).total(enu)
+                    for target in ["n", "p"]
+                ),
+                np.zeros_like(enu),
+            )
+            / 2.0
+        )
 
     def __differential_final_state_cross_section(self, enu, ef, flavor, channel):
-        return sum((DISCrossSection.create_final_state(flavor+1, target, channel).differential(enu, ef) for target in ['n', 'p']), np.zeros_like(ef))/2.
+        return (
+            sum(
+                (
+                    DISCrossSection.create_final_state(
+                        flavor + 1, target, channel
+                    ).differential(enu, ef)
+                    for target in ["n", "p"]
+                ),
+                np.zeros_like(ef),
+            )
+            / 2.0
+        )
 
     @memoize
     def interaction_density(self, flavor):
@@ -296,29 +372,39 @@ class NeutrinoCascadeToShowers(NeutrinoCascade):
         # convert differential cross section (cm^2 GeV^-1) to interaction density (cm^-1)
         # [d\sigma/dE \rho N_A \delta E] = [(cm^2 GeV^-1) (g cm^-3) (g^-1) (GeV) (cm m^-1)] = [m^-1]
         density_factor = 1.020 * Na * 100
-        enu, ef = np.meshgrid(
-            self.energy_nodes, self.energy_nodes, indexing='ij')
+        enu, ef = np.meshgrid(self.energy_nodes, self.energy_nodes, indexing="ij")
         # all flavors contribute at least to NC
         xsec = np.where(
-            enu-ef > 0, self.__differential_cross_section(enu, enu-ef, flavor, 'NC'), 0)
+            enu - ef > 0,
+            self.__differential_cross_section(enu, enu - ef, flavor, "NC"),
+            0,
+        )
         # for CC numu, we see only the initial cascade
         if flavor in (2, 3):
-            xsec += np.where(enu-ef > 0,
-                             self.__differential_cross_section(enu, enu-ef, flavor, 'CC'), 0)
+            xsec += np.where(
+                enu - ef > 0,
+                self.__differential_cross_section(enu, enu - ef, flavor, "CC"),
+                0,
+            )
         # for CC nutau, we can see the tau decay (and neglect the initial cascade)
         if flavor in (4, 5):
-            xsec += np.where(enu-ef > 0, self.__differential_final_state_cross_section(
-                enu, enu-ef, flavor, 'CC'), 0)
+            xsec += np.where(
+                enu - ef > 0,
+                self.__differential_final_state_cross_section(
+                    enu, enu - ef, flavor, "CC"
+                ),
+                0,
+            )
         # pseudo-integrate over differential cross-sections
-        xsec *= self.energy_nodes*self._width
+        xsec *= self.energy_nodes * self._width
         if flavor < 2:
             # assume CC nu_e goes entirely into visible energy
-            xsec += np.diag(self.__total_cross_section(self.energy_nodes, flavor, 'CC'))
+            xsec += np.diag(self.__total_cross_section(self.energy_nodes, flavor, "CC"))
         if flavor == 1:
             # ditto for GR nu_e_bar
             xsec += np.diag(GlashowResonanceCrossSection().total(self.energy_nodes))
 
-        return xsec*density_factor
+        return xsec * density_factor
 
     def transfer_matrix(self, cos_zenith, depth=0.5):
         """
@@ -335,28 +421,32 @@ class NeutrinoCascadeToShowers(NeutrinoCascade):
             trajectory.
         """
         # find [number] column density of nucleons along the trajectory in cm^-2
-        t = np.atleast_1d(np.vectorize(get_t_earth)(
-            np.arccos(cos_zenith), depth)*Na)
+        t = np.atleast_1d(np.vectorize(get_t_earth)(np.arccos(cos_zenith), depth) * Na)
 
         num = self.energy_nodes.size
         transfer_matrix = np.zeros((6, num) + t.shape + (num,))
         for i in range(self.energy_nodes.size):
             # nu_e, nu_mu: CC absorption and NC downscattering
             for flavor in range(4):
-                transfer_matrix[flavor, i, ...] += np.dot(self.transfer_matrix_element(
-                    i, flavor, flavor, t), self.interaction_density(flavor))
+                transfer_matrix[flavor, i, ...] += np.dot(
+                    self.transfer_matrix_element(i, flavor, flavor, t),
+                    self.interaction_density(flavor),
+                )
 
             # nu_tau: CC absorption and NC downscattering, plus neutrinos
             # from tau decay
             for flavor in range(4, 6):
                 for out_flavor in range(flavor % 2, flavor, 2):
                     secondary, tau = np.hsplit(
-                        self.transfer_matrix_element(i, flavor, out_flavor, t), 2)
+                        self.transfer_matrix_element(i, flavor, out_flavor, t), 2
+                    )
                     transfer_matrix[flavor, i, ...] += np.dot(
-                        secondary, self.interaction_density(out_flavor))
+                        secondary, self.interaction_density(out_flavor)
+                    )
                     # do not double-count tau contribution
                     if out_flavor == flavor % 2:
                         transfer_matrix[flavor, i, ...] += np.dot(
-                            tau, self.interaction_density(flavor))
+                            tau, self.interaction_density(flavor)
+                        )
 
         return transfer_matrix
