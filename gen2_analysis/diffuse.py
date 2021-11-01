@@ -12,6 +12,8 @@ import pickle as pickle
 import logging
 from functools import partial
 
+import nuflux
+
 from .util import *
 from .pointsource import is_zenith_weight
 
@@ -108,19 +110,6 @@ def detect(sequence, pred):
         return next((s for s in sequence if pred(s)))
     except StopIteration:
         return None
-
-
-def _import_NewNuFlux():
-    """
-    Try to find NewNuFlux, either standalone or as part of IceTray
-
-    http://code.icecube.wisc.edu/svn/sandbox/cweaver/NewNuFlux
-    """
-    try:
-        import NewNuFlux
-    except ImportError:
-        from icecube import NewNuFlux
-    return NewNuFlux
 
 
 class AtmosphericNu(DiffuseNuGen):
@@ -257,7 +246,7 @@ class AtmosphericNu(DiffuseNuGen):
         flux = detect(cache.get(veto_threshold, []),
                       lambda args: args[0] == shape_key)
         if flux is None:
-            flux = _import_NewNuFlux().makeFlux('honda2006')
+            flux = nuflux.makeFlux('honda2006')
             flux.knee_reweighting_model = 'gaisserH3a_elbert'
             pf = (lambda *args, **kwargs: 1.) if veto_threshold is None else (AtmosphericSelfVeto.AnalyticPassingFraction(
                 kind='conventional', veto_threshold=veto_threshold))
@@ -291,7 +280,7 @@ class AtmosphericNu(DiffuseNuGen):
         flux = detect(cache.get(veto_threshold, []),
                       lambda args: args[0] == shape_key)
         if flux is None:
-            flux = _import_NewNuFlux().makeFlux('sarcevic_std')
+            flux = nuflux.makeFlux('sarcevic_std')
             flux.knee_reweighting_model = 'gaisserH3a_elbert'
             pf = (lambda *args, **kwargs: 1.) if veto_threshold is None else (AtmosphericSelfVeto.AnalyticPassingFraction(
                 kind='charm', veto_threshold=veto_threshold))

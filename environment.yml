@@ -1,26 +1,23 @@
 name: gen2-analysis
 channels:
   - conda-forge
-  - jvansanten
 dependencies:
-  - python=2.7
+  - python=3.9
   - numpy
   - scipy>=0.15
   - healpy
   - ipykernel
   - autograd
-  # conda-forge pytables 3.5.0 segfaults on perfectly
-  # normal datasets
-  - pytables<3.5.0
+  - pytables
   - pandas
   - pyyaml
   - clint
   - tqdm
   - toolz
-  - newnuflux
-  - dashi
+  - nuflux
   - photospline
   - pip
   - pip:
     - easy-cache
+    - pydashi @ https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0-alpha.0.tar.gz#sha256=b2b8a179f4268d3619a72fc14f8f223f52bc9d51c3ff338863eb8b11c6bc0d5b
     # - -e .
