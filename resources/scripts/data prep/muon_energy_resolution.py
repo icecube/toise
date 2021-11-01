@@ -15,9 +15,9 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
     from matplotlib import gridspec, cm
     from matplotlib.colors import LogNorm
     from matplotlib.ticker import NullFormatter
-    from icecube.gen2_analysis import plotting 
+    from gen2_analysis import plotting 
 
-    with plotting.pretty():
+    with plotting.pretty(tex=False):
         fig = plt.figure(figsize=(7,4))
         sp = dashi.histfuncs.h2profile(h2)
         for i in range(2):
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     import tables
     import dashi
     
-    with tables.open_file('/Users/jakob/Documents/IceCube/projects/2015/gen2_analysis/data/energy_reconstruction/aachen_muon_energy_resolution.hdf5') as hdf:
+    with tables.open_file('/Users/brianclark/Documents/work/Gen2/gen2_optical/gen2-analysis/gen2_analysis/data/energy_reconstruction/aachen_muon_energy_resolution.hdf5') as hdf:
         h3 = dashi.histload(hdf, '/muex')
     
     plot_energy_resolution(h3.project([0,1]))

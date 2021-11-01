@@ -479,7 +479,7 @@ class DiffuseAstro(DiffuseNuGen):
         else:
             return (effective_area*flux[..., None, None]*livetime).sum(axis=1)
 
-    @lru_cache(maxsize=64)
+    @lru_cache(maxsize=512)
     def _apply_flux_weights(self, **kwargs):
         """
         :returns: expectations by flavor (shape 6 x expectations)
@@ -515,7 +515,7 @@ class DiffuseAstro(DiffuseNuGen):
 
         return total
 
-    @lru_cache(maxsize=256)
+    @lru_cache(maxsize=512)
     def _apply_flavor_weights(self, **kwargs):
         # peel off kwargs we consume
         def param(k): return k+self._suffix
@@ -724,6 +724,22 @@ class VanVlietGZKFlux(object):
         return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2
 
 
+class ReasonableGZKFlux(object):
+    """ Flux from NuRadioMC """
+    def __init__(self):
+        from scipy import interpolate
+
+        E, Weight = numpy.loadtxt(data_dir+'/models/ReasonableNeutrinos1.txt')
+        logE = np.log10(E)
+        logWeight = np.log10(Weight) #flux is expected for all-flavour
+
+        self._interpolant = interpolate.interp1d(
+            logE, logWeight+8, bounds_error=False, fill_value=-numpy.inf)
+
+    def __call__(self, e_center):
+        return 10**(self._interpolant(numpy.log10(e_center))-8)/e_center**2        
+
+
 def atmos_flux(enu, model):
     """Returns the atmospheric diff flux at enu, averaged
     over zenith for all flavors
@@ -773,7 +789,7 @@ class ArbitraryFlux(DiffuseAstro):
         self._flux_func = None
 
     def set_flux_func(self, flux_func):
-        """ Set the flux as a function of enu
+        """ Set the *all-flavor* flux as a function of enu
         """
         self._flux_func = flux_func
         self._invalidate_cache()
@@ -808,6 +824,12 @@ class VanVlietGZK(ArbitraryFlux):
     def __init__(self, *args, **kwargs):
         super(VanVlietGZK, self).__init__(*args, **kwargs)
         self._flux_func = VanVlietGZKFlux()
+
+class ReasonableGZK(ArbitraryFlux):
+    def __init__(self, *args, **kwargs):
+        super(ReasonableGZK, self).__init__(*args, **kwargs)
+        self._flux_func = ReasonableGZKFlux()
+
 
 
 def transform_map(skymap):
