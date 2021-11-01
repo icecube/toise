@@ -3,7 +3,7 @@ import numpy
 from scipy import interpolate
 from functools import partial
 import os
-import cPickle as pickle
+import pickle as pickle
 from . import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
 from . import classification_efficiency
 from .util import data_dir, center
@@ -84,7 +84,7 @@ def create_aeff(opts, **kwargs):
     if 'Sunflower' in opts.geometry:
         if opts.geometry is not 'Sunflower' :
             resolution_geometry = 'Sunflower'
-            print("Warning! Hack! For energy resolution, overriding the requested geometry ({}) with the standard ({})".format(opts.geometry, resolution_geometry))
+            print(("Warning! Hack! For energy resolution, overriding the requested geometry ({}) with the standard ({})".format(opts.geometry, resolution_geometry)))
 
     neutrino_aeff = effective_areas.create_throughgoing_aeff(
         energy_resolution=effective_areas.get_energy_resolution(

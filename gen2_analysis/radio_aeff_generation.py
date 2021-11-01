@@ -1,5 +1,5 @@
 ##
-from __future__ import print_function
+
 ##
 import dashi
 import tables
@@ -17,12 +17,12 @@ import healpy
 import warnings
 import copy
 
-from surfaces import get_fiducial_surface
-from energy_resolution import get_energy_resolution
-from angular_resolution import get_angular_resolution
-from inelasticity import radio_inelasticities
-from classification_efficiency import get_classification_efficiency
-from util import *
+from .surfaces import get_fiducial_surface
+from .energy_resolution import get_energy_resolution
+from .angular_resolution import get_angular_resolution
+from .inelasticity import radio_inelasticities
+from .classification_efficiency import get_classification_efficiency
+from .util import *
 
 
 def _load_rno_veff(filename= data_dir + "/aeff/run_input_500km2_01_surface_4LPDA_1dipole_RNOG_1.50km_config_Alv2009_nonoise_100ns_D01surface_4LPDA_1dipole_250MHz_dipoles_RNOG_200m_3.00km_D02single_dipole_250MHz_e.json", trigger="dipole_2.5sigma"):
@@ -38,8 +38,8 @@ def _load_rno_veff(filename= data_dir + "/aeff/run_input_500km2_01_surface_4LPDA
         dats = json.load(f)
     index = []
     arrays = {'veff': []}
-    for zenith, values in dats.items():
-        for selection, items in values.items():
+    for zenith, values in list(dats.items()):
+        for selection, items in list(values.items()):
             if selection == trigger: 
                 #print(selection, items)
                 for energy, veff in zip(items['energies'], items['Veff']):
@@ -207,11 +207,11 @@ def rno_analysis_efficiency(E, minval, maxval, log_turnon_gev, log_turnon_width)
 
 
 #from radio_response import StationOverlap
-from radio_response import radio_analysis_efficiency
-from radio_response import RadioPointSpreadFunction
-from radio_response import RadioEnergyResolution
-from effective_areas import calculate_cascade_production_density
-from effective_areas import effective_area
+from .radio_response import radio_analysis_efficiency
+from .radio_response import RadioPointSpreadFunction
+from .radio_response import RadioEnergyResolution
+from .effective_areas import calculate_cascade_production_density
+from .effective_areas import effective_area
 import os
 
 class radio_aeff:
@@ -270,7 +270,7 @@ class radio_aeff:
     def create_muon_background(self,
             energy_resolution=RadioEnergyResolution(),
             cos_theta=np.linspace(-1, 1, 21), neutrino_energy=np.logspace(6, 12, 61)):
-        from radio_muon_background import get_muon_distribution
+        from .radio_muon_background import get_muon_distribution
         psi_bins = self.psi_bins
         configuration = self.configuration
 

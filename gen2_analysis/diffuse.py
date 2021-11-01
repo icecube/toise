@@ -2,17 +2,17 @@
 import numpy
 import itertools
 from scipy.integrate import quad
-from StringIO import StringIO
+from io import StringIO
 from copy import copy
-import multillh
+from . import multillh
 import healpy
 import os
 import numexpr
-import cPickle as pickle
+import pickle as pickle
 import logging
 from functools import partial
 
-from util import *
+from .util import *
 from .pointsource import is_zenith_weight
 
 try:
@@ -326,7 +326,7 @@ class DiffuseAstro(DiffuseNuGen):
         flux = self._integral_flux(effective_area)[None, :, None]
 
         if isinstance(flavor, int):
-            for i in xrange(flux.shape[0]):
+            for i in range(flux.shape[0]):
                 if i < 2*flavor or i > 2*flavor+1:
                     flux[i, ...] = 0
 
@@ -442,9 +442,9 @@ class DiffuseAstro(DiffuseNuGen):
             hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
 
         if exclusive:
-            bins = range(lo, hi-1, bin_range)
+            bins = list(range(lo, hi-1, bin_range))
         else:
-            bins = range(lo, hi-1)
+            bins = list(range(lo, hi-1))
 
         for i in bins:
             start = i

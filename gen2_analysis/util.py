@@ -55,7 +55,7 @@ class metaEnum(type):
 
         newdict = {"values": {}}
 
-        for k in classdict.keys():
+        for k in list(classdict.keys()):
             if not (k.startswith('_') or k == 'name' or k == 'values'):
                 val = classdict[k]
                 member = baseEnum(val)
@@ -64,13 +64,13 @@ class metaEnum(type):
                 newdict[k] = member
 
         # Tell each member about the values in the enum
-        for k in newdict['values'].keys():
+        for k in list(newdict['values'].keys()):
             newdict['values'][k].values = newdict['values']
         # Return a new class with the "values" attribute filled
         return type.__new__(cls, classname, bases, newdict)
 
 
-class enum(baseEnum):
+class enum(baseEnum, metaclass=metaEnum):
     """This class mimicks the interface of boost-python-wrapped enums.
 
 Inherit from this class to construct enumerated types that can
@@ -84,7 +84,6 @@ be passed to the I3Datatype, e.g.:
     desc = tableio.I3TableRowDescription()
     desc.add_field('dummy', tableio.I3Datatype(DummyEnummy), '', '')
 """
-    __metaclass__ = metaEnum
 
 
 class PDGCode(enum):

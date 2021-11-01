@@ -329,7 +329,7 @@ def muon_damping_constraints(exposures, steps=100, emu_crit=2e6, clean=False):
 
 def detector_label(exposures):
     """transform (('Gen2-InIce', 10.0), ('IceCube', 15.0)) -> Gen2-InIce+IceCube 10+15 yr"""
-    return '{} {} yr'.format(*map('+'.join, map(partial(map, str), zip(*exposures))))
+    return '{} {} yr'.format(*list(map('+'.join, list(map(partial(map, str), list(zip(*exposures)))))))
 
 
 @figure
@@ -451,8 +451,8 @@ def muon_damping(datasets, preliminary=False):
             yhi = 1
         return y0, [y0 - ylo, yhi-y0]
     for cl, alpha in zip((0.9, 0.68), (0.3, 0.7)):
-        y, yerr = zip(*[get_y(meta['numu_fraction'][i],
-                              meta['test_statistic'][i], crit_ts=stats.chi2(1).ppf(cl)) for i in range(2)])
+        y, yerr = list(zip(*[get_y(meta['numu_fraction'][i],
+                              meta['test_statistic'][i], crit_ts=stats.chi2(1).ppf(cl)) for i in range(2)]))
 
         ax.add_collection(make_error_boxes(x, y, xerr=xerr, yerr=yerr,
                     facecolor='C1', alpha=alpha))

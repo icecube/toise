@@ -122,7 +122,7 @@ def jsonify(obj):
         return obj.tolist()
     elif hasattr(obj, 'keys'):
         return {jsonify(k): jsonify(obj[k]) for k in obj.keys()}
-    elif hasattr(obj, '__len__') and not isinstance(obj, str) and not isinstance(obj, unicode):
+    elif hasattr(obj, '__len__') and not isinstance(obj, str):
         return [jsonify(v) for v in obj]
     else:
         return obj
@@ -232,7 +232,7 @@ def make_figure():
 
     func = kwargs.pop('command')
     if infiles:
-        args = (map(load_gzip, infiles),)
+        args = (list(map(load_gzip, infiles)),)
     else:
         args = tuple()
     figure = func(*args, **kwargs)

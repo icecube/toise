@@ -56,7 +56,7 @@ class AnalyticPassingFraction(object):
             1, 9, 51), numpy.linspace(self.ct_min, 1, 21)
         depth = numpy.linspace(1e3, 3e3, 11)
         depth_g = depth[None, None, :]
-        log_enu_g, ct_g = map(numpy.transpose, numpy.meshgrid(log_enu, ct))
+        log_enu_g, ct_g = list(map(numpy.transpose, numpy.meshgrid(log_enu, ct)))
 
         pr = numpy.zeros(ct_g.shape + (depth.size,))
         for i, d in enumerate(depth):
@@ -66,7 +66,7 @@ class AnalyticPassingFraction(object):
                 10**log_enu_g, emu, ct_g, kind=kind)
 
         centers = [log_enu, ct, depth]
-        knots = map(pad_knots, map(edges, centers))
+        knots = list(map(pad_knots, list(map(edges, centers))))
 
         ndim = pr.ndim
         return pr, centers, knots, [2]*ndim, [1e-16]*ndim, [2]*ndim

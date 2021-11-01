@@ -63,9 +63,9 @@ for detector in dataset['data']['discovery_potential'].keys():
 	ax.semilogy(xc, yc*1e-12, label=detector)
 
 	discovery_potential = np.array(discovery_potential)[::-1]
-	print("Min discovery potential for {} is {}".format(detector, np.min(discovery_potential/1e-12)))
+	print(("Min discovery potential for {} is {}".format(detector, np.min(discovery_potential/1e-12))))
 	volume = survey_volume(xc, discovery_potential, L0=L0, gamma=gamma_num)
-	print("the volume for {} is {:.3f} Gpc^3".format(detector, volume))
+	print(("the volume for {} is {:.3f} Gpc^3".format(detector, volume)))
 
 
 # and now we should put the IceCube and Gen2 benchmarks on here

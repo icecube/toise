@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from tqdm import tqdm
 from functools import partial
-from StringIO import StringIO
+from io import StringIO
 
 def make_components(aeffs, emin=1e2, emax=1e11):
     # zero out effective area beyond active range
@@ -95,10 +95,10 @@ def find_limits(llh, key, nom=None, critical_ts=1**2, plotit=False):
     except ValueError:
         hi = np.inf
 
-    energy_range = llh.components[key]._components.values()[0][0].energy_range
+    energy_range = list(llh.components[key]._components.values())[0][0].energy_range
     if plotit and energy_range[0] > 1e6:
         x = linspace(0, g0*2, 101)
-        energy_range = llh.components[key]._components.values()[
+        energy_range = list(llh.components[key]._components.values())[
             0][0].energy_range
         line = plot(x, [ts_diff(x_) for x_ in x],
                     label='%.1g-%.1g' % tuple(energy_range))[0]
@@ -113,8 +113,8 @@ def unfold_llh(chunk_llh):
     fixed = dict(gamma=-2, prompt=1, atmo=1, muon=1)
     fit = chunk_llh.fit(minimizer_params=dict(epsilon=1e-2), **fixed)
     is_astro = partial(filter, lambda s: s.startswith('astro'))
-    keys = toolz.pipe(chunk_llh.components.keys(), is_astro, sorted)[4:]
-    xlimits = np.array([chunk_llh.components[k]._components.values()[
+    keys = toolz.pipe(list(chunk_llh.components.keys()), is_astro, sorted)[4:]
+    xlimits = np.array([list(chunk_llh.components[k]._components.values())[
                        0][0].energy_range for k in keys])
     xcenters = 10**(np.log10(xlimits).sum(axis=1)/2.)
     ylimits = np.array([find_limits(chunk_llh, key, nom=fit)
@@ -135,7 +135,7 @@ def unfold_bundle(exposures, astro, gamma, gzk='vanvliet', gzk_norm=1, emax=1e9)
     result = unfold_llh(asimov_llh(bundle, seed_flux))
     for k, v in diffuse.DiffuseAstro.__dict__.items():
         if hasattr(v, "cache_info"):
-            print(k, v.cache_info())
+            print((k, v.cache_info()))
     return result
 
 
@@ -310,7 +310,7 @@ def unfolded_flux(datasets, label='Gen2-InIce+Radio'):
     return ax.figure
 
 def plot_crs(ax):
-    import plot_flux_results_for_jvs as lars_plot
+    from . import plot_flux_results_for_jvs as lars_plot
     def apply_style(kwargs):
         style = dict(linestyle='None', markersize=4)
         style.update(kwargs)

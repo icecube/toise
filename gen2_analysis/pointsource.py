@@ -3,11 +3,11 @@ from scipy.optimize import bisect
 from functools import partial
 import numpy
 from scipy import optimize, stats, interpolate
-from StringIO import StringIO
+from io import StringIO
 import itertools
 from copy import copy
-from multillh import LLHEval, asimov_llh, get_expectations
-from util import *
+from .multillh import LLHEval, asimov_llh, get_expectations
+from .util import *
 import logging
 
 
@@ -118,9 +118,9 @@ class PointSource(object):
         hi = min((ebins.searchsorted(emax-1e-4)+1, loge.size))
 
         if exclusive:
-            bins = range(lo, hi-1, bin_range)
+            bins = list(range(lo, hi-1, bin_range))
         else:
-            bins = range(lo, hi-1-bin_range)
+            bins = list(range(lo, hi-1-bin_range))
 
         for i in bins:
             start = i
@@ -177,7 +177,7 @@ class WBSteadyPointSource(PointSource):
             (intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
 
         # scale by the WB GRB fluence, normalized to the E^-2 flux between 100 TeV and 10 PeV
-        from grb import WaxmannBahcallFluence
+        from .grb import WaxmannBahcallFluence
         norm = WaxmannBahcallFluence()(
             effective_area.bin_edges[0][1:])*effective_area.bin_edges[0][1:]**2
         norm /= norm.max()
@@ -201,7 +201,7 @@ class TruncatedSteadyPointSource(PointSource):
             (intflux(tev[1:], -2) - intflux(tev[:-1], -2))*livetime*365*24*3600
         # scale by the WB GRB fluence, normalized to the E^-2 flux between 100
         # TeV and 10 PeV
-        from grb import WaxmannBahcallFluence
+        from .grb import WaxmannBahcallFluence
         norm = WaxmannBahcallFluence()(effective_area.bin_edges[0][1:])*effective_area.bin_edges[0][1:]**2
         norm /= norm.max()
         fluence *= norm
@@ -301,8 +301,8 @@ def source_to_local_zenith(declination, latitude, ct_bins):
     hour_angle[:lo+1] = numpy.pi
     hour_angle[hi:] = 0
     # source enters or exits
-    hour_angle[lo+1:hi] = map(partial(bisect, offset,
-                                      0, numpy.pi), ct_bins[lo+1:hi])
+    hour_angle[lo+1:hi] = list(map(partial(bisect, offset,
+                                      0, numpy.pi), ct_bins[lo+1:hi]))
 
     return abs(numpy.diff(hour_angle))/numpy.pi
 
@@ -407,7 +407,7 @@ def fc_upper_limit(point_source, diffuse_components, ecutoff=0,
 
     exes = get_expectations(llh, ps=1, **fixed)
     ntot = sum([events_above(exes[k], components[k].bin_edges, ecutoff)
-                for k in exes.keys()])
+                for k in list(exes.keys())])
     ns = events_above(exes['ps'], components['ps'].bin_edges, ecutoff)
     nb = ntot - ns
 

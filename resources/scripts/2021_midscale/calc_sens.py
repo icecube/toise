@@ -16,7 +16,7 @@ def jsonify(obj):
 		return obj.tolist()
 	elif hasattr(obj, 'keys'):
 		return {jsonify(k): jsonify(obj[k]) for k in obj.keys()}
-	elif hasattr(obj, '__len__') and not isinstance(obj, str) and not isinstance(obj, unicode):
+	elif hasattr(obj, '__len__') and not isinstance(obj, str):
 		return [jsonify(v) for v in obj]
 	else:
 		return obj
@@ -38,7 +38,7 @@ if 'Sunflower' not in the_geom:
 livetime = 1
 exposures = []
 exposures.append((the_geom, livetime))
-print('The exposures is {}'.format(exposures))
+print(('The exposures is {}'.format(exposures)))
 
 # what figures do we need
 figures = OrderedDict([
@@ -54,7 +54,7 @@ emin = 0.
 # calculate the geometric area of the detector footprint
 surface = effective_areas.get_fiducial_surface(the_geom, spacing=240, padding=0)
 area = surface.azimuth_averaged_area(-1.)/1e6 # what is the footprint size for straight downgoing events
-print("Surface Area is {}".format(area))
+print(("Surface Area is {}".format(area)))
 
 cos_theta = factory.default_cos_theta_bins
 psi_bins = dict(factory.default_psi_bins)
@@ -73,7 +73,7 @@ meta_major = {'detectors' : exposures}
 
 meta = {'cos_zenith': factory.default_cos_theta_bins}
 dlabel = the_geom
-for zi in tqdm(range(20), desc=dlabel):
+for zi in tqdm(list(range(20)), desc=dlabel):
 	fom = figures_of_merit.PointSource({ component_name : 1}, zi)
 	for flabel, q in figures.items():
 		kwargs = {'gamma': gamma, 'decades': decades}

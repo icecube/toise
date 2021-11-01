@@ -155,7 +155,7 @@ class KingPointSpreadFunction(KingPointSpreadFunctionBase):
         for k in params.index.levels[0]:
             del params.sigma[k, 0]
             del params.gamma[k, 0]
-        x, y = map(center, bins)
+        x, y = list(map(center, bins))
         key = str(psf_class[0])
         self._sigma = interpolate.RectBivariateSpline(
             x, y, abs(params.sigma[key]).values.reshape(9, 10), s=5e-1)

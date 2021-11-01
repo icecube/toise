@@ -20,7 +20,7 @@ parser.add_argument("-p",type=bool,help="make plots?", required=False, dest='do_
 args = parser.parse_args()
 the_geom = args.geom
 the_file = 'data_sunflower_{}.hdf5'.format(the_geom)
-print("the file {}".format(the_file))
+print(("the file {}".format(the_file)))
 
 
 @memoize
@@ -65,7 +65,7 @@ def load_dataset(hdf_fname):
 dats = load_dataset(the_file)
 
 # just see what we're working with in terms of statistics
-print(dats.describe())
+print((dats.describe()))
 
 # to paramterize PSF, need 3D histogram in log10(energy), cos(zenith), and angular error
 bins = [np.linspace(3, 8, 21), np.linspace(-1, 1, 41), np.linspace(0, 90**(1./2), 101)**2]
@@ -237,7 +237,7 @@ def fit_psf(bins, counts, nknots=(7,10), smooth=1e1):
 	
 	def callback(xk):
 		if callback.i % 100 == 0:
-			print callback.i, flat_llh(xk)
+			print(callback.i, flat_llh(xk))
 		callback.i += 1
 	callback.i = 0
 	args, fval, res = optimize.fmin_l_bfgs_b(flat_llh, coefficients, autograd.elementwise_grad(flat_llh), factr=1e7, callback=callback)

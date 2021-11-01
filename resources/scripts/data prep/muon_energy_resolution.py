@@ -43,7 +43,7 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
         cax.xaxis.set_ticks_position('top')
         cax.xaxis.set_label_position('top')
         cb.set_label(r'$P(E_{\rm reco} | E_{\mu})$')
-        axis_range = tuple(map(lambda x: 10**x, axis_range))
+        axis_range = tuple([10**x for x in axis_range])
         ax.set_xlim(axis_range)
         ax.set_ylim(axis_range)
         ax.set_xlabel(r'Muon energy $E_{\mu}$ [GeV]')

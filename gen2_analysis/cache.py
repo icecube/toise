@@ -6,7 +6,7 @@ from easy_cache.core import DEFAULT_TIMEOUT, NOT_FOUND
 from .util import data_dir
 from os.path import join
 from os import listdir, unlink
-import cPickle as pickle
+import pickle as pickle
 from photospline import SplineTable
 import gzip
 import json

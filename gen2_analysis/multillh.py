@@ -45,7 +45,7 @@ class Combination(object):
             self.seed = 1.
 
     def prior(self, value, **kwargs):
-        v = self._components.values()[0][0]
+        v = list(self._components.values())[0][0]
         if hasattr(v, 'prior'):
             return v.prior(value, **kwargs)
         else:
@@ -72,7 +72,7 @@ class Combination(object):
     def _get_energy_range(self):
         """Return the true energy range where all the components have support"""
         def energy_range(i): return (
-            component[0].energy_range[i] for component in self._components.viewvalues())
+            component[0].energy_range[i] for component in self._components.values())
         return max(energy_range(0)), min(energy_range(1))
 
     def apply(self, func):

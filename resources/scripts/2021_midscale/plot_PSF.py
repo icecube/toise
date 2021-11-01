@@ -109,10 +109,10 @@ for the_energy in the_energies:
     the_area_downgoing = aeff(the_energy, -0.5)/1e6
     ic_area = aeff_ic(the_energy, the_cos_theta)/1e6
     ic_med_angle = np.degrees(median_opening_angle(psf_ic, the_energy, the_cos_theta))
-    print('Energy {}'.format(plotting.format_energy('%d', the_energy)))
-    print('  Median angular resolution at horizon {} is {} deg'.format(plotting.format_energy('%d', the_energy), the_med_angle))
-    print('  Effective area at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area))
-    print('  Effective area at {} at cos(theta)=-0.5 is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area_downgoing))
-    print('  IceCube area at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), ic_area))
-    print('  IceCube median angular resolution at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), ic_med_angle))
+    print(('Energy {}'.format(plotting.format_energy('%d', the_energy))))
+    print(('  Median angular resolution at horizon {} is {} deg'.format(plotting.format_energy('%d', the_energy), the_med_angle)))
+    print(('  Effective area at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area)))
+    print(('  Effective area at {} at cos(theta)=-0.5 is {} km^2'.format(plotting.format_energy('%d', the_energy), the_area_downgoing)))
+    print(('  IceCube area at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), ic_area)))
+    print(('  IceCube median angular resolution at {} at horizon is {} km^2'.format(plotting.format_energy('%d', the_energy), ic_med_angle)))
     print('-----')

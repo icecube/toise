@@ -11,7 +11,7 @@ import numpy as np
 import re
 from tqdm import tqdm
 from functools import partial
-from StringIO import StringIO
+from io import StringIO
 
 @figure_data()
 def sensitivity(exposures, decades=1, gamma=-2, emin=0.):
@@ -25,7 +25,7 @@ def sensitivity(exposures, decades=1, gamma=-2, emin=0.):
     meta = {'cos_zenith': factory.default_cos_theta_bins}
     for detector, exposure in exposures:
         dlabel = re.split('[_-]', detector)[0]
-        for zi in tqdm(range(20), desc=dlabel):
+        for zi in tqdm(list(range(20)), desc=dlabel):
             fom = figures_of_merit.PointSource({detector: exposure}, zi)
             for flabel, q in figures.items():
                 kwargs = {'gamma': gamma, 'decades': decades}
@@ -113,7 +113,7 @@ def single_flare_time_to_signficance(exposures, flux=1.6e-15, gamma=-2.1, dec=5.
             -2.1, 0.5, min=-2.7, max=-1.7)
         components['ps_gamma'] = multillh.NuisanceParam(
             gamma, 0.5, min=-2.7, max=-1.7)
-        gamma_kwargs = {k: components[k].seed for k in set(components.keys()).difference(flux_levels.keys())}
+        gamma_kwargs = {k: components[k].seed for k in set(components.keys()).difference(list(flux_levels.keys()))}
         
         fixed = dict(flux_levels)
         fixed.update(gamma_kwargs)
@@ -179,7 +179,7 @@ def single_flare_time_to_signficance(datasets):
             assert dataset['detectors'][0][0].startswith('IceCube')
             baseline = ts[x.index(158)]
             effective_dof = get_effective_dof(baseline, 2e-4)
-            print('--> effective d.o.f.: {:.1f}'.format(effective_dof))
+            print(('--> effective d.o.f.: {:.1f}'.format(effective_dof)))
         corrected_ts = stats.chi2(1).isf(stats.chi2.sf(ts, effective_dof))
         # plt.plot(x, np.sqrt(ts), label='raw significance')
         # plt.plot(x, np.sqrt(corrected_ts), label='effective trials correction')

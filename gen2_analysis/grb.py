@@ -1,9 +1,9 @@
 
 import numpy as np
 from scipy import stats, interpolate
-from StringIO import StringIO
+from io import StringIO
 import warnings
-import pointsource
+from . import pointsource
 
 
 class Winter2014GRBFluence(object):
@@ -179,7 +179,7 @@ class SwiftTriggerHorizon(object):
     """
 
     def __init__(self):
-        from StringIO import StringIO
+        from io import StringIO
 
         logL, z = np.loadtxt(StringIO("""
 		49.722	0.599

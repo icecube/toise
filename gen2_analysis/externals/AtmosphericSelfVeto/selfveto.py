@@ -180,8 +180,8 @@ def gaisser_flux(energy, ptype):
     else:
         z = ptype % 100
 
-    codes = sorted(filter(lambda v: isinstance(
-        v, int), ParticleType.__dict__.values()))
+    codes = sorted([v for v in list(ParticleType.__dict__.values()) if isinstance(
+        v, int)])
     idx = codes.index(ptype)
 
     # normalizations for each element
@@ -233,7 +233,7 @@ def response_function(enu, emu, cos_theta, kind='numu'):
     :returns: a tuple (response, muonyield, energy_per_nucleon)
     """
     # make everything an array
-    enu, emu, cos_theta = map(numpy.asarray, (enu, emu, cos_theta))
+    enu, emu, cos_theta = list(map(numpy.asarray, (enu, emu, cos_theta)))
     shape = numpy.broadcast(enu, emu, cos_theta).shape
     # contributions to the differential neutrino flux from chunks of the
     # primary spectrum for each element
@@ -241,8 +241,8 @@ def response_function(enu, emu, cos_theta, kind='numu'):
     # mean integral muon yield from same chunks
     muyield = numpy.zeros(shape+(5, 100))
     energy_per_nucleon = logspace(numpy.log10(enu), numpy.log10(enu)+3, 101)
-    ptypes = [getattr(ParticleType, pt) for pt in 'PPlus',
-              'He4Nucleus', 'N14Nucleus', 'Al27Nucleus', 'Fe56Nucleus']
+    ptypes = [getattr(ParticleType, pt) for pt in ('PPlus',
+              'He4Nucleus', 'N14Nucleus', 'Al27Nucleus', 'Fe56Nucleus')]
     A = [[pt/100, 1][pt == ParticleType.PPlus] for pt in ptypes]
     for i, (ptype, a) in enumerate(zip(ptypes, A)):
         # primary energies that contribute to the neutrino flux at given energy
@@ -315,8 +315,8 @@ def mceq_response_function(fname, emu, nu_types, prompt_muons=False):
 
     contrib = numpy.empty((e_grid.size, 5, e_grid.size))
     muyield = numpy.empty((e_grid.size, 5, e_grid.size))
-    ptypes = [getattr(ParticleType, pt) for pt in 'PPlus',
-              'He4Nucleus', 'N14Nucleus', 'Al27Nucleus', 'Fe56Nucleus']
+    ptypes = [getattr(ParticleType, pt) for pt in ('PPlus',
+              'He4Nucleus', 'N14Nucleus', 'Al27Nucleus', 'Fe56Nucleus')]
     A = [[pt/100, 1][pt == ParticleType.PPlus] for pt in ptypes]
     elements = ['H', 'He', 'N', 'Al', 'Fe']
     for i, (ptype, element, a) in enumerate(zip(ptypes, elements, A)):
@@ -644,9 +644,9 @@ if __name__ == "__main__":
         kind = opts.flavor
     passrate *= uncorrelated_passing_rate(enu, emu, cos_theta, kind=kind)
 
-    data = numpy.vstack(map(numpy.ndarray.flatten, (cos_theta, overburden(
-        cos_theta, opts.depth), emu, enu, passrate))).T
+    data = numpy.vstack(list(map(numpy.ndarray.flatten, (cos_theta, overburden(
+        cos_theta, opts.depth), emu, enu, passrate)))).T
     fields = ['cos_theta', 'overburden', 'emu_min', 'energy', 'passrate']
 
     numpy.savetxt(sys.stdout, data, fmt='%12.3e', header='\t'.join(
-        map(lambda s: '%12s' % s, fields))[1:])
+        ['%12s' % s for s in fields])[1:])

@@ -59,5 +59,5 @@ def get_muon_distribution(cosz_edges = np.linspace(-1,1,21), energy_edges = np.l
 
     extended_muon_distribution = muon_distribution[...,None]*np.eye(60)/100.
     extended_muon_distribution = np.swapaxes(extended_muon_distribution,0,1)
-    print("total muons per station:", np.sum(extended_muon_distribution))
+    print(("total muons per station:", np.sum(extended_muon_distribution)))
     return extended_muon_distribution
