@@ -15,7 +15,7 @@ check_call(['tar', 'xzf', 'archive.tar.gz'], cwd=cwd)
 unlink(path.join(path.dirname(__file__), 'gen2_analysis', 'data', 'archive.tar.gz'))
 
 # unpack radio files
-check_call(['tar', 'xzf', 'radio_archive.tar.gz'], cwd = path.join(path.dirname(__file__), 'gen2_analysis'))
+# check_call(['tar', 'xzf', 'radio_archive.tar.gz'], cwd = path.join(path.dirname(__file__), 'gen2_analysis'))
 
 setup(name='gen2-analysis',
       version='0.1',
