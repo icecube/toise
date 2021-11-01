@@ -28,6 +28,13 @@ jobs:
           auto-update-conda: false
           activate-environment: test-env
           environment-file: conda-linux-64.lock
+      
+      - name: Install
+        env:
+          ICECUBE_PASSWORD: ${{ secrets.ICECUBE_PASSWORD }}
+        run: |
+          pip install --no-deps .
+          pip check
 
       - name: run python
         run: |
