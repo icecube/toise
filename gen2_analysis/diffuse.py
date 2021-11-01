@@ -211,7 +211,7 @@ class AtmosphericNu(DiffuseNuGen):
 
     _cache_file = os.path.join(data_dir, 'cache', 'atmospheric_fluxes.pickle')
     if os.path.exists(_cache_file):
-        with open(_cache_file) as f:
+        with open(_cache_file, "rb") as f:
             _fluxes = pickle.load(f)
     else:
         _fluxes = dict(conventional=dict(), prompt=dict())
@@ -259,8 +259,8 @@ class AtmosphericNu(DiffuseNuGen):
             if not veto_threshold in cache:
                 cache[veto_threshold] = list()
             cache[veto_threshold].append((shape_key, instance._flux))
-            with open(cls._cache_file, 'w') as f:
-                pickle.dump(cls._fluxes, f, protocol=2)
+            with open(cls._cache_file, 'wb') as f:
+                pickle.dump(cls._fluxes, f, protocol=pickle.HIGHEST_PROTOCOL)
         assert len(cls._fluxes['conventional']) > 0
 
         return instance
