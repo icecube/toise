@@ -15,8 +15,6 @@ def aeff():
         aeff[:,i,:,i,:] = 1.
     return effective_area(edges, aeff)
 
-def test_conventional(aeff):
-    with open(os.path.join(os.path.dirname(__file__), "snapshots", "conventional.json")) as f:
-        snapshot = np.array(json.load(f))
+def test_conventional(aeff, snapshot):
     component = AtmosphericNu.conventional(aeff, livetime=1., veto_threshold=None)
-    assert component.expectations == pytest.approx(snapshot)
+    assert snapshot == component.expectations
