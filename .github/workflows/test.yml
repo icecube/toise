@@ -36,6 +36,6 @@ jobs:
           pip install --no-deps .
           pip check
 
-      - name: run python
+      - name: Test
         run: |
-          python -c "import numpy"
+          pytest
