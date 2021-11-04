@@ -332,8 +332,8 @@ class AtmosphericNu(DiffuseNuGen):
             if not veto_threshold in cache:
                 cache[veto_threshold] = list()
             cache[veto_threshold].append((shape_key, instance._flux))
-            with open(cls._cache_file, "w") as f:
-                pickle.dump(cls._fluxes, f, protocol=2)
+            with open(cls._cache_file, "wb") as f:
+                pickle.dump(cls._fluxes, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         return instance
 
