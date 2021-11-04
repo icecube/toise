@@ -66,7 +66,7 @@ from gen2_analysis import factory
 from gen2_analysis.util import data_dir, center
 
 import pickle
-from clint.textui import progress
+from tqdm import tqdm
 from functools import partial
 
 import warnings
@@ -243,7 +243,7 @@ elif opts.figure_of_merit == "ps_time_evolution":
 
     livetimes = numpy.linspace(*opts.livetimes)
     dps = numpy.zeros(livetimes.size)
-    for i in progress.bar(list(range(livetimes.size))):
+    for i in tqdm(list(range(livetimes.size))):
         lt = livetimes[i]
         dps[i] = 1e-12 * pointsource.discovery_potential(
             scale_livetime(ps, lt),
