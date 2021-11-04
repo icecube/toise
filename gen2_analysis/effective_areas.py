@@ -509,11 +509,11 @@ def eval_psf(point_spread_function, mu_energy, ct, psi_bins):
 
 
 def create_bundle_aeff(
-    energy_resolution=get_energy_resolution("IceCube"),
+    energy_resolution=defer(get_energy_resolution, "IceCube"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
-    selection_efficiency=MuonSelectionEfficiency(),
-    surface=get_fiducial_surface("IceCube"),
+    selection_efficiency=defer(MuonSelectionEfficiency),
+    surface=defer(get_fiducial_surface, "IceCube"),
     cos_theta=None,
     **kwargs
 ):
@@ -609,12 +609,12 @@ def create_bundle_aeff(
 
 
 def create_throughgoing_aeff(
-    energy_resolution=get_energy_resolution("IceCube"),
+    energy_resolution=defer(get_energy_resolution, "IceCube"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
-    selection_efficiency=MuonSelectionEfficiency(),
-    surface=get_fiducial_surface("IceCube"),
-    psf=get_angular_resolution("IceCube"),
+    selection_efficiency=defer(MuonSelectionEfficiency),
+    surface=defer(get_fiducial_surface, "IceCube"),
+    psf=defer(get_angular_resolution, "IceCube"),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2) ** 2, 100)),
     cos_theta=None,
 ):
@@ -719,12 +719,12 @@ def create_throughgoing_aeff(
 
 def create_cascade_aeff(
     channel="cascade",
-    energy_resolution=get_energy_resolution(channel="cascade"),
+    energy_resolution=defer(get_energy_resolution, channel="cascade"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
-    selection_efficiency=HESEishSelectionEfficiency(),
-    surface=get_fiducial_surface("IceCube"),
-    psf=get_angular_resolution("IceCube", channel="cascade"),
+    selection_efficiency=defer(HESEishSelectionEfficiency),
+    surface=defer(get_fiducial_surface, "IceCube"),
+    psf=defer(get_angular_resolution, "IceCube", channel="cascade"),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20) ** 2, 10)),
     cos_theta=None,
 ):
@@ -791,13 +791,13 @@ def create_cascade_aeff(
 
 
 def create_starting_aeff(
-    energy_resolution=get_energy_resolution(channel="cascade"),
+    energy_resolution=defer(get_energy_resolution, channel="cascade"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
-    selection_efficiency=HESEishSelectionEfficiency(),
-    classification_efficiency=get_classification_efficiency("IceCube"),
-    surface=get_fiducial_surface("IceCube"),
-    psf=get_angular_resolution("IceCube", channel="cascade"),
+    selection_efficiency=defer(HESEishSelectionEfficiency),
+    classification_efficiency=defer(get_classification_efficiency, "IceCube"),
+    surface=defer(get_fiducial_surface, "IceCube"),
+    psf=defer(get_angular_resolution, "IceCube", channel="cascade"),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20) ** 2, 10)),
     neutrino_energy=numpy.logspace(4, 12, 81),
     cos_theta=numpy.linspace(-1, 1, 21),
