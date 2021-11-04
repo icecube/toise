@@ -17,6 +17,7 @@ dependencies:
   - pyyaml
   - tqdm
   - toolz
+  - lazy-object-proxy
   - nuflux
   - photospline
   - pip

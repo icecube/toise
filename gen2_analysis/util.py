@@ -2,6 +2,14 @@ import os
 import numpy as np
 from subprocess import check_call, PIPE
 from os import path, unlink, environ, mkdir
+from lazy_object_proxy import Proxy
+from functools import partial
+
+def defer(func, *args, **kwargs):
+    """
+    Defer function invocation until an attribute is accessed
+    """
+    return Proxy(partial(func, *args, **kwargs))
 
 data_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "data"))
 

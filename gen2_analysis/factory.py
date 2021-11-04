@@ -14,7 +14,7 @@ from . import (
     plotting,
 )
 from . import classification_efficiency
-from .util import data_dir, center
+from .util import data_dir, center, defer
 from . import surfaces
 
 
@@ -481,11 +481,11 @@ default_configs = {
 # Add midscale geometry candidates
 # FIXME: add corner22, scan22 geometries
 for midscale in "corner", "sparse", "hcr":
-    surface = surfaces.get_fiducial_surface(
+    surface = defer(surfaces.get_fiducial_surface,
         "Sunflower_" + midscale, spacing=240, padding=0
     )
     # artificially fix veto area to the footprint of the geometry
-    area = surface.azimuth_averaged_area(1) / 1e6
+    area = defer(lambda: surface.azimuth_averaged_area(1) / 1e6)
     default_configs["Gen2-Phase2-" + midscale] = dict(
         geometry="Sunflower_" + midscale,
         spacing=240,
