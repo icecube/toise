@@ -15,6 +15,12 @@ def aeff():
         aeff[:,i,:,i,:] = 1.
     return effective_area(edges, aeff)
 
-def test_conventional(aeff, snapshot):
-    component = AtmosphericNu.conventional(aeff, livetime=1., veto_threshold=None)
+@pytest.mark.parametrize("veto_threshold", [None, 1e3])
+def test_conventional(aeff, veto_threshold, snapshot):
+    component = AtmosphericNu.conventional(aeff, livetime=1., veto_threshold=veto_threshold)
+    assert snapshot == component.expectations
+
+@pytest.mark.parametrize("veto_threshold", [None, 1e3])
+def test_prompt(aeff, veto_threshold, snapshot):
+    component = AtmosphericNu.prompt(aeff, livetime=1., veto_threshold=veto_threshold)
     assert snapshot == component.expectations
