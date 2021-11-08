@@ -111,7 +111,7 @@ def get_surface_geometry():
 
 
 @figure
-def surface_geometry():
+def surface_geometry(reverse_order=True):
     import itertools
     import matplotlib.pyplot as plt
     import numpy as np
@@ -120,6 +120,7 @@ def surface_geometry():
     from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
     fig, axes = plt.subplots(1, 4, figsize=(8, 2.5))
+    plt.subplots_adjust(left=0.02, right=0.98, hspace=0.1, bottom=0.08)
 
     pos = get_string_heads("Sunflower", 240)
     upgrade = np.asarray(
@@ -155,7 +156,7 @@ def surface_geometry():
             ax.transData,
             size,
             label,
-            "lower left",
+            "lower right" if reverse_order else "lower left",
             pad=0.5,
             frameon=False,
             sep=4,
@@ -219,10 +220,16 @@ def surface_geometry():
 
     radio = half_fantasy_radio_geometry(sectors["Dark Sector"])
 
-    axes[0].scatter(upgrade[:, 0], upgrade[:, 1], s=1, color="C3")
-    axes[0].scatter(pos[:86]["x"], pos[:86]["y"], s=1, color="C0", marker="H")
-    axes[0].scatter(pos[86:]["x"], pos[86:]["y"], s=1, color="C1", marker="o")
-    axes[0].scatter(
+    order = list(range(4))
+    if reverse_order:
+        order = reversed(order)
+    
+    radio_ax, gen2_ax, icecube_ax, upgrade_ax = [axes[i] for i in order]
+
+    radio_ax.scatter(upgrade[:, 0], upgrade[:, 1], s=1, color="C3")
+    radio_ax.scatter(pos[:86]["x"], pos[:86]["y"], s=1, color="C0", marker="H")
+    radio_ax.scatter(pos[86:]["x"], pos[86:]["y"], s=1, color="C1", marker="o")
+    radio_ax.scatter(
         radio[:, 0],
         radio[:, 1],
         s=5,
@@ -231,10 +238,10 @@ def surface_geometry():
         marker="1",
     )
 
-    axes[1].scatter(upgrade[:, 0], upgrade[:, 1], s=1, color="C3")
-    axes[1].scatter(pos[:86]["x"], pos[:86]["y"], s=1, color="C0", marker="H")
+    gen2_ax.scatter(upgrade[:, 0], upgrade[:, 1], s=1, color="C3")
+    gen2_ax.scatter(pos[:86]["x"], pos[:86]["y"], s=1, color="C0", marker="H")
     # scatter_noscale(axes[1], radio[:,0], radio[:,1], s=5, color='C4', marker='1')
-    axes[1].scatter(
+    gen2_ax.scatter(
         pos[86:]["x"],
         pos[86:]["y"],
         s=5,
@@ -243,11 +250,11 @@ def surface_geometry():
         marker="o",
     )
 
-    axes[2].scatter(
+    icecube_ax.scatter(
         pos[:86]["x"], pos[:86]["y"], s=5, color="C0", label="IceCube", marker="H"
     )
 
-    axes[3].scatter(
+    upgrade_ax.scatter(
         upgrade[:, 0],
         upgrade[:, 1],
         s=10,
@@ -255,8 +262,14 @@ def surface_geometry():
         label="IceCube Upgrade",
         marker="P",
     )
-    scatter_noscale(axes[3], pos[:86]["x"], pos[:86]["y"], s=5, marker="H", color="C0")
-    axes[3].set_ylim(bottom=-115)
+    # IceCube strings in Upgrade volume
+    upgrade_context = [s-1 for s in (36, 79, 80, 84)]
+    upgrade_ax.scatter(
+        pos[upgrade_context]["x"],
+        pos[upgrade_context]["y"],
+        s=5, marker="H", color="C0"
+    )
+    upgrade_ax.set_ylim(bottom=-115)
 
     for ax in axes:
         ax.set_aspect("equal", "datalim")
@@ -273,12 +286,13 @@ def surface_geometry():
             frameon=False,
             handletextpad=0.1,
             markerscale=3,
+            prop={'size': 9}
         )
 
-    add_scalebar(axes[0], 5000, "5 km")
-    add_scalebar(axes[1], 1000, "1 km")
-    add_scalebar(axes[2], 250, "250 m")
-    add_scalebar(axes[3], 25, "25 m")
+    add_scalebar(radio_ax, 5000, "5 km")
+    add_scalebar(gen2_ax, 1000, "1 km")
+    add_scalebar(icecube_ax, 250, "250 m")
+    add_scalebar(upgrade_ax, 25, "25 m")
 
     for ax in axes:
         ax.xaxis.set_visible(False)
@@ -287,20 +301,24 @@ def surface_geometry():
             spine.set_color("black")
             spine.set_alpha(0.3)
 
-    for spine in axes[0].spines.values():
+    for spine in radio_ax.spines.values():
         spine.set_visible(False)
+    
+    for order, ax in enumerate((radio_ax, gen2_ax, icecube_ax, upgrade_ax)):
+        ax.set_zorder(order)
 
-    for parent, child in reversed(zip(axes[:-1], axes[1:])):
-        inset_locator.mark_inset(
-            parent, child, 2, 3, edgecolor="black", alpha=0.3, ls="-"
-        )
+    pairs = reversed(list(zip([radio_ax, gen2_ax, icecube_ax], [gen2_ax, icecube_ax, upgrade_ax])))
+    if reverse_order:
+        for parent, child in pairs:
+            inset_locator.mark_inset(
+                parent, child, 1, 4, edgecolor="black", alpha=0.3, ls="-"
+            )
+    else:
+        for parent, child in pairs:
+            inset_locator.mark_inset(
+                parent, child, 2, 3, edgecolor="black", alpha=0.3, ls="-"
+            )
 
-    axes[0].yaxis.pan(-0.32)
-
-    axes[1].margins(0.3)
-    axes[1].yaxis.pan(-0.32)
-
-    plt.tight_layout()
 
     return fig
 
