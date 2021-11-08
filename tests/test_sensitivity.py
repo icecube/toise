@@ -55,10 +55,11 @@ def asimov_llh(components):
     return multillh.asimov_llh(components, astro=0)
 
 
-def test_nullhypo(asimov_llh: multillh.LLHEval):
+def test_nullhypo(asimov_llh: multillh.LLHEval, snapshot):
     constrained_fit = asimov_llh.fit(astro=0)
     assert constrained_fit.pop("astro") == 0
     assert constrained_fit == pytest.approx({k: 1 for k in constrained_fit.keys()})
+    assert asimov_llh.llh(**{"astro": 0, **{k: 1 for k in constrained_fit.keys()}}) == snapshot
 
 
 def test_likelihood_ratio(asimov_llh: multillh.LLHEval, snapshot):
@@ -70,7 +71,7 @@ def test_likelihood_ratio(asimov_llh: multillh.LLHEval, snapshot):
     # fit for \Delta TS = 2.705 (90% CL for 1 degree of freedom)
     critical_ts = stats.chi2(1).ppf(0.9)
     limit = bisect(lambda f: ts(f) - critical_ts, 0, 1)
-    assert round(limit, 6) == snapshot
+    assert round(limit, 5) == snapshot
 
 
 def test_component_expectations(components: dict[str, multillh.Combination], snapshot):

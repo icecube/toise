@@ -2515,5 +2515,8 @@
   }
 ---
 # name: test_likelihood_ratio
-  0.332809
+  0.33281
+---
+# name: test_nullhypo
+  0.0
 ---
