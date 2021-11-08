@@ -77,7 +77,7 @@ class ClassificationEfficiency(object):
             raise ValueError("neutrino_flavor must be 0 <= nu < 6")
         if not event_class in self.classes:
             raise ValueError("Unknown event class {}".format(event_class))
-        flavor = ["nue", "numu", "nutau"][neutrino_flavor / 2]
+        flavor = ["nue", "numu", "nutau"][neutrino_flavor // 2]
         func, params = self._params[flavor][event_class]
         x = np.clip(deposited_energy, *self._energy_range)
         return np.clip(func(x, *params) / 100, 0, 1)
