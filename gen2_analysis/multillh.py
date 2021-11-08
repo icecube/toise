@@ -134,7 +134,7 @@ class Combination(object):
                     eranges.append(component.energy_range)
                     ecenters.append(e_center)
                     logging.getLogger().debug(
-                        "label: %s, enu: %.2g" % (label, e_center)
+                        "label: %s, enu: %.2g" % (item["label"], e_center)
                     )
             if not components:
                 all_done = True
