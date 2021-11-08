@@ -119,7 +119,8 @@ class GeometricVetoCoverage(object):
         self.spacing = spacing
         self.area = area
         if os.path.exists(self.cache_file):
-            self.cache = pickle.load(open(self.cache_file))
+            with open(self.cache_file, "rb") as f:
+                self.cache = pickle.load(f)
         else:
             self.cache = dict()
 
@@ -139,7 +140,8 @@ class GeometricVetoCoverage(object):
             self.cache[key] = coverage
             if not os.path.isdir(os.path.dirname(self.cache_file)):
                 os.makedirs(os.path.dirname(self.cache_file))
-            pickle.dump(self.cache, open(self.cache_file, "w"))
+            with open(self.cache_file, "wb") as f:
+                pickle.dump(self.cache, f, protocol=pickle.HIGHEST_PROTOCOL)
             return coverage
 
 
