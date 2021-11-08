@@ -2,8 +2,10 @@ from typing import Optional
 
 import numpy as np
 import pytest
-from gen2_analysis import diffuse, factory, multillh, surface_veto
+from gen2_analysis import (diffuse, factory, figures_of_merit, multillh,
+                           surface_veto)
 from gen2_analysis.effective_areas import effective_area
+from gen2_analysis.figures import figure
 from scipy import stats
 from scipy.optimize import bisect
 
@@ -59,7 +61,10 @@ def test_nullhypo(asimov_llh: multillh.LLHEval, snapshot):
     constrained_fit = asimov_llh.fit(astro=0)
     assert constrained_fit.pop("astro") == 0
     assert constrained_fit == pytest.approx({k: 1 for k in constrained_fit.keys()})
-    assert asimov_llh.llh(**{"astro": 0, **{k: 1 for k in constrained_fit.keys()}}) == snapshot
+    assert (
+        asimov_llh.llh(**{"astro": 0, **{k: 1 for k in constrained_fit.keys()}})
+        == snapshot
+    )
 
 
 def test_likelihood_ratio(asimov_llh: multillh.LLHEval, snapshot):
@@ -83,3 +88,16 @@ def test_expectations(asimov_llh: multillh.LLHEval, snapshot):
         asimov_llh.expectations(**{k: 1 for k in asimov_llh.components.keys()})
         == snapshot
     )
+
+
+@pytest.mark.parametrize(
+    "metric,kwargs",
+    [
+        (figures_of_merit.TOT.ul, {}),
+        (figures_of_merit.DIFF.ul, {"decades": 1}),
+        (figures_of_merit.DIFF.dp, {"decades": 1}),
+    ],
+)
+def test_gzk(dummy_configuration, metric, kwargs, snapshot):
+    fom = figures_of_merit.GZK({"__dummy_config__": 15})
+    assert tuple(np.round(v, 3) for v in fom.benchmark(metric, **kwargs)) == snapshot
