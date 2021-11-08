@@ -77,7 +77,12 @@ class DiffuseNuGen(object):
             return -((value - self.seed) ** 2) / (2 * self.uncertainty ** 2)
 
     @staticmethod
-    def _integrate_flux(edges, flux, passing_fraction=lambda *args, **kwargs: 1.0):
+    def _integrate_flux(
+        edges,
+        flux,
+        passing_fraction=lambda *args, **kwargs: 1.0,
+        energy_range=(-np.inf, np.inf),
+    ):
         from .util import PDGCode
 
         intflux = numpy.empty((6, len(edges[0]) - 1, len(edges[1]) - 1))
@@ -90,13 +95,26 @@ class DiffuseNuGen(object):
                 ct_lo = edges[1][j]
                 ct = (ct_lo + ct_hi) / 2.0
                 fluxband = numpy.zeros(len(edges[0]) - 1)
+
+                def f(e):
+                    if e < energy_range[0] or e > energy_range[1]:
+                        return 0
+                    else:
+                        return flux(pt, e, ct) * passing_fraction(pt, e, ct, depth=2e3)
+
                 for k in range(len(fluxband)):
-                    fluxband[k] = quad(
-                        lambda e: flux(pt, e, ct)
-                        * passing_fraction(pt, e, ct, depth=2e3),
-                        edges[0][k],
-                        edges[0][k + 1],
-                    )[0]
+                    fluxband[k] = (
+                        quad(
+                            f,
+                            edges[0][k],
+                            edges[0][k + 1],
+                        )[0]
+                        if (
+                            edges[0][k] >= energy_range[0],
+                            edges[0][k + 1] <= energy_range[1],
+                        )
+                        else 0.0
+                    )
                 intflux[i, :, j] = fluxband
         # return integrated flux in 1/(m^2 yr sr)
         return intflux * constants.cm2 * constants.annum
@@ -134,10 +152,17 @@ class AtmosphericNu(DiffuseNuGen):
             flux_func, passing_fraction = flux
             if passing_fraction is not None:
                 flux = self._integrate_flux(
-                    effective_area.bin_edges, flux_func.getFlux, passing_fraction
+                    effective_area.bin_edges,
+                    flux_func.getFlux,
+                    passing_fraction,
+                    flux_func.energy_range,
                 )
             else:
-                flux = self._integrate_flux(effective_area.bin_edges, flux_func.getFlux)
+                flux = self._integrate_flux(
+                    effective_area.bin_edges,
+                    flux_func.getFlux,
+                    flux_func.energy_range,
+                )
 
             # "integrate" over solid angle
             if effective_area.is_healpix:
