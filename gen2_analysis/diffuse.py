@@ -841,9 +841,7 @@ def atmos_flux(enu, model):
     """Returns the atmospheric diff flux at enu, averaged
     over zenith for all flavors
     """
-    import NewNuFlux
-
-    flux = NewNuFlux.makeFlux(model)
+    flux = nuflux.makeFlux(model)
     flux.knee_reweighting_model = "gaisserH3a_elbert"
     cos_theta = np.linspace(-1, 1, 100)
     fluxes = []
