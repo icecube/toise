@@ -26,6 +26,16 @@ Then, from the `gen2_analysis` source directory, create a new environment:
 
 Replace `xxxx` with the standard IceCube password. This will also download the required data tables.
 
+The above will install the latest available versions of all dependencies. You can also install exactly the versions that were most recently tested with:
+```
+cd gen2-analysis
+
+conda env create -n gen2-analysis --file conda-linux-64.lock
+conda run -n gen2-analysis pip install -r <(cat conda-linux-64.lock | awk '/^# pip/ {print substr($0,7)}')
+ICECUBE_PASSWORD=xxxx conda run -n gen2-analysis pip install -e .
+```
+replacing `conda-linux-64.lock` with the lockfile for your current platform. This should be much faster, as it does not have to solve for compatible versions of all the dependencies.
+
 If you have a Jupyter notebook installation from another conda environment, you should now be able to open this notebook in Jupyter and select the "Python [conda env:miniconda3-gen2-analysis]" kernel.
 
 Otherwise, activate the environment with `. $CONDA_PREFIX/bin/activate gen2-analysis`. This should leave you with a prompt that looks like

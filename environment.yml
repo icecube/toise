@@ -24,4 +24,4 @@ dependencies:
   - pip:
     - easy-cache
     - pydashi @ https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0-alpha.0.tar.gz#sha256=b2b8a179f4268d3619a72fc14f8f223f52bc9d51c3ff338863eb8b11c6bc0d5b
-    # - -e .
+    - -e .
