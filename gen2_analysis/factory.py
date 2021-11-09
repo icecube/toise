@@ -481,8 +481,8 @@ default_configs = {
 # Add midscale geometry candidates
 # FIXME: add corner22, scan22 geometries
 for midscale in "corner", "sparse", "hcr":
-    surface = defer(surfaces.get_fiducial_surface,
-        "Sunflower_" + midscale, spacing=240, padding=0
+    surface = defer(
+        surfaces.get_fiducial_surface, "Sunflower_" + midscale, spacing=240, padding=0
     )
     # artificially fix veto area to the footprint of the geometry
     area = defer(lambda: surface.azimuth_averaged_area(1) / 1e6)
