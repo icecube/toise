@@ -23,23 +23,18 @@ def aeff():
     return effective_area(edges, aeff)
 
 
-def round_to_significant_digits(array: np.ndarray, digits: int) -> np.ndarray:
-    scale = 10 ** np.round(np.log10(array) - 0.5)
-    return np.round(array / scale, digits) * scale
-
-
 @pytest.mark.parametrize("veto_threshold", [None, 1e3])
-def test_conventional(aeff, veto_threshold, snapshot):
+def test_conventional(aeff, veto_threshold, snapshot, round_to_scale):
     component = AtmosphericNu.conventional(
         aeff, livetime=1.0, veto_threshold=veto_threshold
     )
-    assert snapshot == round_to_significant_digits(component.expectations, 5)
+    assert snapshot == round_to_scale(component.expectations, 5)
 
 
 @pytest.mark.parametrize("veto_threshold", [None, 1e3])
-def test_prompt(aeff, veto_threshold, snapshot):
+def test_prompt(aeff, veto_threshold, snapshot, round_to_scale):
     component = AtmosphericNu.prompt(aeff, livetime=1.0, veto_threshold=veto_threshold)
-    assert snapshot == round_to_significant_digits(component.expectations, 5)
+    assert snapshot == round_to_scale(component.expectations, 5)
 
 
 @pytest.mark.parametrize(

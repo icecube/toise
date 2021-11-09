@@ -2,8 +2,7 @@ from typing import Optional
 
 import numpy as np
 import pytest
-from gen2_analysis import (diffuse, factory, figures_of_merit, multillh,
-                           surface_veto)
+from gen2_analysis import diffuse, factory, figures_of_merit, multillh, surface_veto
 from gen2_analysis.effective_areas import effective_area
 from gen2_analysis.figures import figure
 from scipy import stats
@@ -76,16 +75,27 @@ def test_likelihood_ratio(asimov_llh: multillh.LLHEval, snapshot):
     # fit for \Delta TS = 2.705 (90% CL for 1 degree of freedom)
     critical_ts = stats.chi2(1).ppf(0.9)
     limit = bisect(lambda f: ts(f) - critical_ts, 0, 1)
-    assert round(limit, 5) == snapshot
+    assert round(limit, 3) == snapshot
 
 
-def test_component_expectations(components: dict[str, multillh.Combination], snapshot):
-    assert {k: v.expectations() for k, v in components.items()} == snapshot
-
-
-def test_expectations(asimov_llh: multillh.LLHEval, snapshot):
+def test_component_expectations(
+    components: dict[str, multillh.Combination], snapshot, round_to_scale
+):
     assert (
-        asimov_llh.expectations(**{k: 1 for k in asimov_llh.components.keys()})
+        round_to_scale(
+            {k: v.expectations() for k, v in components.items()}, 5
+        )
+        == snapshot
+    )
+
+
+def test_expectations(
+    asimov_llh: multillh.LLHEval, snapshot, round_to_scale
+):
+    assert (
+        round_to_scale(
+            asimov_llh.expectations(**{k: 1 for k in asimov_llh.components.keys()}), 5
+        )
         == snapshot
     )
 
