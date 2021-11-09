@@ -1,4 +1,3 @@
-
 from scipy import interpolate
 import pickle
 import os
@@ -8,11 +7,13 @@ from scipy.special import erf
 from .util import data_dir
 
 
-def get_energy_resolution(geometry="Sunflower", spacing=200, channel='muon'):
-    if channel == 'cascade':
+def get_energy_resolution(geometry="Sunflower", spacing=200, channel="muon"):
+    if channel == "cascade":
         return PotemkinCascadeEnergyResolution()
-    elif channel == 'radio':
-        return PotemkinCascadeEnergyResolution(lower_limit=numpy.log10(1+0.2), crossover_energy=1e8)
+    elif channel == "radio":
+        return PotemkinCascadeEnergyResolution(
+            lower_limit=numpy.log10(1 + 0.2), crossover_energy=1e8
+        )
     if geometry == "IceCube":
         fname = "aachen_muon_energy_profile.npz"
         # FIXME: we have to stretch the energy resolution for IC86 to get the
@@ -25,7 +26,13 @@ def get_energy_resolution(geometry="Sunflower", spacing=200, channel='muon'):
 
 
 class EnergySmearingMatrix(object):
-    def __init__(self, bias=None, sigma=None, loge_range=(-numpy.inf, numpy.inf), overdispersion=1.):
+    def __init__(
+        self,
+        bias=None,
+        sigma=None,
+        loge_range=(-numpy.inf, numpy.inf),
+        overdispersion=1.0,
+    ):
         """
         The default is a parameterization of the resolution of MuEx on the Aachen
         IC86 diffuse nu_mu sample.
@@ -53,18 +60,19 @@ class EnergySmearingMatrix(object):
         """
         loge_true = numpy.log10(true_energy)
         loge_center = numpy.clip(
-            0.5*(loge_true[:-1]+loge_true[1:]), *self._loge_range)
+            0.5 * (loge_true[:-1] + loge_true[1:]), *self._loge_range
+        )
         loge_width = numpy.diff(loge_true)
         loge_lo = numpy.log10(reco_energy[:-1])
         loge_hi = numpy.log10(reco_energy[1:])
         # evaluate at the right edge for maximum smearing on a falling spectrum
         loge_center = loge_hi
         mu, hi = numpy.meshgrid(
-            self.bias(loge_center)+loge_width, loge_hi, indexing='ij')
-        sigma, lo = numpy.meshgrid(self.sigma(
-            loge_center), loge_lo, indexing='ij')
+            self.bias(loge_center) + loge_width, loge_hi, indexing="ij"
+        )
+        sigma, lo = numpy.meshgrid(self.sigma(loge_center), loge_lo, indexing="ij")
 
-        return ((erf((hi-mu)/sigma)-erf((lo-mu)/sigma))/2.).T
+        return ((erf((hi - mu) / sigma) - erf((lo - mu) / sigma)) / 2.0).T
 
 
 class MuonEnergyResolution(EnergySmearingMatrix):
@@ -72,32 +80,32 @@ class MuonEnergyResolution(EnergySmearingMatrix):
     A parameterization of the inherent smearing in muon energy resolution
     """
 
-    def __init__(self, fname='aachen_muon_energy_profile.npz', overdispersion=1.):
+    def __init__(self, fname="aachen_muon_energy_profile.npz", overdispersion=1.0):
         """
         The default is a parameterization of the resolution of MuEx on the Aachen
         IC86 diffuse nu_mu sample.
         """
-        if not fname.startswith('/'):
-            fname = os.path.join(data_dir, 'energy_reconstruction', fname)
+        if not fname.startswith("/"):
+            fname = os.path.join(data_dir, "energy_reconstruction", fname)
         f = numpy.load(fname)
-        loge_range = (f['loge'].min(), f['loge'].max())
-        bias = interpolate.UnivariateSpline(
-            f['loge'], f['mean'], s=f['smoothing'])
+        loge_range = (f["loge"].min(), f["loge"].max())
+        bias = interpolate.UnivariateSpline(f["loge"], f["mean"], s=f["smoothing"])
         sigma = interpolate.UnivariateSpline(
-            f['loge'], f['std']*overdispersion, s=f['smoothing'])
+            f["loge"], f["std"] * overdispersion, s=f["smoothing"]
+        )
         super(MuonEnergyResolution, self).__init__(
-            bias, sigma, loge_range, overdispersion)
+            bias, sigma, loge_range, overdispersion
+        )
 
 
 class PotemkinCascadeEnergyResolution(EnergySmearingMatrix):
-
     def __init__(self, lower_limit=numpy.log10(1.1), crossover_energy=1e6):
         super(PotemkinCascadeEnergyResolution, self).__init__()
         self._b = lower_limit
-        self._a = self._b*numpy.sqrt(crossover_energy)
+        self._a = self._b * numpy.sqrt(crossover_energy)
 
     def bias(self, loge):
         return loge
 
     def sigma(self, loge):
-        return self._b + self._a/numpy.sqrt(10**loge)
+        return self._b + self._a / numpy.sqrt(10 ** loge)

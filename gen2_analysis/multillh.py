@@ -25,7 +25,7 @@ class NuisanceParam:
     def prior(self, value, **kwargs):
         if self.uncertainty == None:
             return 0
-        return -(value - self.seed)**2/(2.*self.uncertainty**2)
+        return -((value - self.seed) ** 2) / (2.0 * self.uncertainty ** 2)
 
 
 class Combination(object):
@@ -35,21 +35,21 @@ class Combination(object):
         """
         self._components = components
         for label, (component, livetime) in self._components.items():
-            if hasattr(component, 'min'):
+            if hasattr(component, "min"):
                 self.min = component.min
-            if hasattr(component, 'max'):
+            if hasattr(component, "max"):
                 self.max = component.max
-            if hasattr(component, 'seed'):
+            if hasattr(component, "seed"):
                 self.seed = component.seed
-        if not hasattr(self, 'seed'):
-            self.seed = 1.
+        if not hasattr(self, "seed"):
+            self.seed = 1.0
 
     def prior(self, value, **kwargs):
-        v = self._components.values()[0][0]
-        if hasattr(v, 'prior'):
+        v = list(self._components.values())[0][0]
+        if hasattr(v, "prior"):
             return v.prior(value, **kwargs)
         else:
-            return 0.
+            return 0.0
 
     def expectations(self, *args, **kwargs):
         exes = dict()
@@ -58,7 +58,7 @@ class Combination(object):
                 subex = component.expectations(*args, **kwargs)
             else:
                 subex = component.expectations
-            exes[label] = livetime*subex
+            exes[label] = livetime * subex
         return exes
 
     @property
@@ -71,25 +71,43 @@ class Combination(object):
 
     def _get_energy_range(self):
         """Return the true energy range where all the components have support"""
-        def energy_range(i): return (
-            component[0].energy_range[i] for component in self._components.viewvalues())
+
+        def energy_range(i):
+            return (
+                component[0].energy_range[i] for component in self._components.values()
+            )
+
         return max(energy_range(0)), min(energy_range(1))
 
     def apply(self, func):
         """Return a copy with the function applied to each component"""
-        return Combination({k: (func(component), livetime) for k, (component, livetime) in self._components.items()})
+        return Combination(
+            {
+                k: (func(component), livetime)
+                for k, (component, livetime) in self._components.items()
+            }
+        )
 
     def differential_chunks(self, *args, **kwargs):
         # create chunk generators and sort by energy range
         generators = sorted(
-            [{
-                'label': label,
-                'livetime': livetime,
-                'emin': max(component.energy_range[0], kwargs.get('emin', -numpy.inf)),
-                'emax': min(component.energy_range[1], kwargs.get('emax', numpy.inf)),
-                'chunks': component.differential_chunks(*args, exclusive=True, **kwargs)
-            } for label, (component, livetime) in self._components.items()],
-            key = lambda item: (item['emin'], item['emax'])
+            [
+                {
+                    "label": label,
+                    "livetime": livetime,
+                    "emin": max(
+                        component.energy_range[0], kwargs.get("emin", -numpy.inf)
+                    ),
+                    "emax": min(
+                        component.energy_range[1], kwargs.get("emax", numpy.inf)
+                    ),
+                    "chunks": component.differential_chunks(
+                        *args, exclusive=True, **kwargs
+                    ),
+                }
+                for label, (component, livetime) in self._components.items()
+            ],
+            key=lambda item: (item["emin"], item["emax"]),
         )
         # merged chunks
         all_done = False
@@ -103,19 +121,21 @@ class Combination(object):
                 # the smallest (i.e. next) available e_center
                 if e_center is None:
                     try:
-                        e_center, component = next(item['chunks'])
+                        e_center, component = next(item["chunks"])
                     except StopIteration:
                         continue
                 # add chunks from remaining generators whose energy ranges overlap the current e_center
-                elif e_center > item['emin'] and e_center < item['emax']:
-                    e_center, component = next(item['chunks'])
+                elif e_center > item["emin"] and e_center < item["emax"]:
+                    e_center, component = next(item["chunks"])
                 else:
                     continue
                 if e_center is not None:
-                    components[item['label']] = (component, item['livetime'])
+                    components[item["label"]] = (component, item["livetime"])
                     eranges.append(component.energy_range)
                     ecenters.append(e_center)
-                    logging.getLogger().debug('label: %s, enu: %.2g' % (label, e_center))
+                    logging.getLogger().debug(
+                        "label: %s, enu: %.2g" % (item["label"], e_center)
+                    )
             if not components:
                 all_done = True
             else:
@@ -133,7 +153,7 @@ class LLHEval(object):
     def __init__(self, data, unbinned=False):
         """
         Initialize fit with data. This should be a dictionary from
-        keys -- of any type -- shared with the fit components to 
+        keys -- of any type -- shared with the fit components to
         numpy arrays of arbitrary dimensionality containing histograms.
 
         If the keyword argument unbinned is set to True, data should
@@ -157,9 +177,9 @@ class LLHEval(object):
         for c in self.components:
             min = 0
             max = None
-            if hasattr(self.components[c], 'min'):
+            if hasattr(self.components[c], "min"):
                 min = self.components[c].min
-            if hasattr(self.components[c], 'max'):
+            if hasattr(self.components[c], "max"):
                 max = self.components[c].max
             retval[c] = (min, max)
         return retval
@@ -173,14 +193,14 @@ class LLHEval(object):
         lamb = dict()
         for param in kwargs:
             c = self.components[param]
-            if not hasattr(c, 'expectations'):
+            if not hasattr(c, "expectations"):
                 continue
             if callable(c.expectations):
                 expec = c.expectations(**kwargs)
             else:
                 expec = c.expectations
             for prop in expec:
-                llh_bit = kwargs[param]*expec[prop]
+                llh_bit = kwargs[param] * expec[prop]
                 if prop in lamb:
                     lamb[prop] += llh_bit
                 else:
@@ -195,7 +215,7 @@ class LLHEval(object):
         lamb = self.expectations(**kwargs)
         llh = 0
         for param in kwargs:
-            if hasattr(self.components[param], 'prior'):
+            if hasattr(self.components[param], "prior"):
                 llh += self.components[param].prior(kwargs[param], **kwargs)
 
         for prop in lamb:
@@ -206,11 +226,12 @@ class LLHEval(object):
             if self.unbinned:
                 norm = numpy.sum(lamb[prop])
                 for event in self.data[prop]:
-                    llh += numpy.sum(event*lamb[prop])/norm
+                    llh += numpy.sum(event * lamb[prop]) / norm
                 llh -= norm
             else:
-                llh += numpy.sum(self.data[prop]*(log_lambda - log_data)
-                                 ) - numpy.sum(lamb[prop] - self.data[prop])
+                llh += numpy.sum(self.data[prop] * (log_lambda - log_data)) - numpy.sum(
+                    lamb[prop] - self.data[prop]
+                )
 
         return llh
 
@@ -224,7 +245,7 @@ class LLHEval(object):
         for prop in lamb:
             log_lambda = numpy.log(lamb[prop])
             log_lambda[numpy.isinf(log_lambda)] = 0
-            llh[prop] = self.data[prop]*log_lambda - lamb[prop]
+            llh[prop] = self.data[prop] * log_lambda - lamb[prop]
         return llh
 
     def sat_llh(self, **kwargs):
@@ -234,16 +255,16 @@ class LLHEval(object):
         model, the resulting values do not include priors
         """
         if self.unbinned:
-            raise ValueError('Saturated LLH does not work in unbinned mode')
+            raise ValueError("Saturated LLH does not work in unbinned mode")
 
         llh = 0
         dof = 0
         for prop in self.data:
             log_lambda = numpy.log(self.data[prop])
             log_lambda[numpy.isinf(log_lambda)] = 0
-            llh += numpy.sum(self.data[prop]*log_lambda - self.data[prop])
+            llh += numpy.sum(self.data[prop] * log_lambda - self.data[prop])
             dof += numpy.sum(self.data[prop] != 0)
-        return (llh, dof+1)
+        return (llh, dof + 1)
 
     def fit(self, minimizer_params=dict(), **fixedparams):
         """
@@ -264,13 +285,15 @@ class LLHEval(object):
         bounds = []
         seeds = []
         for param in fixedparams:
-            if isinstance(fixedparams[param], Iterable) and not isinstance(fixedparams[param], str):
+            if isinstance(fixedparams[param], Iterable) and not isinstance(
+                fixedparams[param], str
+            ):
                 discrete_params.append(param)
             if param in freeparams:
                 freeparams.remove(param)
         for p in freeparams:
             bounds.append(self.bounds()[p])
-            if hasattr(self.components[p], 'seed'):
+            if hasattr(self.components[p], "seed"):
                 seeds.append(self.components[p].seed)
             else:
                 seeds.append(0)
@@ -283,21 +306,25 @@ class LLHEval(object):
         if len(discrete_params) == 0:
             if freeparams:
                 bestfit = scipy.optimize.fmin_l_bfgs_b(
-                    minllh, seeds, bounds=bounds, approx_grad=True, **minimizer_params)
+                    minllh, seeds, bounds=bounds, approx_grad=True, **minimizer_params
+                )
             else:
                 bestfit = (dict(fixedparams), None)
-            #print fixedparams['ice_model'], bestfit[1], bestfit[0]
+            # print fixedparams['ice_model'], bestfit[1], bestfit[0]
             fixedparams.update(dict(zip(freeparams, bestfit[0])))
             return fixedparams
         else:
             bestllh = numpy.inf
             bestparams = dict(fixedparams)
-            for points in itertools.product(*tuple(fixedparams[k] for k in discrete_params)):
+            for points in itertools.product(
+                *tuple(fixedparams[k] for k in discrete_params)
+            ):
                 for k, p in zip(discrete_params, points):
                     fixedparams[k] = p
                 if freeparams:
                     bestfit = scipy.optimize.fmin_l_bfgs_b(
-                        minllh, seeds, bounds=bounds, approx_grad=True)
+                        minllh, seeds, bounds=bounds, approx_grad=True
+                    )
                     # print fixedparams['ice_model'], bestfit[1], bestllh, bestfit[0]
                 else:
                     bestfit = dict(freeparams), -self.llh(**fixedparams)
@@ -324,11 +351,11 @@ class LLHEval(object):
                 fit = self.fit(minimizer_params=minimizer_params, **params)
             mlh = self.llh(**fit)
             llhpoints.append(tuple(list(fit.values()) + [mlh]))
-        dkeys = list(fit.keys()) + ['LLH']
-        dtypes = [float]*(len(list(fit.keys())) + 1)
+        dkeys = list(fit.keys()) + ["LLH"]
+        dtypes = [float] * (len(list(fit.keys())) + 1)
         for i in range(len(dtypes)):
             if isinstance(llhpoints[-1][i], str):
-                dtypes[i] = '|S32'
+                dtypes[i] = "|S32"
         return numpy.array(llhpoints, dtype=list(zip(dkeys, dtypes)))
 
     def profile2d(self, param1, values1, param2, values2, **fixedparams):
@@ -347,7 +374,11 @@ class LLHEval(object):
                     fit = self.fit(**params)
                 mlh = self.llh(**fit)
                 llhpoints.append(list(fit.values()) + [mlh])
-        return numpy.asarray(llhpoints).view(dtype=list(zip(list(fit.keys()) + ['LLH'], [float]*(len(list(fit.keys())) + 1))))
+        return numpy.asarray(llhpoints).view(
+            dtype=list(
+                zip(list(fit.keys()) + ["LLH"], [float] * (len(list(fit.keys())) + 1))
+            )
+        )
 
 
 def _pseudo_llh(components, poisson, **nominal):
@@ -356,7 +387,7 @@ def _pseudo_llh(components, poisson, **nominal):
     for k in allh.components.keys():
         if not k in nominal:
             try:
-                nominal[k] = getattr(components[k], 'seed')
+                nominal[k] = getattr(components[k], "seed")
             except AttributeError:
                 nominal[k] = 1
     expectations = allh.expectations(**nominal)
@@ -396,16 +427,15 @@ def get_expectations(llh, **nominal):
     for k, comp in llh.components.items():
         if k in nominal:
             continue
-        if hasattr(comp, 'seed'):
+        if hasattr(comp, "seed"):
             nominal[k] = comp.seed
         else:
             nominal[k] = 1
     for k, comp in llh.components.items():
-        if hasattr(comp, 'expectations'):
+        if hasattr(comp, "expectations"):
             if callable(comp.expectations):
                 ex = comp.expectations(**nominal)
             else:
                 ex = comp.expectations
-            exes[k] = {klass: nominal[k] *
-                       values for klass, values in ex.items()}
+            exes[k] = {klass: nominal[k] * values for klass, values in ex.items()}
     return exes
