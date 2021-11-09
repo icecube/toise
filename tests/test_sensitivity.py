@@ -56,17 +56,17 @@ def asimov_llh(components):
     return multillh.asimov_llh(components, astro=0)
 
 
-def test_nullhypo(asimov_llh: multillh.LLHEval, snapshot):
+def test_nullhypo(asimov_llh: multillh.LLHEval, pinned):
     constrained_fit = asimov_llh.fit(astro=0)
     assert constrained_fit.pop("astro") == 0
     assert constrained_fit == pytest.approx({k: 1 for k in constrained_fit.keys()})
     assert (
         asimov_llh.llh(**{"astro": 0, **{k: 1 for k in constrained_fit.keys()}})
-        == snapshot
+        == pinned
     )
 
 
-def test_likelihood_ratio(asimov_llh: multillh.LLHEval, snapshot):
+def test_likelihood_ratio(asimov_llh: multillh.LLHEval, pinned):
     # test statistic between astro = f and astro = 0
     ts = lambda f: -2 * (
         asimov_llh.llh(**asimov_llh.fit(astro=f))
@@ -75,29 +75,7 @@ def test_likelihood_ratio(asimov_llh: multillh.LLHEval, snapshot):
     # fit for \Delta TS = 2.705 (90% CL for 1 degree of freedom)
     critical_ts = stats.chi2(1).ppf(0.9)
     limit = bisect(lambda f: ts(f) - critical_ts, 0, 1)
-    assert round(limit, 3) == snapshot
-
-
-def test_component_expectations(
-    components: dict[str, multillh.Combination], snapshot, round_to_scale
-):
-    assert (
-        round_to_scale(
-            {k: v.expectations() for k, v in components.items()}, 5
-        )
-        == snapshot
-    )
-
-
-def test_expectations(
-    asimov_llh: multillh.LLHEval, snapshot, round_to_scale
-):
-    assert (
-        round_to_scale(
-            asimov_llh.expectations(**{k: 1 for k in asimov_llh.components.keys()}), 5
-        )
-        == snapshot
-    )
+    assert limit == pinned.approx(rel=1e-3)
 
 
 @pytest.mark.parametrize(
@@ -108,6 +86,7 @@ def test_expectations(
         (figures_of_merit.DIFF.dp, {"decades": 1}),
     ],
 )
-def test_gzk(dummy_configuration, metric, kwargs, snapshot):
+def test_gzk(dummy_configuration, metric, kwargs, pinned):
     fom = figures_of_merit.GZK({"__dummy_config__": 15})
-    assert tuple(np.round(v, 3) for v in fom.benchmark(metric, **kwargs)) == snapshot
+    flux_level = fom.benchmark(metric, **kwargs)[1].tolist()
+    assert pinned.approx(rel=1e-3) == flux_level

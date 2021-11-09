@@ -333,15 +333,15 @@ name = "boost"
 version = "1.74.0"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/boost-1.74.0-py39h5472131_3.tar.bz2"
-hash = "ee2ecd799dd094305f4df20fec0ffc70"
+url = "https://conda.anaconda.org/conda-forge/linux-64/boost-1.74.0-py39h5472131_4.tar.bz2"
+hash = "d749fc6bdf3cda293c5714f5f4bb5708"
 optional = false
 category = "main"
 
 [package.dependencies]
 boost-cpp = "1.74.0.*"
-libgcc-ng = ">=9.3.0"
-libstdcxx-ng = ">=9.3.0"
+libgcc-ng = ">=9.4.0"
+libstdcxx-ng = ">=9.4.0"
 numpy = ">=1.19.5,<2.0a0"
 python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
@@ -350,14 +350,14 @@ name = "boost"
 version = "1.74.0"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/boost-1.74.0-py39ha641261_3.tar.bz2"
-hash = "32bcae9ebc83b5095d2655c24eddc0f0"
+url = "https://conda.anaconda.org/conda-forge/osx-64/boost-1.74.0-py39ha1f3e3e_4.tar.bz2"
+hash = "caef6f565a7511dd652ad352d0ab2482"
 optional = false
 category = "main"
 
 [package.dependencies]
 boost-cpp = "1.74.0.*"
-libcxx = ">=11.0.0"
+libcxx = ">=11.1.0"
 numpy = ">=1.19.5,<2.0a0"
 python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
@@ -366,16 +366,16 @@ name = "boost"
 version = "1.74.0"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/boost-1.74.0-py39h6f7cd10_3.tar.bz2"
-hash = "8239a62932ab5800b102c837e5b52cb9"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/boost-1.74.0-py39h776e71f_4.tar.bz2"
+hash = "1a70e62e4e932a2e07768017455891da"
 optional = false
 category = "main"
 
 [package.dependencies]
 boost-cpp = "1.74.0.*"
-libcxx = ">=11.0.0"
+libcxx = ">=11.1.0"
 numpy = ">=1.19.5,<2.0a0"
-python = ">=3.9,<3.10.0a0"
+python = ">=3.9,<3.10.0a0 *_cpython"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "boost-cpp"
@@ -682,11 +682,11 @@ category = "main"
 python = ">=3.6"
 [[package]]
 name = "debugpy"
-version = "1.4.1"
+version = "1.5.1"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/debugpy-1.4.1-py39he80948d_1.tar.bz2"
-hash = "50011e8ee09f2caa3ae82eccdd96b088"
+url = "https://conda.anaconda.org/conda-forge/linux-64/debugpy-1.5.1-py39he80948d_0.tar.bz2"
+hash = "111c5b430676182de0f0f038233ba3a4"
 optional = false
 category = "main"
 
@@ -697,11 +697,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "debugpy"
-version = "1.4.1"
+version = "1.5.1"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/debugpy-1.4.1-py39h9fcab8e_1.tar.bz2"
-hash = "da382314dfd81f4da85888e6b1c83208"
+url = "https://conda.anaconda.org/conda-forge/osx-64/debugpy-1.5.1-py39h9fcab8e_0.tar.bz2"
+hash = "5142a647b3e2aa13cdcc2cedb102260b"
 optional = false
 category = "main"
 
@@ -711,11 +711,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "debugpy"
-version = "1.4.1"
+version = "1.5.1"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/debugpy-1.4.1-py39hfb83b0d_1.tar.bz2"
-hash = "0c19a8da8579acee8fb5e20fba9bc58b"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/debugpy-1.5.1-py39hfb83b0d_0.tar.bz2"
+hash = "0f4bd3b0360c879e0041c148c4b73ff4"
 optional = false
 category = "main"
 
@@ -1077,11 +1077,11 @@ category = "main"
 libcxx = ">=11.1.0"
 [[package]]
 name = "importlib-metadata"
-version = "4.8.1"
+version = "4.8.2"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/importlib-metadata-4.8.1-py39hf3d152e_1.tar.bz2"
-hash = "4a1f30269068fdcacd75e1782b407a19"
+url = "https://conda.anaconda.org/conda-forge/linux-64/importlib-metadata-4.8.2-py39hf3d152e_0.tar.bz2"
+hash = "c99d085fb9beacd7679864876e97b4af"
 optional = false
 category = "main"
 
@@ -1091,11 +1091,11 @@ python_abi = "3.9.* *_cp39"
 zipp = ">=0.5"
 [[package]]
 name = "importlib-metadata"
-version = "4.8.1"
+version = "4.8.2"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/importlib-metadata-4.8.1-py39h6e9494a_1.tar.bz2"
-hash = "aa5d93af89dd84b09db1e36209d4d0c6"
+url = "https://conda.anaconda.org/conda-forge/osx-64/importlib-metadata-4.8.2-py39h6e9494a_0.tar.bz2"
+hash = "3ebd97a6f1345ba3322e33b3cc6c9b14"
 optional = false
 category = "main"
 
@@ -1105,11 +1105,11 @@ python_abi = "3.9.* *_cp39"
 zipp = ">=0.5"
 [[package]]
 name = "importlib-metadata"
-version = "4.8.1"
+version = "4.8.2"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/importlib-metadata-4.8.1-py39h2804cbe_1.tar.bz2"
-hash = "4d478b086b51dfb1c2cc4d8532f7511d"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/importlib-metadata-4.8.2-py39h2804cbe_0.tar.bz2"
+hash = "cc8ba0d83a76b8d1a85e8fad22d4d2dc"
 optional = false
 category = "main"
 
@@ -2933,14 +2933,14 @@ name = "numexpr"
 version = "2.7.3"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/numexpr-2.7.3-py39hde0f152_0.tar.bz2"
-hash = "0c90ae2ceff7ac6878a090d35b4ea9ba"
+url = "https://conda.anaconda.org/conda-forge/linux-64/numexpr-2.7.3-py39hde0f152_1.tar.bz2"
+hash = "e051d36f45890ce95f7b30bd615815dd"
 optional = false
 category = "main"
 
 [package.dependencies]
-libgcc-ng = ">=9.3.0"
-libstdcxx-ng = ">=9.3.0"
+libgcc-ng = ">=9.4.0"
+libstdcxx-ng = ">=9.4.0"
 numpy = ">=1.19.5,<2.0a0"
 python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
@@ -2950,24 +2950,8 @@ name = "numexpr"
 version = "2.7.3"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/numexpr-2.7.3-py39h4d6be9b_0.tar.bz2"
-hash = "bd6a2fafac6f4ab2c18bcf116f0df7b1"
-optional = false
-category = "main"
-
-[package.dependencies]
-libcxx = ">=11.0.1"
-numpy = ">=1.19.5,<2.0a0"
-python = ">=3.9,<3.10.0a0"
-python_abi = "3.9.* *_cp39"
-setuptools = ""
-[[package]]
-name = "numexpr"
-version = "2.7.3"
-manager = "conda"
-platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/numexpr-2.7.3-py39h7f752ed_0.tar.bz2"
-hash = "922af287561636b79b3fea537671ab11"
+url = "https://conda.anaconda.org/conda-forge/osx-64/numexpr-2.7.3-py39h4d6be9b_1.tar.bz2"
+hash = "da1954907a801a820cf56b2583856da3"
 optional = false
 category = "main"
 
@@ -2978,12 +2962,28 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 setuptools = ""
 [[package]]
+name = "numexpr"
+version = "2.7.3"
+manager = "conda"
+platform = "osx-arm64"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/numexpr-2.7.3-py39h7f752ed_1.tar.bz2"
+hash = "9bdc0e0f76855a746943d1f7cc620f8c"
+optional = false
+category = "main"
+
+[package.dependencies]
+libcxx = ">=11.1.0"
+numpy = ">=1.19.5,<2.0a0"
+python = ">=3.9,<3.10.0a0 *_cpython"
+python_abi = "3.9.* *_cp39"
+setuptools = ""
+[[package]]
 name = "numpy"
-version = "1.21.3"
+version = "1.21.4"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/numpy-1.21.3-py39hdbf815f_1.tar.bz2"
-hash = "e47227d44d6041254f4462420be46c08"
+url = "https://conda.anaconda.org/conda-forge/linux-64/numpy-1.21.4-py39hdbf815f_0.tar.bz2"
+hash = "3ef30a1c931a3cfe564ca5212b3fa8fe"
 optional = false
 category = "main"
 
@@ -2996,11 +2996,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "numpy"
-version = "1.21.3"
+version = "1.21.4"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/numpy-1.21.3-py39h7eed0ac_1.tar.bz2"
-hash = "8ae09dc91457700f9982bf7c7b54cc3a"
+url = "https://conda.anaconda.org/conda-forge/osx-64/numpy-1.21.4-py39h7eed0ac_0.tar.bz2"
+hash = "1c5103c2f7c964e07a5cae06468d0f98"
 optional = false
 category = "main"
 
@@ -3012,11 +3012,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "numpy"
-version = "1.21.3"
+version = "1.21.4"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/numpy-1.21.3-py39h1f3b974_1.tar.bz2"
-hash = "d59107133544c8606df070fd1e95d501"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/numpy-1.21.4-py39h1f3b974_0.tar.bz2"
+hash = "ae8bfff0872f36c053ea4130818d7270"
 optional = false
 category = "main"
 
@@ -3189,8 +3189,8 @@ name = "pandas"
 version = "1.3.4"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/pandas-1.3.4-py39hde0f152_0.tar.bz2"
-hash = "0eee2a7e311bb61b0c9bd6a50de5f929"
+url = "https://conda.anaconda.org/conda-forge/linux-64/pandas-1.3.4-py39hde0f152_1.tar.bz2"
+hash = "8b043715b3ecda6b4546c962aff6f519"
 optional = false
 category = "main"
 
@@ -3207,8 +3207,8 @@ name = "pandas"
 version = "1.3.4"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/pandas-1.3.4-py39h4d6be9b_0.tar.bz2"
-hash = "37831161b53abd456d3ffb4803ad4716"
+url = "https://conda.anaconda.org/conda-forge/osx-64/pandas-1.3.4-py39h4d6be9b_1.tar.bz2"
+hash = "ec1c2db1e81f499e29f1d0d114dbf919"
 optional = false
 category = "main"
 
@@ -3224,15 +3224,15 @@ name = "pandas"
 version = "1.3.4"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/pandas-1.3.4-py39h7f752ed_0.tar.bz2"
-hash = "3404037666313712d4e9ec7b90628f85"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/pandas-1.3.4-py39h7f752ed_1.tar.bz2"
+hash = "72590755c6995e359cb031dd04e979cb"
 optional = false
 category = "main"
 
 [package.dependencies]
 libcxx = ">=11.1.0"
 numpy = ">=1.19.5,<2.0a0"
-python = ">=3.9,<3.10.0a0"
+python = ">=3.9,<3.10.0a0 *_cpython"
 python-dateutil = ">=2.7.3"
 python_abi = "3.9.* *_cp39"
 pytz = ">=2017.2"
@@ -3548,11 +3548,11 @@ python = ">=3.9,<3.10.0a0 *_cpython"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "prompt-toolkit"
-version = "3.0.21"
+version = "3.0.22"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.21-pyha770c72_0.tar.bz2"
-hash = "49fe880250e91246d2a0f41f7ff94e81"
+url = "https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.22-pyha770c72_0.tar.bz2"
+hash = "a749a230f0d950eae1dedf13ff344b15"
 optional = false
 category = "main"
 
@@ -3561,11 +3561,11 @@ python = ">=3.6"
 wcwidth = ""
 [[package]]
 name = "prompt-toolkit"
-version = "3.0.21"
+version = "3.0.22"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.21-pyha770c72_0.tar.bz2"
-hash = "49fe880250e91246d2a0f41f7ff94e81"
+url = "https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.22-pyha770c72_0.tar.bz2"
+hash = "a749a230f0d950eae1dedf13ff344b15"
 optional = false
 category = "main"
 
@@ -3574,11 +3574,11 @@ wcwidth = ""
 python = ">=3.6"
 [[package]]
 name = "prompt-toolkit"
-version = "3.0.21"
+version = "3.0.22"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.21-pyha770c72_0.tar.bz2"
-hash = "49fe880250e91246d2a0f41f7ff94e81"
+url = "https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.22-pyha770c72_0.tar.bz2"
+hash = "a749a230f0d950eae1dedf13ff344b15"
 optional = false
 category = "main"
 
@@ -3623,11 +3623,11 @@ category = "main"
 python = ""
 [[package]]
 name = "py"
-version = "1.10.0"
+version = "1.11.0"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/noarch/py-1.10.0-pyhd3deb0d_0.tar.bz2"
-hash = "88ca1328ecc79a070214aa24911bace8"
+url = "https://conda.anaconda.org/conda-forge/noarch/py-1.11.0-pyh6c4a22f_0.tar.bz2"
+hash = "b4613d7e7a493916d867842a6a148054"
 optional = true
 category = "dev"
 
@@ -3635,11 +3635,11 @@ category = "dev"
 python = ">=2.7"
 [[package]]
 name = "py"
-version = "1.10.0"
+version = "1.11.0"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/noarch/py-1.10.0-pyhd3deb0d_0.tar.bz2"
-hash = "88ca1328ecc79a070214aa24911bace8"
+url = "https://conda.anaconda.org/conda-forge/noarch/py-1.11.0-pyh6c4a22f_0.tar.bz2"
+hash = "b4613d7e7a493916d867842a6a148054"
 optional = true
 category = "dev"
 
@@ -3647,11 +3647,11 @@ category = "dev"
 python = ">=2.7"
 [[package]]
 name = "py"
-version = "1.10.0"
+version = "1.11.0"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/noarch/py-1.10.0-pyhd3deb0d_0.tar.bz2"
-hash = "88ca1328ecc79a070214aa24911bace8"
+url = "https://conda.anaconda.org/conda-forge/noarch/py-1.11.0-pyh6c4a22f_0.tar.bz2"
+hash = "b4613d7e7a493916d867842a6a148054"
 optional = true
 category = "dev"
 
@@ -3662,8 +3662,8 @@ name = "pyerfa"
 version = "2.0.0.1"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/pyerfa-2.0.0.1-py39hce5d2b2_0.tar.bz2"
-hash = "a0e59773f4dcee0c0bf25f6c675e2b42"
+url = "https://conda.anaconda.org/conda-forge/linux-64/pyerfa-2.0.0.1-py39hce5d2b2_1.tar.bz2"
+hash = "96b29c80185a959228709a126c59a388"
 optional = false
 category = "main"
 
@@ -3677,8 +3677,8 @@ name = "pyerfa"
 version = "2.0.0.1"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/pyerfa-2.0.0.1-py39hc89836e_0.tar.bz2"
-hash = "5c68b240c7a794ac680d626c0135edb0"
+url = "https://conda.anaconda.org/conda-forge/osx-64/pyerfa-2.0.0.1-py39hc89836e_1.tar.bz2"
+hash = "e8f1f56f302b3841effc97e521605010"
 optional = false
 category = "main"
 
@@ -3691,8 +3691,8 @@ name = "pyerfa"
 version = "2.0.0.1"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/pyerfa-2.0.0.1-py39h20ef057_0.tar.bz2"
-hash = "fd10101703e4a586e778bd1e645938ad"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/pyerfa-2.0.0.1-py39h20ef057_1.tar.bz2"
+hash = "d7c83deb0e2eda037e2c1a1aaa72af63"
 optional = false
 category = "main"
 
@@ -4125,8 +4125,8 @@ name = "pyyaml"
 version = "6.0"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/pyyaml-6.0-py39h3811e60_2.tar.bz2"
-hash = "99a3938e1a378b5683d899ca39e893f9"
+url = "https://conda.anaconda.org/conda-forge/linux-64/pyyaml-6.0-py39h3811e60_3.tar.bz2"
+hash = "057928f10b3eaa98b088b7b57c6dabb8"
 optional = false
 category = "main"
 
@@ -4140,8 +4140,8 @@ name = "pyyaml"
 version = "6.0"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/pyyaml-6.0-py39h89e85a6_2.tar.bz2"
-hash = "7c5bb007f97e68de8cb3ce589555cc0d"
+url = "https://conda.anaconda.org/conda-forge/osx-64/pyyaml-6.0-py39h89e85a6_3.tar.bz2"
+hash = "58aa79ae5416c058bcb4942dd55ec341"
 optional = false
 category = "main"
 
@@ -4154,8 +4154,8 @@ name = "pyyaml"
 version = "6.0"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/pyyaml-6.0-py39h5161555_2.tar.bz2"
-hash = "2a5193cd93f95ecfee58d3863f6ba981"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/pyyaml-6.0-py39h5161555_3.tar.bz2"
+hash = "1169532ea0b9456d7ac8171807486614"
 optional = false
 category = "main"
 
@@ -4251,11 +4251,11 @@ category = "main"
 ncurses = ">=6.2,<6.3.0a0"
 [[package]]
 name = "scipy"
-version = "1.7.1"
+version = "1.7.2"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/scipy-1.7.1-py39hee8e79c_0.tar.bz2"
-hash = "ad828d8a09ce2e3820b3fce0a3ac85ed"
+url = "https://conda.anaconda.org/conda-forge/linux-64/scipy-1.7.2-py39hee8e79c_0.tar.bz2"
+hash = "6f67769d2c14095f1d7bf4f07b5a961b"
 optional = false
 category = "main"
 
@@ -4272,11 +4272,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "scipy"
-version = "1.7.1"
+version = "1.7.2"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/scipy-1.7.1-py39h056f1c0_0.tar.bz2"
-hash = "f896290de75576787a55ddd1dce19d84"
+url = "https://conda.anaconda.org/conda-forge/osx-64/scipy-1.7.2-py39h056f1c0_0.tar.bz2"
+hash = "dd38bd139df403eb8c3ed2be4cda0aff"
 optional = false
 category = "main"
 
@@ -4292,11 +4292,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "scipy"
-version = "1.7.1"
+version = "1.7.2"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/scipy-1.7.1-py39h5060c3b_0.tar.bz2"
-hash = "9c26ccd711fb6626c2a43a15046bcefe"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/scipy-1.7.2-py39h5060c3b_0.tar.bz2"
+hash = "754073c2b07bbb53f30a1dcc3621f505"
 optional = false
 category = "main"
 
@@ -4308,15 +4308,15 @@ libgfortran = "5.*"
 libgfortran5 = ">=11.0.1.dev0"
 liblapack = ">=3.9.0,<4.0a0"
 numpy = ">=1.19.5,<2.0a0"
-python = ">=3.9,<3.10.0a0"
+python = ">=3.9,<3.10.0a0 *_cpython"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "setuptools"
-version = "58.5.2"
+version = "58.5.3"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/linux-64/setuptools-58.5.2-py39hf3d152e_0.tar.bz2"
-hash = "9dca990ecac1e32f3bc8d80580e894a6"
+url = "https://conda.anaconda.org/conda-forge/linux-64/setuptools-58.5.3-py39hf3d152e_0.tar.bz2"
+hash = "d50f066535f4794ce3c88bf8c44085de"
 optional = false
 category = "main"
 
@@ -4325,11 +4325,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "setuptools"
-version = "58.5.2"
+version = "58.5.3"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/osx-64/setuptools-58.5.2-py39h6e9494a_0.tar.bz2"
-hash = "30a448f04eaa337e0a4d6a6d8480f76b"
+url = "https://conda.anaconda.org/conda-forge/osx-64/setuptools-58.5.3-py39h6e9494a_0.tar.bz2"
+hash = "81404ffe7459503749ef660a149c8c03"
 optional = false
 category = "main"
 
@@ -4338,11 +4338,11 @@ python = ">=3.9,<3.10.0a0"
 python_abi = "3.9.* *_cp39"
 [[package]]
 name = "setuptools"
-version = "58.5.2"
+version = "58.5.3"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/osx-arm64/setuptools-58.5.2-py39h2804cbe_0.tar.bz2"
-hash = "82932022de9929092c00c07feaf10cdc"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/setuptools-58.5.3-py39h2804cbe_0.tar.bz2"
+hash = "20d0cfd105ebd4db9aca198c453b54ae"
 optional = false
 category = "main"
 
@@ -4595,11 +4595,11 @@ category = "dev"
 python = ">=2.7"
 [[package]]
 name = "toolz"
-version = "0.11.1"
+version = "0.11.2"
 manager = "conda"
 platform = "linux-64"
-url = "https://conda.anaconda.org/conda-forge/noarch/toolz-0.11.1-py_0.tar.bz2"
-hash = "d1e66b58cb00b3817ad9f05eec098c00"
+url = "https://conda.anaconda.org/conda-forge/noarch/toolz-0.11.2-pyhd8ed1ab_0.tar.bz2"
+hash = "f348d1590550371edfac5ed3c1d44f7e"
 optional = false
 category = "main"
 
@@ -4607,11 +4607,11 @@ category = "main"
 python = ">=3.5"
 [[package]]
 name = "toolz"
-version = "0.11.1"
+version = "0.11.2"
 manager = "conda"
 platform = "osx-64"
-url = "https://conda.anaconda.org/conda-forge/noarch/toolz-0.11.1-py_0.tar.bz2"
-hash = "d1e66b58cb00b3817ad9f05eec098c00"
+url = "https://conda.anaconda.org/conda-forge/noarch/toolz-0.11.2-pyhd8ed1ab_0.tar.bz2"
+hash = "f348d1590550371edfac5ed3c1d44f7e"
 optional = false
 category = "main"
 
@@ -4619,11 +4619,11 @@ category = "main"
 python = ">=3.5"
 [[package]]
 name = "toolz"
-version = "0.11.1"
+version = "0.11.2"
 manager = "conda"
 platform = "osx-arm64"
-url = "https://conda.anaconda.org/conda-forge/noarch/toolz-0.11.1-py_0.tar.bz2"
-hash = "d1e66b58cb00b3817ad9f05eec098c00"
+url = "https://conda.anaconda.org/conda-forge/noarch/toolz-0.11.2-pyhd8ed1ab_0.tar.bz2"
+hash = "f348d1590550371edfac5ed3c1d44f7e"
 optional = false
 category = "main"
 
@@ -5073,36 +5073,6 @@ lz4-c = ">=1.9.3,<1.9.4.0a0"
 xz = ">=5.2.5,<5.3.0a0"
 zlib = ">=1.2.11,<1.3.0a0"
 [[package]]
-name = "colored"
-version = "1.4.3"
-manager = "pip"
-platform = "linux-64"
-url = "https://files.pythonhosted.org/packages/f4/57/fe3e4e96efa3c68d3781a0903de0933ea2afa744852d907b290a2cb2294e/colored-1.4.3.tar.gz"
-hash = "sha256:b7b48b9f40e8a65bbb54813d5d79dd008dc8b8c5638d5bbfd30fc5a82e6def7a"
-optional = true
-category = "dev"
-
-[[package]]
-name = "colored"
-version = "1.4.3"
-manager = "pip"
-platform = "osx-64"
-url = "https://files.pythonhosted.org/packages/f4/57/fe3e4e96efa3c68d3781a0903de0933ea2afa744852d907b290a2cb2294e/colored-1.4.3.tar.gz"
-hash = "sha256:b7b48b9f40e8a65bbb54813d5d79dd008dc8b8c5638d5bbfd30fc5a82e6def7a"
-optional = true
-category = "dev"
-
-[[package]]
-name = "colored"
-version = "1.4.3"
-manager = "pip"
-platform = "osx-arm64"
-url = "https://files.pythonhosted.org/packages/f4/57/fe3e4e96efa3c68d3781a0903de0933ea2afa744852d907b290a2cb2294e/colored-1.4.3.tar.gz"
-hash = "sha256:b7b48b9f40e8a65bbb54813d5d79dd008dc8b8c5638d5bbfd30fc5a82e6def7a"
-optional = true
-category = "dev"
-
-[[package]]
 name = "easy-cache"
 version = "1.1.0"
 manager = "pip"
@@ -5178,49 +5148,43 @@ category = "main"
 type = "url"
 url = "https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0-alpha.0.tar.gz"
 [[package]]
-name = "syrupy"
-version = "1.5.0"
+name = "pytest-pinned"
+version = "0.4.2"
 manager = "pip"
 platform = "linux-64"
-url = "https://files.pythonhosted.org/packages/be/4d/a575239721e18104e58613b14e09e9c48d224557413647dd3e3995dcfaec/syrupy-1.5.0-py3-none-any.whl"
-hash = "sha256:4e791e12bd605c4af8ae39648093a3c665b0c4155c9dc32bcaf08a5433887732"
+url = "https://files.pythonhosted.org/packages/4a/08/98aad61bab14108d5dc6651d121994f955bd39fdd413bf8a2a2dc4d2ce7f/pytest_pinned-0.4.2-py3-none-any.whl"
+hash = "sha256:ebf8b6cd32772e940c20871f5c09ca35d18155390e649823b8435299a25bd88e"
 optional = true
 category = "dev"
 
 [package.dependencies]
-attrs = ">=18.2.0,<22.0.0"
-colored = ">=1.3.92,<2.0.0"
-pytest = ">=5.1.0,<7.0.0"
+pytest = ">=3.5.0"
 [[package]]
-name = "syrupy"
-version = "1.5.0"
+name = "pytest-pinned"
+version = "0.4.2"
 manager = "pip"
 platform = "osx-64"
-url = "https://files.pythonhosted.org/packages/be/4d/a575239721e18104e58613b14e09e9c48d224557413647dd3e3995dcfaec/syrupy-1.5.0-py3-none-any.whl"
-hash = "sha256:4e791e12bd605c4af8ae39648093a3c665b0c4155c9dc32bcaf08a5433887732"
+url = "https://files.pythonhosted.org/packages/4a/08/98aad61bab14108d5dc6651d121994f955bd39fdd413bf8a2a2dc4d2ce7f/pytest_pinned-0.4.2-py3-none-any.whl"
+hash = "sha256:ebf8b6cd32772e940c20871f5c09ca35d18155390e649823b8435299a25bd88e"
 optional = true
 category = "dev"
 
 [package.dependencies]
-attrs = ">=18.2.0,<22.0.0"
-colored = ">=1.3.92,<2.0.0"
-pytest = ">=5.1.0,<7.0.0"
+pytest = ">=3.5.0"
 [[package]]
-name = "syrupy"
-version = "1.5.0"
+name = "pytest-pinned"
+version = "0.4.2"
 manager = "pip"
 platform = "osx-arm64"
-url = "https://files.pythonhosted.org/packages/be/4d/a575239721e18104e58613b14e09e9c48d224557413647dd3e3995dcfaec/syrupy-1.5.0-py3-none-any.whl"
-hash = "sha256:4e791e12bd605c4af8ae39648093a3c665b0c4155c9dc32bcaf08a5433887732"
+url = "https://files.pythonhosted.org/packages/4a/08/98aad61bab14108d5dc6651d121994f955bd39fdd413bf8a2a2dc4d2ce7f/pytest_pinned-0.4.2-py3-none-any.whl"
+hash = "sha256:ebf8b6cd32772e940c20871f5c09ca35d18155390e649823b8435299a25bd88e"
 optional = true
 category = "dev"
 
 [package.dependencies]
-attrs = ">=18.2.0,<22.0.0"
-colored = ">=1.3.92,<2.0.0"
-pytest = ">=5.1.0,<7.0.0"
+pytest = ">=3.5.0"
 
 [metadata]
-content_hash = "9d3138e01467063414433b010762111bd5c2185171b6a04a915280d60753e48e"
+content_hash = "b3c374d2638765eb8f9a2e4dd670aa74ac56b9a420d2e8af563af325215e0bc2"
 channels = [ "conda-forge",]
 platforms = [ "linux-64", "osx-64", "osx-arm64",]

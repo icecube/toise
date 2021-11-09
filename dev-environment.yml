@@ -2,4 +2,4 @@ category: dev
 dependencies:
   - pytest
   - pip:
-    - syrupy
+    - pytest-pinned
