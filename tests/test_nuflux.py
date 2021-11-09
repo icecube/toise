@@ -24,17 +24,17 @@ def aeff():
 
 
 @pytest.mark.parametrize("veto_threshold", [None, 1e3])
-def test_conventional(aeff, veto_threshold, snapshot, round_to_scale):
+def test_conventional(aeff, veto_threshold, pinned):
     component = AtmosphericNu.conventional(
         aeff, livetime=1.0, veto_threshold=veto_threshold
     )
-    assert snapshot == round_to_scale(component.expectations, 5)
+    assert pinned.approx(rel=1e-5) == component.expectations
 
 
 @pytest.mark.parametrize("veto_threshold", [None, 1e3])
-def test_prompt(aeff, veto_threshold, snapshot, round_to_scale):
+def test_prompt(aeff, veto_threshold, pinned):
     component = AtmosphericNu.prompt(aeff, livetime=1.0, veto_threshold=veto_threshold)
-    assert snapshot == round_to_scale(component.expectations, 5)
+    assert pinned.approx(rel=1e-5) == component.expectations
 
 
 @pytest.mark.parametrize(
@@ -46,11 +46,9 @@ def test_prompt(aeff, veto_threshold, snapshot, round_to_scale):
 )
 @pytest.mark.parametrize("kind", ["conventional", "charm"])
 @pytest.mark.parametrize("veto_threshold", [1e3])
-def test_veto_probability(ptype, kind, veto_threshold, snapshot):
+def test_veto_probability(ptype, kind, veto_threshold, pinned):
     passing_fraction = AnalyticPassingFraction(kind=kind, veto_threshold=veto_threshold)
     energy = np.logspace(3, 6, 5)
     cos_theta = np.linspace(0.2, 1, 5)
     # round result to account for architecture-specific precision in photospline
-    assert snapshot == np.round(
-        passing_fraction(ptype, energy[:, None], cos_theta[None, :], depth=2e3), 5
-    )
+    assert pinned.approx(rel=1e-5) == passing_fraction(ptype, energy[:, None], cos_theta[None, :], depth=2e3)
