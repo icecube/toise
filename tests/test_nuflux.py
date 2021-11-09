@@ -51,4 +51,6 @@ def test_veto_probability(ptype, kind, veto_threshold, pinned):
     energy = np.logspace(3, 6, 5)
     cos_theta = np.linspace(0.2, 1, 5)
     # round result to account for architecture-specific precision in photospline
-    assert pinned.approx(rel=1e-5) == passing_fraction(ptype, energy[:, None], cos_theta[None, :], depth=2e3)
+    assert pinned.approx(rel=1e-5) == passing_fraction(
+        ptype, energy[:, None], cos_theta[None, :], depth=2e3
+    )

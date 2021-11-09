@@ -223,7 +223,7 @@ def surface_geometry(reverse_order=True):
     order = list(range(4))
     if reverse_order:
         order = reversed(order)
-    
+
     radio_ax, gen2_ax, icecube_ax, upgrade_ax = [axes[i] for i in order]
 
     radio_ax.scatter(upgrade[:, 0], upgrade[:, 1], s=1, color="C3")
@@ -263,11 +263,13 @@ def surface_geometry(reverse_order=True):
         marker="P",
     )
     # IceCube strings in Upgrade volume
-    upgrade_context = [s-1 for s in (36, 79, 80, 84)]
+    upgrade_context = [s - 1 for s in (36, 79, 80, 84)]
     upgrade_ax.scatter(
         pos[upgrade_context]["x"],
         pos[upgrade_context]["y"],
-        s=5, marker="H", color="C0"
+        s=5,
+        marker="H",
+        color="C0",
     )
     upgrade_ax.set_ylim(bottom=-115)
 
@@ -286,7 +288,7 @@ def surface_geometry(reverse_order=True):
             frameon=False,
             handletextpad=0.1,
             markerscale=3,
-            prop={'size': 9}
+            prop={"size": 9},
         )
 
     add_scalebar(radio_ax, 5000, "5 km")
@@ -303,11 +305,13 @@ def surface_geometry(reverse_order=True):
 
     for spine in radio_ax.spines.values():
         spine.set_visible(False)
-    
+
     for order, ax in enumerate((radio_ax, gen2_ax, icecube_ax, upgrade_ax)):
         ax.set_zorder(order)
 
-    pairs = reversed(list(zip([radio_ax, gen2_ax, icecube_ax], [gen2_ax, icecube_ax, upgrade_ax])))
+    pairs = reversed(
+        list(zip([radio_ax, gen2_ax, icecube_ax], [gen2_ax, icecube_ax, upgrade_ax]))
+    )
     if reverse_order:
         for parent, child in pairs:
             inset_locator.mark_inset(
@@ -318,7 +322,6 @@ def surface_geometry(reverse_order=True):
             inset_locator.mark_inset(
                 parent, child, 2, 3, edgecolor="black", alpha=0.3, ls="-"
             )
-
 
     return fig
 
