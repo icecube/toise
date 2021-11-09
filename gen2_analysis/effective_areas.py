@@ -1,4 +1,3 @@
-
 import dashi
 import tables
 from scipy import interpolate
@@ -11,11 +10,11 @@ import healpy
 import warnings
 import copy
 
-from surfaces import get_fiducial_surface
-from energy_resolution import get_energy_resolution
-from angular_resolution import get_angular_resolution
-from classification_efficiency import get_classification_efficiency
-from util import *
+from .surfaces import get_fiducial_surface
+from .energy_resolution import get_energy_resolution
+from .angular_resolution import get_angular_resolution
+from .classification_efficiency import get_classification_efficiency
+from .util import *
 
 
 def load_jvs_mese():
@@ -30,10 +29,12 @@ def load_jvs_mese():
     shape = None
     edges = None
     aeff = None
-    base = '/Users/jakob/Documents/IceCube/reports/charm_search/supplemental/effective_area.per_bin.nu_{flavor}{anti}.{interaction}.{channel}.txt.gz'
-    for i, (flavor, anti) in enumerate(itertools.product(('e', 'mu', 'tau'), ('', '_bar'))):
-        for j, channel in enumerate(('cascade', 'track')):
-            for interaction in 'cc', 'nc', 'gr':
+    base = "/Users/jakob/Documents/IceCube/reports/charm_search/supplemental/effective_area.per_bin.nu_{flavor}{anti}.{interaction}.{channel}.txt.gz"
+    for i, (flavor, anti) in enumerate(
+        itertools.product(("e", "mu", "tau"), ("", "_bar"))
+    ):
+        for j, channel in enumerate(("cascade", "track")):
+            for interaction in "cc", "nc", "gr":
                 try:
                     data = numpy.loadtxt(base.format(**locals()))
                 except:
@@ -41,10 +42,10 @@ def load_jvs_mese():
                 if shape is None:
                     edges = []
                     for k in range(4):
-                        lo = numpy.unique(data[:, k*2])
-                        hi = numpy.unique(data[:, k*2+1])
+                        lo = numpy.unique(data[:, k * 2])
+                        hi = numpy.unique(data[:, k * 2 + 1])
                         edges.append(numpy.concatenate((lo, [hi[-1]])))
-                    shape = [len(e)-1 for e in reversed(edges)]
+                    shape = [len(e) - 1 for e in reversed(edges)]
                     aeff = numpy.zeros([6] + list(reversed(shape)) + [2])
                 aeff[i, ..., j] += data[:, -2].reshape(shape).T
 
@@ -52,50 +53,61 @@ def load_jvs_mese():
 
 
 class MuonSelectionEfficiency(object):
-    def __init__(self, filename='aachen_muon_selection_efficiency.npz', energy_threshold=0):
-        if not filename.startswith('/'):
-            filename = os.path.join(data_dir, 'selection_efficiency', filename)
-        if filename.endswith('.npz'):
+    def __init__(
+        self, filename="aachen_muon_selection_efficiency.npz", energy_threshold=0
+    ):
+        if not filename.startswith("/"):
+            filename = os.path.join(data_dir, "selection_efficiency", filename)
+        if filename.endswith(".npz"):
             f = numpy.load(filename)
 
-            loge = f['log_energy']
-            eff = f['efficiency']
+            loge = f["log_energy"]
+            eff = f["efficiency"]
 
-            self.interp = interpolate.interp1d(loge, eff,
-                                               bounds_error=False, fill_value=0.)
-        elif filename.endswith('.hdf5'):
+            self.interp = interpolate.interp1d(
+                loge, eff, bounds_error=False, fill_value=0.0
+            )
+        elif filename.endswith(".hdf5"):
             with tables.open_file(filename) as f:
-                generated = dashi.histload(f, '/generated')
-                detected = dashi.histload(f, '/detected')
+                generated = dashi.histload(f, "/generated")
+                detected = dashi.histload(f, "/detected")
             sp = dashi.histfuncs.histratio(
-                detected.project([0]), generated.project([0]))
+                detected.project([0]), generated.project([0])
+            )
 
-            edges = numpy.concatenate(
-                (sp.x - sp.xerr, [sp.x[-1] + sp.xerr[-1]]))
-            loge = 0.5*(numpy.log10(edges[1:]) + numpy.log10(edges[:-1]))
+            edges = numpy.concatenate((sp.x - sp.xerr, [sp.x[-1] + sp.xerr[-1]]))
+            loge = 0.5 * (numpy.log10(edges[1:]) + numpy.log10(edges[:-1]))
 
-            loge = numpy.concatenate(
-                (loge, loge + loge[-1] + numpy.diff(loge)[0]))
-            v = numpy.concatenate(
-                (sp.y, sp.y[-5:].mean()*numpy.ones(sp.y.size)))
-            w = 1/numpy.concatenate((sp.yerr, 1e-2*numpy.ones(sp.yerr.size)))
+            loge = numpy.concatenate((loge, loge + loge[-1] + numpy.diff(loge)[0]))
+            v = numpy.concatenate((sp.y, sp.y[-5:].mean() * numpy.ones(sp.y.size)))
+            w = 1 / numpy.concatenate((sp.yerr, 1e-2 * numpy.ones(sp.yerr.size)))
             w[~numpy.isfinite(w)] = 1
 
             self.interp = interpolate.UnivariateSpline(loge, v, w=w)
         if energy_threshold is None:
-            self.energy_threshold = 0.
+            self.energy_threshold = 0.0
         else:
             self.energy_threshold = energy_threshold
 
     def __call__(self, muon_energy, cos_theta):
-        return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(self.interp(numpy.log10(muon_energy)), 0, 1), 0.)
+        return numpy.where(
+            muon_energy >= self.energy_threshold,
+            numpy.clip(self.interp(numpy.log10(muon_energy)), 0, 1),
+            0.0,
+        )
 
 
 class ZenithDependentMuonSelectionEfficiency(object):
-    def __init__(self, filename='sunflower_200m_bdt0_efficiency.fits', energy_threshold=0, scale=1.):
+    def __init__(
+        self,
+        filename="sunflower_200m_bdt0_efficiency.fits",
+        energy_threshold=0,
+        scale=1.0,
+    ):
         from photospline import SplineTable
-        if not filename.startswith('/'):
-            filename = os.path.join(data_dir, 'selection_efficiency', filename)
+
+        if not filename.startswith("/"):
+            filename = os.path.join(data_dir, "selection_efficiency", filename)
         self._spline = SplineTable(filename)
         self._scale = scale
         # cut off no lower than 500 GeV
@@ -105,13 +117,21 @@ class ZenithDependentMuonSelectionEfficiency(object):
         return self._spline.eval([loge, cos_theta])
 
     def __call__(self, muon_energy, cos_theta):
-        loge, cos_theta = numpy.broadcast_arrays(
-            numpy.log10(muon_energy), cos_theta)
-        if hasattr(self._scale, '__call__'):
-            scale = self._scale(10**loge)
+        loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
+        if hasattr(self._scale, "__call__"):
+            scale = self._scale(10 ** loge)
         else:
             scale = self._scale
-        return numpy.where(muon_energy >= self.energy_threshold, numpy.clip(scale*self._spline.evaluate_simple([numpy.log10(muon_energy), cos_theta]), 0, 1), 0.)
+        return numpy.where(
+            muon_energy >= self.energy_threshold,
+            numpy.clip(
+                scale
+                * self._spline.evaluate_simple([numpy.log10(muon_energy), cos_theta]),
+                0,
+                1,
+            ),
+            0.0,
+        )
 
 
 class HESEishSelectionEfficiency(object):
@@ -121,32 +141,43 @@ class HESEishSelectionEfficiency(object):
 
     def __init__(self, geometry="IceCube", spacing=125, energy_threshold=1e5):
         from . import surfaces
+
         outer = get_fiducial_surface(geometry, spacing)
-        side_padding = spacing/2.
-        top_padding = 180 # top + dust layer exclusion
+        side_padding = spacing / 2.0
+        top_padding = 180  # top + dust layer exclusion
         fiducial = surfaces.ExtrudedPolygon.from_file(
-            surfaces.get_geometry_file(geometry, spacing), padding=-side_padding)
+            surfaces.get_geometry_file(geometry, spacing), padding=-side_padding
+        )
 
         self._fiducial_surface = fiducial
 
         self._threshold = energy_threshold
-        self._fiducial_volume = fiducial.get_cap_area()*(fiducial.length + 2 *
-                                                         side_padding - top_padding)
-        self._efficiency = self._fiducial_volume/outer.volume()
+        self._fiducial_volume = fiducial.get_cap_area() * (
+            fiducial.length + 2 * side_padding - top_padding
+        )
+        self._efficiency = self._fiducial_volume / outer.volume()
         self._outer_volume = outer.volume()
 
     def __call__(self, deposited_energy, cos_theta):
-        return 0.75*self._efficiency/(1+numpy.exp(-2.5*numpy.log(deposited_energy/self._threshold)))
+        return (
+            0.75
+            * self._efficiency
+            / (1 + numpy.exp(-2.5 * numpy.log(deposited_energy / self._threshold)))
+        )
 
 
-def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0, scale=1.):
+def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0, scale=1.0):
     """
     :param energy_threshold: artificial energy threshold in GeV
     """
     if geometry == "IceCube":
         return MuonSelectionEfficiency(energy_threshold=energy_threshold)
     else:
-        return ZenithDependentMuonSelectionEfficiency("11900_MUONGUN_%s_%sm_efficiency_cut.fits" % (geometry, spacing), energy_threshold=energy_threshold, scale=scale)
+        return ZenithDependentMuonSelectionEfficiency(
+            "11900_MUONGUN_%s_%sm_efficiency_cut.fits" % (geometry, spacing),
+            energy_threshold=energy_threshold,
+            scale=scale,
+        )
 
 
 class VetoThreshold(object):
@@ -154,13 +185,13 @@ class VetoThreshold(object):
     A braindead model of an event selection with a surface veto.
     """
 
-    def accept(self, e_mu, cos_theta=1.):
+    def accept(self, e_mu, cos_theta=1.0):
         """
         Return True if an event would pass the event selection
         """
         raise NotImplementedError
 
-    def veto(self, e_mu, cos_theta=1.):
+    def veto(self, e_mu, cos_theta=1.0):
         """
         Return True if an atmospheric event would be rejected by the veto
         """
@@ -177,15 +208,23 @@ class StepFunction(VetoThreshold):
         self.max_inclination = numpy.cos(numpy.radians(maximum_inclination))
         self.threshold = threshold
 
-    def accept(self, e_mu, cos_theta=1.):
+    def accept(self, e_mu, cos_theta=1.0):
 
-        return numpy.where(cos_theta > 0.05, (e_mu > self.threshold) & (cos_theta >= self.max_inclination), True)
+        return numpy.where(
+            cos_theta > 0.05,
+            (e_mu > self.threshold) & (cos_theta >= self.max_inclination),
+            True,
+        )
 
-    def veto(self, e_mu, cos_theta=1.):
+    def veto(self, e_mu, cos_theta=1.0):
         """
         Return True if an atmospheric event would be rejected by the veto
         """
-        return numpy.where(cos_theta > 0.05, (e_mu > self.threshold) & (cos_theta >= self.max_inclination), False)
+        return numpy.where(
+            cos_theta > 0.05,
+            (e_mu > self.threshold) & (cos_theta >= self.max_inclination),
+            False,
+        )
 
 
 class MuonEffectiveArea(object):
@@ -204,7 +243,9 @@ class MuonEffectiveArea(object):
         return geo * self._efficiency(muon_energy, cos_theta)
 
 
-def _interpolate_production_efficiency(cos_zenith, fname='muon_efficiency.hdf5', flavors=['mu']):
+def _interpolate_production_efficiency(
+    cos_zenith, fname="muon_efficiency.hdf5", flavors=["mu"]
+):
     """
     Get the probability that a muon neutrino of energy E_nu from zenith angle
     cos_theta will produce a muon that reaches the detector with energy E_mu
@@ -216,23 +257,27 @@ def _interpolate_production_efficiency(cos_zenith, fname='muon_efficiency.hdf5',
     from scipy import interpolate
 
     efficiencies = []
-    with tables.open_file(os.path.join(data_dir, 'cross_sections', fname)) as hdf:
-        for family, anti in itertools.product(flavors, ('', '_bar')):
-            h = dashi.histload(hdf, '/nu'+family+anti)
-            edges = [numpy.log10(h.binedges[0]), h.binedges[1]] + \
+    with tables.open_file(os.path.join(data_dir, "cross_sections", fname)) as hdf:
+        for family, anti in itertools.product(flavors, ("", "_bar")):
+            h = dashi.histload(hdf, "/nu" + family + anti)
+            edges = [numpy.log10(h.binedges[0]), h.binedges[1]] + list(
                 map(numpy.log10, h.binedges[2:])
-            centers = map(center, edges)
-            newcenters = [centers[0], numpy.clip(
-                cos_zenith, centers[1].min(), centers[1].max())] + centers[2:]
-            y = numpy.where(~(h.bincontent <= 0),
-                            numpy.log10(h.bincontent), -numpy.inf)
+            )
+            centers = list(map(center, edges))
+            newcenters = [
+                centers[0],
+                numpy.clip(cos_zenith, centers[1].min(), centers[1].max()),
+            ] + centers[2:]
+            y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
 
             assert not numpy.isnan(y).any()
             interpolant = interpolate.RegularGridInterpolator(
-                centers, y, bounds_error=True, fill_value=-numpy.inf)
+                centers, y, bounds_error=True, fill_value=-numpy.inf
+            )
 
             xi = numpy.vstack(
-                map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
+                [x.flatten() for x in numpy.meshgrid(*newcenters, indexing="ij")]
+            ).T
             assert numpy.isfinite(xi).all()
 
             # NB: we use nearest-neighbor interpolation here because
@@ -241,16 +286,17 @@ def _interpolate_production_efficiency(cos_zenith, fname='muon_efficiency.hdf5',
             # energy bin, in turn because the next-highest-energy bin is zero
             # (-inf in log space). Ignoring that bin significantly
             # underestimates the muon flux from steeply falling neutrino spectra.
-            v = interpolant(xi, 'nearest').reshape(
-                map(lambda x: x.size, newcenters))
+            v = interpolant(xi, "nearest").reshape([x.size for x in newcenters])
 
             v[~numpy.isfinite(v)] = -numpy.inf
 
             assert not numpy.isnan(v).any()
 
-            efficiencies.append(10**v)
+            efficiencies.append(10 ** v)
 
-    return (h.binedges[0], None,) + tuple(h.binedges[2:]), numpy.array(efficiencies)
+    return (h.binedges[0], None,) + tuple(
+        h.binedges[2:]
+    ), numpy.array(efficiencies)
 
 
 def _ring_range(nside):
@@ -261,8 +307,8 @@ def _ring_range(nside):
     # get cos(colatitude) at the center of each ring, and invert to get
     # cos(zenith). This assumes that the underlying map is in equatorial
     # coordinates.
-    centers = -healpy.ringinfo(nside, numpy.arange(1, 4*nside))[2]
-    return numpy.concatenate(([-1], 0.5*(centers[1:]+centers[:-1]), [1]))
+    centers = -healpy.ringinfo(nside, numpy.arange(1, 4 * nside))[2]
+    return numpy.concatenate(([-1], 0.5 * (centers[1:] + centers[:-1]), [1]))
 
 
 def get_muon_production_efficiency(ct_edges=None):
@@ -306,7 +352,8 @@ def get_starting_event_efficiency(ct_edges=None):
         ct_edges = _ring_range(nside)
 
     edges, efficiency = _interpolate_production_efficiency(
-        center(ct_edges), 'starting_event_efficiency.hdf5', ['e', 'mu', 'tau'])
+        center(ct_edges), "starting_event_efficiency.hdf5", ["e", "mu", "tau"]
+    )
     return (edges[0], ct_edges, edges[2], edges[3]), efficiency
 
 
@@ -329,7 +376,8 @@ def get_cascade_production_density(ct_edges=None):
         ct_edges = _ring_range(nside)
 
     edges, efficiency = _interpolate_production_efficiency(
-        center(ct_edges), 'cascade_efficiency.hdf5', ['e', 'mu', 'tau'])
+        center(ct_edges), "cascade_efficiency.hdf5", ["e", "mu", "tau"]
+    )
     return (edges[0], ct_edges, edges[2]), efficiency
 
 
@@ -337,7 +385,9 @@ def calculate_cascade_production_density(ct_edges, energy_edges, depth=0.5):
     from gen2_analysis.externals import nuFATE
 
     cc = nuFATE.NeutrinoCascadeToShowers(np.exp(center(np.log(energy_edges))))
-    return (energy_edges, ct_edges, energy_edges), cc.transfer_matrix(center(ct_edges), depth)
+    return (energy_edges, ct_edges, energy_edges), cc.transfer_matrix(
+        center(ct_edges), depth
+    )
 
 
 def get_doublebang_production_density(ct_edges=None):
@@ -359,7 +409,8 @@ def get_doublebang_production_density(ct_edges=None):
         ct_edges = _ring_range(nside)
 
     edges, efficiency = _interpolate_production_efficiency(
-        center(ct_edges), 'doublebang_efficiency.hdf5', ['e', 'mu', 'tau'])
+        center(ct_edges), "doublebang_efficiency.hdf5", ["e", "mu", "tau"]
+    )
     return (edges[0], ct_edges, edges[2]), efficiency
 
 
@@ -368,41 +419,50 @@ class effective_area(object):
     Effective area with metadata
     """
 
-    def __init__(self, edges, aeff, sky_binning='cos_theta', source='neutrino'):
+    def __init__(self, edges, aeff, sky_binning="cos_theta", source="neutrino"):
         self.bin_edges = edges
         self.values = aeff
         self.sky_binning = sky_binning
         if aeff.ndim == 3:
-            self.dimensions = ['true_energy',
-                               'true_zenith_band', 'reco_energy']
+            self.dimensions = ["true_energy", "true_zenith_band", "reco_energy"]
         elif aeff.ndim == 5:
-            self.dimensions = ['type', 'true_energy',
-                               'true_zenith_band', 'reco_energy', 'reco_psi']
+            self.dimensions = [
+                "type",
+                "true_energy",
+                "true_zenith_band",
+                "reco_energy",
+                "reco_psi",
+            ]
         else:
-            raise ValueError("Effective area table must have either 3 dimensions (muon bundle) or 5 (neutrinos). Got: {}".format(aeff.shape))
+            raise ValueError(
+                "Effective area table must have either 3 dimensions (muon bundle) or 5 (neutrinos). Got: {}".format(
+                    aeff.shape
+                )
+            )
 
     def get_bin_edges(self, dim_name):
-        return self.bin_edges[self.dimensions.index(dim_name)-1]
+        return self.bin_edges[self.dimensions.index(dim_name) - 1]
 
     def get_bin_centers(self, dim_name):
         return center(self.get_bin_edges(dim_name))
 
     def compatible_with(self, other):
-        return self.values.shape == other.values.shape and all(((a == b).all() for a, b in zip(self.bin_edges, other.bin_edges)))
+        return self.values.shape == other.values.shape and all(
+            ((a == b).all() for a, b in zip(self.bin_edges, other.bin_edges))
+        )
 
     def restrict_energy_range(self, emin, emax):
 
         # find bins with lower edge >= emin and upper edge <= emax
-        mask = (self.bin_edges[0][1:] <= emax) & (
-            self.bin_edges[0][:-1] >= emin)
+        mask = (self.bin_edges[0][1:] <= emax) & (self.bin_edges[0][:-1] >= emin)
         idx = numpy.arange(mask.size)[mask][[0, -1]]
 
         reduced = copy.copy(self)
         reduced.bin_edges = list(reduced.bin_edges)
-        reduced.bin_edges[0] = reduced.bin_edges[0][idx[0]:idx[1]+2]
+        reduced.bin_edges[0] = reduced.bin_edges[0][idx[0] : idx[1] + 2]
         reduced.bin_edges = tuple(reduced.bin_edges)
 
-        reduced.values = self.values[:, idx[0]:idx[1]+1, ...]
+        reduced.values = self.values[:, idx[0] : idx[1] + 1, ...]
 
         return reduced
 
@@ -410,51 +470,53 @@ class effective_area(object):
 
         # find bins with lower edge >= emin and upper edge <= emax
         mask = (self.bin_edges[0][1:] <= emax) & (self.bin_edges[0][:-1] >= emin)
-        idx = numpy.arange(mask.size)[mask][[0,-1]]
+        idx = numpy.arange(mask.size)[mask][[0, -1]]
 
         reduced = copy.copy(self)
 
-        reduced.values[:,0:idx[0],...] *= 0
-        reduced.values[:,idx[1]+1:,...] *= 0
+        reduced.values[:, 0 : idx[0], ...] *= 0
+        reduced.values[:, idx[1] + 1 :, ...] *= 0
 
         return reduced
 
     @property
     def is_healpix(self):
-        return self.sky_binning == 'healpix'
+        return self.sky_binning == "healpix"
 
     @property
     def is_neutrino(self):
-        return self.source == 'neutrino'
+        return self.source == "neutrino"
 
     @property
     def nside(self):
         assert self.is_healpix
-        return self.nring/4 + 1
+        return self.nring / 4 + 1
 
     @property
     def nring(self):
         assert self.is_healpix
-        return self.values.shape[self.dimensions.index('true_zenith_band')]
+        return self.values.shape[self.dimensions.index("true_zenith_band")]
 
     @property
     def ring_repeat_pattern(self):
         assert self.is_healpix
-        return healpy.ringinfo(self.nside, numpy.arange(self.nring)+1)[1]
+        return healpy.ringinfo(self.nside, numpy.arange(self.nring) + 1)[1]
 
 
 def eval_psf(point_spread_function, mu_energy, ct, psi_bins):
-    ct, mu_energy, psi_bins = numpy.meshgrid(
-        ct, mu_energy, psi_bins, indexing='ij')
+    ct, mu_energy, psi_bins = numpy.meshgrid(ct, mu_energy, psi_bins, indexing="ij")
     return point_spread_function(psi_bins, mu_energy, ct)
 
 
-def create_bundle_aeff(energy_resolution=get_energy_resolution("IceCube"),
-                       energy_threshold=StepFunction(numpy.inf),
-                       veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
-                       selection_efficiency=MuonSelectionEfficiency(),
-                       surface=get_fiducial_surface("IceCube"),
-                       cos_theta=None, **kwargs):
+def create_bundle_aeff(
+    energy_resolution=defer(get_energy_resolution, "IceCube"),
+    energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
+    selection_efficiency=defer(MuonSelectionEfficiency),
+    surface=defer(get_fiducial_surface, "IceCube"),
+    cos_theta=None,
+    **kwargs
+):
     """
     Create an effective area for atmospheric muon bundles
 
@@ -499,19 +561,23 @@ def create_bundle_aeff(energy_resolution=get_energy_resolution("IceCube"),
 
     # Step 2: Geometric muon effective area (no selection effects yet)
     # NB: assumes cylindrical symmetry.
-    aeff = (numpy.vectorize(surface.average_area)(
-        cos_theta[:-1], cos_theta[1:])[None, :])
+    aeff = numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[None, :]
 
     # Step 3: apply selection efficiency
     # selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
     selection_efficiency = selection_efficiency(
-        *numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij'))
-    aeff = aeff*selection_efficiency
+        *numpy.meshgrid(e_mu[1:], center(cos_theta), indexing="ij")
+    )
+    aeff = aeff * selection_efficiency
 
     # Step 4: apply smearing for energy resolution
     response = energy_resolution.get_response_matrix(e_mu, e_mu)
     aeff = numpy.apply_along_axis(
-        numpy.inner, 2, aeff[..., None]*numpy.eye(response.shape[0])[:, None, :], response)
+        numpy.inner,
+        2,
+        aeff[..., None] * numpy.eye(response.shape[0])[:, None, :],
+        response,
+    )
 
     # Step 5.1: split the geometric area in the southern hemisphere into a
     #           portion shadowed by the surface veto (if it exists) and one that
@@ -522,27 +588,36 @@ def create_bundle_aeff(energy_resolution=get_energy_resolution("IceCube"),
     # NB: this is in units of true muon energy. While this isn't realizable, it
     # avoids the mess of different E_true -> E_reco mappings for different
     # detector geometries
-    veto_suppression = 1 - \
-        energy_threshold.accept(
-            *numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij'))
+    veto_suppression = 1 - energy_threshold.accept(
+        *numpy.meshgrid(center(e_mu), center(cos_theta), indexing="ij")
+    )
 
     # combine into an energy- and zenith-dependent acceptance for muon bundles
-    weights = [shadowed_fraction*veto_suppression, 1-shadowed_fraction]
+    weights = [shadowed_fraction * veto_suppression, 1 - shadowed_fraction]
 
     edges = (e_mu, cos_theta, e_mu)
 
-    return [effective_area(edges, aeff*w[..., None], 'cos_theta' if nside is None else 'healpix', source='muon') for w in weights]
+    return [
+        effective_area(
+            edges,
+            aeff * w[..., None],
+            "cos_theta" if nside is None else "healpix",
+            source="muon",
+        )
+        for w in weights
+    ]
 
 
-def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
-                             energy_threshold=StepFunction(numpy.inf),
-                             veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
-                             selection_efficiency=MuonSelectionEfficiency(),
-                             surface=get_fiducial_surface("IceCube"),
-                             psf=get_angular_resolution("IceCube"),
-                             psi_bins=numpy.sqrt(numpy.linspace(
-                                 0, numpy.radians(2)**2, 100)),
-                             cos_theta=None,):
+def create_throughgoing_aeff(
+    energy_resolution=defer(get_energy_resolution, "IceCube"),
+    energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
+    selection_efficiency=defer(MuonSelectionEfficiency),
+    surface=defer(get_fiducial_surface, "IceCube"),
+    psf=defer(get_angular_resolution, "IceCube"),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(2) ** 2, 100)),
+    cos_theta=None,
+):
     """
     Create an effective area for neutrino-induced, incoming muons
 
@@ -594,13 +669,17 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
 
     # Step 2: Geometric muon effective area (no selection effects yet)
     # NB: assumes cylindrical symmetry.
-    aeff = efficiency * (numpy.vectorize(surface.average_area)
-                         (cos_theta[:-1], cos_theta[1:])[None, None, :, None])
+    aeff = efficiency * (
+        numpy.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[
+            None, None, :, None
+        ]
+    )
 
     # Step 3: apply selection efficiency
     # selection_efficiency = selection_efficiency(*numpy.meshgrid(center(e_mu), center(cos_theta), indexing='ij')).T
     selection_efficiency = selection_efficiency(
-        *numpy.meshgrid(e_mu[1:], center(cos_theta), indexing='ij')).T
+        *numpy.meshgrid(e_mu[1:], center(cos_theta), indexing="ij")
+    ).T
 
     # Explicit energy threshold disabled for now; let muon background take over
     # at whatever energy it drowns out the signal
@@ -613,12 +692,11 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
         psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
     cdf = eval_psf(psf, center(e_mu), center(cos_theta), psi_bins[:-1])
 
-    total_aeff = numpy.zeros((6,) + aeff.shape[1:] + (psi_bins.size-1,))
+    total_aeff = numpy.zeros((6,) + aeff.shape[1:] + (psi_bins.size - 1,))
     # expand differential contributions along the opening-angle axis
-    total_aeff[2:4, ..., :-1] = aeff[..., None] * \
-        numpy.diff(cdf, axis=2)[None, ...]
+    total_aeff[2:4, ..., :-1] = aeff[..., None] * numpy.diff(cdf, axis=2)[None, ...]
     # put the remainder in the overflow bin
-    total_aeff[2:4, ..., -1] = aeff*(1-cdf[..., -1])[None, None, ...]
+    total_aeff[2:4, ..., -1] = aeff * (1 - cdf[..., -1])[None, None, ...]
 
     # Step 5: apply smearing for energy resolution
     response = energy_resolution.get_response_matrix(e_mu, e_mu)
@@ -627,23 +705,29 @@ def create_throughgoing_aeff(energy_resolution=get_energy_resolution("IceCube"),
     # Step 6: split the effective area in into a portion shadowed by the
     #         surface veto (if it exists) and one that is not
     shadowed_fraction = veto_coverage(cos_theta)[None, None, :, None, None]
-    weights = [shadowed_fraction, 1-shadowed_fraction]
+    weights = [shadowed_fraction, 1 - shadowed_fraction]
 
     edges = (e_nu, cos_theta, e_mu, psi_bins)
 
-    return [effective_area(edges, total_aeff*w, 'cos_theta' if nside is None else 'healpix') for w in weights]
+    return [
+        effective_area(
+            edges, total_aeff * w, "cos_theta" if nside is None else "healpix"
+        )
+        for w in weights
+    ]
 
 
-def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resolution(channel='cascade'),
-                        energy_threshold=StepFunction(numpy.inf),
-                        veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
-                        selection_efficiency=HESEishSelectionEfficiency(),
-                        surface=get_fiducial_surface("IceCube"),
-                        psf=get_angular_resolution(
-                            "IceCube", channel='cascade'),
-                        psi_bins=numpy.sqrt(numpy.linspace(
-                            0, numpy.radians(20)**2, 10)),
-                        cos_theta=None,):
+def create_cascade_aeff(
+    channel="cascade",
+    energy_resolution=defer(get_energy_resolution, channel="cascade"),
+    energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
+    selection_efficiency=defer(HESEishSelectionEfficiency),
+    surface=defer(get_fiducial_surface, "IceCube"),
+    psf=defer(get_angular_resolution, "IceCube", channel="cascade"),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20) ** 2, 10)),
+    cos_theta=None,
+):
     """
     Create an effective area for neutrinos interacting inside the volume
 
@@ -667,19 +751,20 @@ def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resoluti
 
     # Step 1: Density of final states per meter
     warnings.warn("Only treating cascades at the moment")
-    if channel == 'cascade':
+    if channel == "cascade":
         (e_nu, cos_theta, e_shower), aeff = get_cascade_production_density(cos_theta)
-    elif channel == 'doublebang':
+    elif channel == "doublebang":
         (e_nu, cos_theta, e_shower), aeff = get_doublebang_production_density(cos_theta)
 
     # Step 2: Geometric effective area (no selection effects yet)
     aeff *= surface.volume()
 
-    warnings.warn('Reconstruction quantities are made up for now')
+    warnings.warn("Reconstruction quantities are made up for now")
 
     # Step 3: apply selection efficiency
     selection_efficiency = selection_efficiency(
-        *numpy.meshgrid(e_shower[1:], center(cos_theta), indexing='ij')).T
+        *numpy.meshgrid(e_shower[1:], center(cos_theta), indexing="ij")
+    ).T
     aeff *= selection_efficiency[None, None, ...]
 
     # Step 4: apply smearing for angular resolution
@@ -688,11 +773,11 @@ def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resoluti
         psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
     cdf = eval_psf(psf, center(e_shower), center(cos_theta), psi_bins[:-1])
 
-    total_aeff = numpy.empty(aeff.shape + (psi_bins.size-1,))
+    total_aeff = numpy.empty(aeff.shape + (psi_bins.size - 1,))
     # expand differential contributions along the opening-angle axis
-    total_aeff[..., :-1] = aeff[..., None]*numpy.diff(cdf, axis=2)[None, ...]
+    total_aeff[..., :-1] = aeff[..., None] * numpy.diff(cdf, axis=2)[None, ...]
     # put the remainder in the overflow bin
-    total_aeff[..., -1] = aeff*(1-cdf[..., -1])[None, None, ...]
+    total_aeff[..., -1] = aeff * (1 - cdf[..., -1])[None, None, ...]
 
     # Step 5: apply smearing for energy resolution
     response = energy_resolution.get_response_matrix(e_shower, e_shower)
@@ -700,22 +785,23 @@ def create_cascade_aeff(channel='cascade', energy_resolution=get_energy_resoluti
 
     edges = (e_nu, cos_theta, e_shower, psi_bins)
 
-    return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+    return effective_area(
+        edges, total_aeff, "cos_theta" if nside is None else "healpix"
+    )
 
 
-def create_starting_aeff(energy_resolution=get_energy_resolution(channel='cascade'),
-                         energy_threshold=StepFunction(numpy.inf),
-                         veto_coverage=lambda ct: numpy.zeros(len(ct)-1),
-                         selection_efficiency=HESEishSelectionEfficiency(),
-                         classification_efficiency=get_classification_efficiency(
-                             'IceCube'),
-                         surface=get_fiducial_surface("IceCube"),
-                         psf=get_angular_resolution(
-                             "IceCube", channel='cascade'),
-                         psi_bins=numpy.sqrt(numpy.linspace(
-                             0, numpy.radians(20)**2, 10)),
-                         neutrino_energy=numpy.logspace(4, 12, 81),
-                         cos_theta=numpy.linspace(-1, 1, 21),):
+def create_starting_aeff(
+    energy_resolution=defer(get_energy_resolution, channel="cascade"),
+    energy_threshold=StepFunction(numpy.inf),
+    veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
+    selection_efficiency=defer(HESEishSelectionEfficiency),
+    classification_efficiency=defer(get_classification_efficiency, "IceCube"),
+    surface=defer(get_fiducial_surface, "IceCube"),
+    psf=defer(get_angular_resolution, "IceCube", channel="cascade"),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20) ** 2, 10)),
+    neutrino_energy=numpy.logspace(4, 12, 81),
+    cos_theta=numpy.linspace(-1, 1, 21),
+):
     """
     Create an effective area for neutrinos interacting inside the volume
 
@@ -739,24 +825,32 @@ def create_starting_aeff(energy_resolution=get_energy_resolution(channel='cascad
 
     # Step 1: Density of final states per meter
     (e_nu, cos_theta, e_shower), aeff = calculate_cascade_production_density(
-        cos_theta, neutrino_energy, depth=1.5)
+        cos_theta, neutrino_energy, depth=1.5
+    )
 
     # Step 2: Geometric effective area (no selection effects yet)
     aeff *= surface.volume()
 
-    warnings.warn('Reconstruction quantities are made up for now')
+    warnings.warn("Reconstruction quantities are made up for now")
 
     # Step 3: apply overall selection efficiency
     selection_efficiency = selection_efficiency(
-        *numpy.meshgrid(e_shower[1:], center(cos_theta), indexing='ij')).T
+        *numpy.meshgrid(e_shower[1:], center(cos_theta), indexing="ij")
+    ).T
     aeff *= selection_efficiency[None, None, ...]
     # Step 3.5: calculate channel selection efficiency, padding the shape for
     # the dimensions neutrino energy, zenith angle, and angular error
     weights = {}
     e_shower_center = np.exp(center(np.log(e_shower)))
     for event_class in classification_efficiency.classes:
-        weights[event_class] = numpy.array([classification_efficiency(nutype, event_class, e_shower_center)[
-                                           None, None, :, None] for nutype in range(aeff.shape[0])])
+        weights[event_class] = numpy.array(
+            [
+                classification_efficiency(nutype, event_class, e_shower_center)[
+                    None, None, :, None
+                ]
+                for nutype in range(aeff.shape[0])
+            ]
+        )
 
     # Step 4: apply smearing for angular resolution
     # Add an overflow bin if none present
@@ -764,11 +858,11 @@ def create_starting_aeff(energy_resolution=get_energy_resolution(channel='cascad
         psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
     cdf = eval_psf(psf, center(e_shower), center(cos_theta), psi_bins[:-1])
 
-    total_aeff = numpy.empty(aeff.shape + (psi_bins.size-1,))
+    total_aeff = numpy.empty(aeff.shape + (psi_bins.size - 1,))
     # expand differential contributions along the opening-angle axis
-    total_aeff[..., :-1] = aeff[..., None]*numpy.diff(cdf, axis=2)[None, ...]
+    total_aeff[..., :-1] = aeff[..., None] * numpy.diff(cdf, axis=2)[None, ...]
     # put the remainder in the overflow bin
-    total_aeff[..., -1] = aeff*(1-cdf[..., -1])[None, None, ...]
+    total_aeff[..., -1] = aeff * (1 - cdf[..., -1])[None, None, ...]
 
     # Step 5: apply smearing for energy resolution
     response = energy_resolution.get_response_matrix(e_shower, e_shower)
@@ -776,7 +870,12 @@ def create_starting_aeff(energy_resolution=get_energy_resolution(channel='cascad
 
     edges = (e_nu, cos_theta, e_shower, psi_bins)
 
-    return {event_class: effective_area(edges, total_aeff*w, 'cos_theta' if nside is None else 'healpix') for event_class, w in weights.items()}
+    return {
+        event_class: effective_area(
+            edges, total_aeff * w, "cos_theta" if nside is None else "healpix"
+        )
+        for event_class, w in weights.items()
+    }
 
 
 def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
@@ -802,20 +901,19 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
     # interpolate to a grid compatible with the IceCube/Gen2 effective areas
     loge_edges = numpy.linspace(2, 12, 101)
 
-    fpath = os.path.join(
-        data_dir, 'aeff', 'cosZenDepAeff_z{}.half.txt'.format(depth))
+    fpath = os.path.join(data_dir, "aeff", "cosZenDepAeff_z{}.half.txt".format(depth))
 
     with open(fpath) as fara:
         # parse file and strip out empty lines
-        lines = itertools.ifilter(None, (line.rstrip() for line in fara))
+        lines = filter(None, (line.rstrip() for line in fara))
 
         energy = []
         cos_theta = []
         aeff = []
         paeff = []  # partial aeff over a single energy range
         for fline in lines:
-            if 'EXPONENT' in fline:
-                energy.append(float(fline.split('=')[-1]))
+            if "EXPONENT" in fline:
+                energy.append(float(fline.split("=")[-1]))
                 if paeff:
                     paeff.reverse()
                     aeff.append(paeff)
@@ -837,33 +935,35 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
 
     edges = numpy.array([energy, cos_theta])
     # centers = map(center, edges)
-    newcenters = [center(loge_edges), numpy.clip(
-        center(ct_edges), centers[1].min(), centers[1].max())]
+    newcenters = [
+        center(loge_edges),
+        numpy.clip(center(ct_edges), centers[1].min(), centers[1].max()),
+    ]
     xi = numpy.vstack(
-        map(lambda x: x.flatten(), numpy.meshgrid(*newcenters, indexing='ij'))).T
+        [x.flatten() for x in numpy.meshgrid(*newcenters, indexing="ij")]
+    ).T
     assert numpy.isfinite(xi).all()
 
     interpolant = interpolate.RegularGridInterpolator(
-        centers,
-        aeff,
-        bounds_error=False,
-        fill_value=0)
+        centers, aeff, bounds_error=False, fill_value=0
+    )
     # NB: we use nearest-neighbor interpolation here because
     # n-dimensional linear interpolation has the unfortunate side-effect
     # of dropping the highest-energy muon energy bin in each neutrino
     # energy bin, in turn because the next-highest-energy bin is zero
     # (-inf in log space). Ignoring that bin significantly
     # underestimates the muon flux from steeply falling neutrino spectra.
-    v = interpolant(xi,  method='nearest').reshape(
-        map(lambda x: x.size, newcenters))
+    v = interpolant(xi, method="nearest").reshape([x.size for x in newcenters])
 
     # assume flavor-independence for ARA by extending same aeff across all flavors
-    return (10**loge_edges, ct_edges), numpy.repeat(v[None, ...], 6, axis=0)
+    return (10 ** loge_edges, ct_edges), numpy.repeat(v[None, ...], 6, axis=0)
 
 
-def create_ara_aeff(depth=200,
-                    nstations=37,
-                    cos_theta=None,):
+def create_ara_aeff(
+    depth=200,
+    nstations=37,
+    cos_theta=None,
+):
     """
     Create an effective area for ARA
 
@@ -897,13 +997,15 @@ def create_ara_aeff(depth=200,
 
     # Step 3: dummy angular resolution smearing
     psi_bins = numpy.asarray([0, numpy.inf])
-    total_aeff = numpy.zeros(aeff.shape + (psi_bins.size-1,))
+    total_aeff = numpy.zeros(aeff.shape + (psi_bins.size - 1,))
     # put everything in first psi_bin for no angular resolution
     total_aeff[..., 0] = aeff[...]
 
     edges = (e_nu, cos_theta, e_reco, psi_bins)
 
-    return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+    return effective_area(
+        edges, total_aeff, "cos_theta" if nside is None else "healpix"
+    )
 
 
 def _load_radio_veff(filename):
@@ -913,33 +1015,42 @@ def _load_radio_veff(filename):
     import pandas as pd
     import json
 
-    if not filename.startswith('/'):
-        filename = os.path.join(data_dir, 'aeff', filename)
+    if not filename.startswith("/"):
+        filename = os.path.join(data_dir, "aeff", filename)
     with open(filename) as f:
         dats = json.load(f)
     index = []
-    arrays = {'veff': [], 'err': []}
+    arrays = {"veff": [], "err": []}
     for zenith, values in dats.items():
         for selection, items in values.items():
-            for energy, veff, err in zip(items['energies'], items['Veff'], items['Veff_error']):
+            for energy, veff, err in zip(
+                items["energies"], items["Veff"], items["Veff_error"]
+            ):
                 index.append((selection, energy, np.cos(float(zenith))))
-                arrays['veff'].append(veff)
-                arrays['err'].append(err)
-    veff = pd.DataFrame(arrays, index=pd.MultiIndex.from_tuples(
-        index, names=['selection', 'energy', 'cos_zenith']))
+                arrays["veff"].append(veff)
+                arrays["err"].append(err)
+    veff = pd.DataFrame(
+        arrays,
+        index=pd.MultiIndex.from_tuples(
+            index, names=["selection", "energy", "cos_zenith"]
+        ),
+    )
     veff.sort_index(level=[0, 1, 2], inplace=True)
     # add right-hand bin edges
-    energy = veff.index.levels[1].values/1e9
-    energy = np.concatenate([energy, [energy[-1]**2/energy[-2]]])
+    energy = veff.index.levels[1].values / 1e9
+    energy = np.concatenate([energy, [energy[-1] ** 2 / energy[-2]]])
     # left-hand bin edges were specified in zenith, so add in reverse
     cos_zenith = veff.index.levels[2].values
-    cos_zenith = np.concatenate(
-        ([2*cos_zenith[0] - cos_zenith[1]], cos_zenith))
-    omega = 2*np.pi*np.diff(cos_zenith)
-    return (energy, cos_zenith), veff['veff'].unstack(level=-1).values.reshape((energy.size-1, cos_zenith.size-1)) / omega[None, :]
+    cos_zenith = np.concatenate(([2 * cos_zenith[0] - cos_zenith[1]], cos_zenith))
+    omega = 2 * np.pi * np.diff(cos_zenith)
+    return (energy, cos_zenith), veff["veff"].unstack(level=-1).values.reshape(
+        (energy.size - 1, cos_zenith.size - 1)
+    ) / omega[None, :]
 
 
-def _interpolate_radio_veff(energy_edges, ct_edges=None, filename='nu_e_Gen2_100m_1.5sigma.json'):
+def _interpolate_radio_veff(
+    energy_edges, ct_edges=None, filename="nu_e_Gen2_100m_1.5sigma.json"
+):
     from scipy import interpolate
 
     edges, veff = _load_radio_veff(filename)
@@ -948,35 +1059,36 @@ def _interpolate_radio_veff(energy_edges, ct_edges=None, filename='nu_e_Gen2_100
     def interp_masked(arr, x, xp):
         valid = ~np.ma.masked_invalid(arr).mask
         return np.interp(x, xp[valid], arr[valid], left=-np.inf)
-    veff = np.exp(np.apply_along_axis(
-        interp_masked,
-        0,
-        np.log(veff),
-        center(np.log10(energy_edges)),
-        center(np.log10(edges[0]))
-    )
+
+    veff = np.exp(
+        np.apply_along_axis(
+            interp_masked,
+            0,
+            np.log(veff),
+            center(np.log10(energy_edges)),
+            center(np.log10(edges[0])),
+        )
     )
     if ct_edges is None:
         return (energy_edges, edges[1]), veff
     else:
         interp = interpolate.interp1d(
-            center(edges[1]),
-            veff,
-            'nearest',
-            axis=1,
-            bounds_error=False,
-            fill_value=0
+            center(edges[1]), veff, "nearest", axis=1, bounds_error=False, fill_value=0
         )
         return (energy_edges, ct_edges), interp(center(ct_edges))
 
 
 def create_radio_aeff(
-        nstations=305,
-        energy_resolution=get_energy_resolution(channel='radio'),
-        psf=get_angular_resolution(channel='radio'),
-        psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20)**2, 10)),
-        veff_filename = dict(e='nu_e_Gen2_100m_1.5sigma.json', mu='nu_mu_Gen2_100m_1.5sigma.json'),
-        cos_theta=np.linspace(-1, 1, 21), neutrino_energy=np.logspace(6, 12, 61)):
+    nstations=305,
+    energy_resolution=get_energy_resolution(channel="radio"),
+    psf=get_angular_resolution(channel="radio"),
+    psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20) ** 2, 10)),
+    veff_filename=dict(
+        e="nu_e_Gen2_100m_1.5sigma.json", mu="nu_mu_Gen2_100m_1.5sigma.json"
+    ),
+    cos_theta=np.linspace(-1, 1, 21),
+    neutrino_energy=np.logspace(6, 12, 61),
+):
     """
     Create an effective area for a nameless radio array
     """
@@ -986,15 +1098,20 @@ def create_radio_aeff(
 
     # Step 1: Density of final states per meter
     (e_nu, cos_theta, e_shower), aeff = calculate_cascade_production_density(
-        cos_theta, neutrino_energy)
+        cos_theta, neutrino_energy
+    )
 
     # Step 2: Effective volume in terms of shower energy
     # NB: this includes selection efficiency (usually step 3)
-    edges_e, veff_e = _interpolate_radio_veff(e_shower, cos_theta, filename=veff_filename['e'])
-    edges_mu, veff_mu = _interpolate_radio_veff(e_shower, cos_theta, filename=veff_filename['mu'])
-    aeff[0:2,...] *= (veff_e.T)[None,None,...]*nstations # electron neutrino
-    aeff[2:4,...] *= (veff_mu.T)[None,None,...]*nstations # muon neutrino
-    aeff[4:6,...] *= (veff_mu.T)[None,None,...]*nstations # tau neutrino
+    edges_e, veff_e = _interpolate_radio_veff(
+        e_shower, cos_theta, filename=veff_filename["e"]
+    )
+    edges_mu, veff_mu = _interpolate_radio_veff(
+        e_shower, cos_theta, filename=veff_filename["mu"]
+    )
+    aeff[0:2, ...] *= (veff_e.T)[None, None, ...] * nstations  # electron neutrino
+    aeff[2:4, ...] *= (veff_mu.T)[None, None, ...] * nstations  # muon neutrino
+    aeff[4:6, ...] *= (veff_mu.T)[None, None, ...] * nstations  # tau neutrino
     total_aeff = aeff
 
     # Step 4: apply smearing for angular resolution
@@ -1003,11 +1120,11 @@ def create_radio_aeff(
         psi_bins = numpy.concatenate((psi_bins, [numpy.inf]))
     cdf = eval_psf(psf, center(e_shower), center(cos_theta), psi_bins[:-1])
 
-    total_aeff = numpy.empty(aeff.shape + (psi_bins.size-1,))
+    total_aeff = numpy.empty(aeff.shape + (psi_bins.size - 1,))
     # expand differential contributions along the opening-angle axis
-    total_aeff[..., :-1] = aeff[..., None]*numpy.diff(cdf, axis=2)[None, ...]
+    total_aeff[..., :-1] = aeff[..., None] * numpy.diff(cdf, axis=2)[None, ...]
     # put the remainder in the overflow bin
-    total_aeff[..., -1] = aeff*(1-cdf[..., -1])[None, None, ...]
+    total_aeff[..., -1] = aeff * (1 - cdf[..., -1])[None, None, ...]
 
     # Step 5: apply smearing for energy resolution
     response = energy_resolution.get_response_matrix(e_shower, e_shower)
@@ -1015,4 +1132,6 @@ def create_radio_aeff(
 
     edges = (e_nu, cos_theta, e_shower, psi_bins)
 
-    return effective_area(edges, total_aeff, 'cos_theta' if nside is None else 'healpix')
+    return effective_area(
+        edges, total_aeff, "cos_theta" if nside is None else "healpix"
+    )

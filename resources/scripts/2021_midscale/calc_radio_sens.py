@@ -1,54 +1,79 @@
-from gen2_analysis import effective_areas, diffuse, pointsource, angular_resolution, grb, surface_veto, multillh, plotting
+from gen2_analysis import (
+    effective_areas,
+    diffuse,
+    pointsource,
+    angular_resolution,
+    grb,
+    surface_veto,
+    multillh,
+    plotting,
+)
 from gen2_analysis import factory, figures_of_merit, util, figures
 from gen2_analysis.util import data_dir, center
 from tqdm import tqdm
 import numpy as np
 from collections import OrderedDict, defaultdict
 import json
+
 # generate aeff for radio
 from gen2_analysis import radio_aeff_generation
+
 # this file is basically a copy/strip down of the figures.pointsource.flare.sensitivity workbook
 
 # quick utility function (because somehow I can't import the figures.cli class...)
 def jsonify(obj):
-	"""
-	Recursively cast to JSON native types
-	"""
-	if hasattr(obj, 'tolist'):
-		return obj.tolist()
-	elif hasattr(obj, 'keys'):
-		return {jsonify(k): jsonify(obj[k]) for k in obj.keys()}
-	elif hasattr(obj, '__len__') and not isinstance(obj, str) and not isinstance(obj, unicode):
-		return [jsonify(v) for v in obj]
-	else:
-		return obj
+    """
+    Recursively cast to JSON native types
+    """
+    if hasattr(obj, "tolist"):
+        return obj.tolist()
+    elif hasattr(obj, "keys"):
+        return {jsonify(k): jsonify(obj[k]) for k in obj.keys()}
+    elif hasattr(obj, "__len__") and not isinstance(obj, str):
+        return [jsonify(v) for v in obj]
+    else:
+        return obj
+
 
 import argparse
-parser = argparse.ArgumentParser() 
-parser.add_argument("-c",type=str,help="configuration file for radio", required=False, dest='config', default='radio_config.yaml')
-parser.add_argument("-g",type=str,help="gamma", required=False, dest='gamma', default="-2.0")
-parser.add_argument("-t",type=str,help="time in years", required=False, dest='livetime', default="1.")
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-c",
+    type=str,
+    help="configuration file for radio",
+    required=False,
+    dest="config",
+    default="radio_config.yaml",
+)
+parser.add_argument(
+    "-g", type=str, help="gamma", required=False, dest="gamma", default="-2.0"
+)
+parser.add_argument(
+    "-t", type=str, help="time in years", required=False, dest="livetime", default="1."
+)
 args = parser.parse_args()
 
 the_config = args.config
 the_gamma = args.gamma
 gamma_num = float(the_gamma)
-component_name = 'Gen2_radio'
+component_name = "Gen2_radio"
 
 ###
 psi_max_deg = 7
-n_psi_bins = 180 #in quadratic binning
-psi_bins = np.sqrt(np.linspace(0, np.radians(psi_max_deg)**2, n_psi_bins))### build an effective area model
+n_psi_bins = 180  # in quadratic binning
+psi_bins = np.sqrt(
+    np.linspace(0, np.radians(psi_max_deg) ** 2, n_psi_bins)
+)  ### build an effective area model
 
 
 radio = radio_aeff_generation.radio_aeff(psi_bins=psi_bins, config=the_config)
-#all switched off
+# all switched off
 
 radio_aeff = radio.create()
 radio_aeff_muons = radio.create_muon_background()
 the_geom = the_config.replace(".yaml", "")
 factory.add_aeffs(the_geom, (radio_aeff, radio_aeff_muons))
-
 
 
 ##if 'Sunflower' not in the_geom:
@@ -58,15 +83,17 @@ factory.add_aeffs(the_geom, (radio_aeff, radio_aeff_muons))
 livetime = args.livetime
 exposures = []
 exposures.append((the_geom, livetime))
-print('The exposures is {}'.format(exposures))
+print(("The exposures is {}".format(exposures)))
 
 # what figures do we need
-figures = OrderedDict([
-	('differential_upper_limit', figures_of_merit.DIFF.ul),
-	('differential_discovery_potential', figures_of_merit.DIFF.dp),
-	('upper_limit', figures_of_merit.TOT.ul),
-	('discovery_potential', figures_of_merit.TOT.dp),
-])
+figures = OrderedDict(
+    [
+        ("differential_upper_limit", figures_of_merit.DIFF.ul),
+        ("differential_discovery_potential", figures_of_merit.DIFF.dp),
+        ("upper_limit", figures_of_merit.TOT.ul),
+        ("discovery_potential", figures_of_merit.TOT.dp),
+    ]
+)
 decades = 0.5
 gamma = gamma_num
 emin = 1e7
@@ -89,31 +116,30 @@ emin = 1e7
 # factory.add_configuration('IceCube', factory.make_options(geometry=detector, spacing=125.), **kwargs)
 ##factory.add_configuration(component_name, factory.make_options(**opts), **kwargs)
 
-meta_major = {'detectors' : exposures}
+meta_major = {"detectors": exposures}
 
-meta = {'cos_zenith': factory.default_cos_theta_bins}
+meta = {"cos_zenith": factory.default_cos_theta_bins}
 dlabel = the_geom
-for zi in tqdm(range(20), desc=dlabel):
-	fom = figures_of_merit.PointSource({the_geom : 1}, zi)
-	for flabel, q in figures.items():
-		kwargs = {'gamma': gamma, 'decades': decades}
-		if not flabel.startswith('differential'):
-			kwargs['emin'] = emin
-		val = fom.benchmark(q, **kwargs)
-		if not flabel in meta:
-			meta[flabel] = {}
-		if not dlabel in meta[flabel]:
-			meta[flabel][dlabel] = {}
-		if flabel.startswith('differential'):
-			val = OrderedDict(zip(('e_center', 'flux', 'n_signal', 'n_background'), val))
-		else:
-			val = OrderedDict(zip(('flux', 'n_signal', 'n_background'), val))
-		meta[flabel][dlabel][str(zi)] = val
+for zi in tqdm(list(range(20)), desc=dlabel):
+    fom = figures_of_merit.PointSource({the_geom: 1}, zi)
+    for flabel, q in figures.items():
+        kwargs = {"gamma": gamma, "decades": decades}
+        if not flabel.startswith("differential"):
+            kwargs["emin"] = emin
+        val = fom.benchmark(q, **kwargs)
+        if not flabel in meta:
+            meta[flabel] = {}
+        if not dlabel in meta[flabel]:
+            meta[flabel][dlabel] = {}
+        if flabel.startswith("differential"):
+            val = OrderedDict(
+                zip(("e_center", "flux", "n_signal", "n_background"), val)
+            )
+        else:
+            val = OrderedDict(zip(("flux", "n_signal", "n_background"), val))
+        meta[flabel][dlabel][str(zi)] = val
 
-meta_major['data'] = jsonify(meta)
-outfile = 'sensitivity_' + the_geom + '_' + the_gamma + '.json'
-with open(outfile, 'w') as f:
-	json.dump(meta_major, f, indent=2)
-
-
-
+meta_major["data"] = jsonify(meta)
+outfile = "sensitivity_" + the_geom + "_" + the_gamma + ".json"
+with open(outfile, "w") as f:
+    json.dump(meta_major, f, indent=2)

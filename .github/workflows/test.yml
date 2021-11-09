@@ -1,0 +1,46 @@
+name: test
+on:
+  push: null
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: test
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache conda pacakges
+        uses: actions/cache@v2
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            conda-${{ env.CACHE_NUMBER }}-${{hashFiles('conda-linux-64.lock') }}
+
+      - name: Set up conda environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: false
+          activate-environment: test-env
+          environment-file: conda-linux-64.lock
+      
+      - name: Install pip deps
+        run: |
+          cat conda-linux-64.lock | awk '/^# pip/ {print substr($0,7)}' > requirements.txt
+          pip install --no-deps -r requirements.txt
+
+      - name: Install project
+        env:
+          ICECUBE_PASSWORD: ${{ secrets.ICECUBE_PASSWORD }}
+        run: |
+          pip install --no-deps .
+          pip check
+
+      - name: Test
+        run: |
+          pytest tests

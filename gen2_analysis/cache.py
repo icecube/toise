@@ -6,7 +6,7 @@ from easy_cache.core import DEFAULT_TIMEOUT, NOT_FOUND
 from .util import data_dir
 from os.path import join
 from os import listdir, unlink
-import cPickle as pickle
+import pickle as pickle
 from photospline import SplineTable
 import gzip
 import json
@@ -14,22 +14,21 @@ import time
 
 
 class PickleCache(AbstractCacheInstance):
-
-    def __init__(self, base_dir=join(data_dir, 'cache'), *args, **kwargs):
+    def __init__(self, base_dir=join(data_dir, "cache"), *args, **kwargs):
         super(PickleCache, self).__init__(*args, **kwargs)
         self._base_dir = base_dir
         try:
-            with open(join(self._base_dir, 'manifest.json')) as f:
+            with open(join(self._base_dir, "manifest.json")) as f:
                 self._manifest = json.load(f)
         except IOError:
             self._manifest = {}
         self._sweep()
 
     def _get_filename(self, key):
-        return join(self._base_dir, self._manifest[key]['filename'])
+        return join(self._base_dir, self._manifest[key]["filename"])
 
     def _dump_manifest(self):
-        with open(join(self._base_dir, 'manifest.json'), 'w') as f:
+        with open(join(self._base_dir, "manifest.json"), "w") as f:
             json.dump(self._manifest, f, indent=1)
 
     def _dump_item(self, key, value):
@@ -37,19 +36,19 @@ class PickleCache(AbstractCacheInstance):
         Special-case serialization for SplineTable
         """
         if isinstance(value, SplineTable):
-            fname = key+'.fits'
+            fname = key + ".fits"
             value.write(join(self._base_dir, fname))
         else:
-            fname = key+'.pkl.gz'
-            with gzip.open(join(self._base_dir, fname), 'wb') as f:
+            fname = key + ".pkl.gz"
+            with gzip.open(join(self._base_dir, fname), "wb") as f:
                 pickle.dump(value, f, protocol=pickle.HIGHEST_PROTOCOL)
         return fname
 
     def _load_item(self, fname):
-        if fname.endswith('.fits'):
+        if fname.endswith(".fits"):
             return SplineTable(fname)
-        elif fname.endswith('.pkl.gz'):
-            with gzip.open(fname, 'r') as f:
+        elif fname.endswith(".pkl.gz"):
+            with gzip.open(fname, "r") as f:
                 return pickle.load(f)
         else:
             raise ValueError("Don't know how to load {}".format(fname))
@@ -57,8 +56,8 @@ class PickleCache(AbstractCacheInstance):
     def _sweep(self):
         removed = set()
         for key, item in self._manifest.items():
-            if item['expires'] is not None and item['expires'] <= time.time():
-                unlink(join(self._base_dir, item['filename']))
+            if item["expires"] is not None and item["expires"] <= time.time():
+                unlink(join(self._base_dir, item["filename"]))
                 removed.add(key)
         for k in removed:
             del self._manifest[k]
@@ -84,7 +83,7 @@ class PickleCache(AbstractCacheInstance):
             expires = time.time() + timeout
 
         filename = self._dump_item(key, value)
-        self._manifest[key] = {'filename': filename, 'expires': expires}
+        self._manifest[key] = {"filename": filename, "expires": expires}
         self._dump_manifest()
 
     def set_many(self, data_dict, timeout=DEFAULT_TIMEOUT):
@@ -94,7 +93,7 @@ class PickleCache(AbstractCacheInstance):
             expires = time.time() + timeout
         for key, value in data_dict.items():
             filename = self._dump_item(key, value)
-            self._manifest[key] = {'filename': filename, 'expires': expires}
+            self._manifest[key] = {"filename": filename, "expires": expires}
 
         self._dump_manifest()
 
