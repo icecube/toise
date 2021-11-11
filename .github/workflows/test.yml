@@ -41,6 +41,10 @@ jobs:
           pip install --no-deps .
           pip check
 
-      - name: Test
+      - name: Run unit tests
         run: |
           pytest tests
+
+      - name: Run demo notebooks
+        run: |
+          pytest --nbmake notebooks
