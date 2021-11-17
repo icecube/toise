@@ -197,7 +197,7 @@ def make_figure_data():
             meta["data"] = jsonify(func(tuple(exposure), **args))
             if not outfile.endswith(".json.gz"):
                 outfile = outfile + ".json.gz"
-            with gzip.open(outfile, "wb") as f:
+            with gzip.open(outfile, "wt") as f:
                 json.dump(meta, f, indent=2)
     finally:
         if teardown:
