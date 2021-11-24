@@ -45,6 +45,7 @@ jobs:
         run: |
           pytest tests
 
-      - name: Run demo notebooks
-        run: |
-          pytest --nbmake notebooks
+      # Too memory-hungry for GitHub hosted runners
+      # - name: Run demo notebooks
+      #   run: |
+      #     pytest --nbmake notebooks
