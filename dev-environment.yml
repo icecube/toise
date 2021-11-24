@@ -1,5 +1,6 @@
 category: dev
 dependencies:
   - pytest
+  - nbmake
   - pip:
     - pytest-pinned

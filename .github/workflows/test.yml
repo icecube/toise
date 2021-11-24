@@ -41,6 +41,11 @@ jobs:
           pip install --no-deps .
           pip check
 
-      - name: Test
+      - name: Run unit tests
         run: |
           pytest tests
+
+      # Too memory-hungry for GitHub hosted runners
+      # - name: Run demo notebooks
+      #   run: |
+      #     pytest --nbmake notebooks
