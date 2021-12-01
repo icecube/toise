@@ -1,3 +1,16 @@
+# gen2_analysis
+
+`gen2_analysis` is a tool for estimating the sensitivity of natural-medium
+neutrino detectors such as [IceCube-Gen2](https://www.icecube-gen2.de/) to
+sources of high-energy astrophysical neutrinos. It uses parameterizations of a
+detector's fiducial area or volume, selection efficiency, energy resolution,
+angular resolution, and event classification efficiency to convert (surface)
+neutrino fluxes into mean event rates in bins of observable space. These are
+then used to estimate statistical quantities of interest, e.g. the median
+sensitivity to some flux (i.e. 90% upper limit assuming the true flux is zero)
+or the median discovery potential (i.e. the flux level at which the null
+hypothesis would be rejected at 5 sigma in 50% of realizations).
+
 ## Installation
 
 The easiest way to install the Gen2 analysis package and its depedencies is
