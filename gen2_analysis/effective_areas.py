@@ -137,7 +137,12 @@ class ZenithDependentMuonSelectionEfficiency(object):
 class HECascadeSelectionEfficiency(object):
     """
     Imitate the efficiency one would get from a HESE-like selection.
+    
     This is functionally a high-energy cascade (all-flavor) selection.
+    This provides a efficiency for a cascade to pass the analysis.
+    The efficiency parameterization is a logistic function. 
+    The user can tune the energy threshold where the logistic function
+    turns over by adjusting 'energy_threshold'.
     """
 
     def __init__(self, geometry="IceCube", spacing=125, energy_threshold=1e5):
