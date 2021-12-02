@@ -150,7 +150,7 @@ def create_cascade_aeff(opts, **kwargs):
         energy_resolution=effective_areas.get_energy_resolution(
             opts.geometry, opts.spacing, channel="cascade"
         ),
-        selection_efficiency=effective_areas.HESEishSelectionEfficiency(
+        selection_efficiency=effective_areas.HECascadeSelectionEfficiency(
             opts.geometry, opts.spacing, opts.cascade_energy_threshold
         ),
         surface=effective_areas.get_fiducial_surface(opts.geometry, opts.spacing),
@@ -181,7 +181,7 @@ def create_starting_aeff(opts, **kwargs):
         energy_resolution=effective_areas.get_energy_resolution(
             opts.geometry, opts.spacing, channel="cascade"
         ),
-        selection_efficiency=effective_areas.HESEishSelectionEfficiency(
+        selection_efficiency=effective_areas.HECascadeSelectionEfficiency(
             opts.geometry, opts.spacing, opts.cascade_energy_threshold
         ),
         classification_efficiency=classification_efficiency.get_classification_efficiency(

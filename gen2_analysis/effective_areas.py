@@ -134,9 +134,10 @@ class ZenithDependentMuonSelectionEfficiency(object):
         )
 
 
-class HESEishSelectionEfficiency(object):
+class HECascadeSelectionEfficiency(object):
     """
-    Imitate the efficiency one would get from a HESE-like selection
+    Imitate the efficiency one would get from a HESE-like selection.
+    This is functionally a high-energy cascade (all-flavor) selection.
     """
 
     def __init__(self, geometry="IceCube", spacing=125, energy_threshold=1e5):
@@ -722,7 +723,7 @@ def create_cascade_aeff(
     energy_resolution=defer(get_energy_resolution, channel="cascade"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
-    selection_efficiency=defer(HESEishSelectionEfficiency),
+    selection_efficiency=defer(HECascadeSelectionEfficiency),
     surface=defer(get_fiducial_surface, "IceCube"),
     psf=defer(get_angular_resolution, "IceCube", channel="cascade"),
     psi_bins=numpy.sqrt(numpy.linspace(0, numpy.radians(20) ** 2, 10)),
@@ -794,7 +795,7 @@ def create_starting_aeff(
     energy_resolution=defer(get_energy_resolution, channel="cascade"),
     energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
-    selection_efficiency=defer(HESEishSelectionEfficiency),
+    selection_efficiency=defer(HECascadeSelectionEfficiency),
     classification_efficiency=defer(get_classification_efficiency, "IceCube"),
     surface=defer(get_fiducial_surface, "IceCube"),
     psf=defer(get_angular_resolution, "IceCube", channel="cascade"),

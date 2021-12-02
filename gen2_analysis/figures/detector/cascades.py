@@ -67,7 +67,7 @@ def volume():
 
     for k in "IceCube", "Gen2-InIce":
         config = factory.default_configs[k]
-        efficiency = effective_areas.HESEishSelectionEfficiency(
+        efficiency = effective_areas.HECascadeSelectionEfficiency(
             config["geometry"], config["spacing"], config["cascade_energy_threshold"]
         )
         surface = effective_areas.get_fiducial_surface(
