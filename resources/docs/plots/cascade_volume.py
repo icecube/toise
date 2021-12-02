@@ -16,7 +16,7 @@ with plotting.pretty(tex=False):
     e = np.logspace(2, 9, 101)
     ax = plt.gca()
     for i, (geo, spacing) in enumerate(configs):
-        seleff = effective_areas.HESEishSelectionEfficiency(geo, spacing, 1e5)
+        seleff = effective_areas.HECascadeSelectionEfficiency(geo, spacing, 1e5)
 
         if geo == "IceCube":
             kwargs = dict(color="k", label=geo)
