@@ -43,7 +43,7 @@ The above will install the latest available versions of all dependencies. You ca
 ```
 cd gen2-analysis
 
-conda env create -n gen2-analysis --file conda-linux-64.lock
+conda create -n gen2-analysis --file conda-linux-64.lock
 conda run -n gen2-analysis pip install -r <(cat conda-linux-64.lock | awk '/^# pip/ {print substr($0,7)}')
 ICECUBE_PASSWORD=xxxx conda run -n gen2-analysis pip install -e .
 ```
