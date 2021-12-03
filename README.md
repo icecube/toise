@@ -13,7 +13,7 @@ hypothesis would be rejected at 5 sigma in 50% of realizations).
 
 ## Installation
 
-The easiest way to install the Gen2 analysis package and its depedencies is
+The way to install the Gen2 analysis package and its depedencies is
 with `conda`. If you do not already have `miniconda` on your system, obtain the
 installer from https://conda.io/miniconda.html, and install in a location of
 your choice, e.g.:
