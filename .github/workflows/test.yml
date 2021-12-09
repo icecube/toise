@@ -4,12 +4,28 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     name: test
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-11]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -l {0}
     steps:
+      - name: Detect platform
+        id: detect
+        run: |
+            if [[ "${RUNNER_ARCH}" == "X64" ]]; then
+              if [[ "${RUNNER_OS}" == "Linux" ]]; then
+                echo '::set-output name=platform::linux-64' && exit 0
+              elif [[ "${RUNNER_OS}" == "macOS" ]]; then
+                echo '::set-output name=platform::osx-64' && exit 0
+              fi
+            fi
+            echo "Unsupported platform ${RUNNER_OS} ${RUNNER_ARCH}"
+            exit 1
+
       - uses: actions/checkout@v2
 
       - name: Cache conda pacakges
@@ -20,18 +36,18 @@ jobs:
         with:
           path: ~/conda_pkgs_dir
           key:
-            conda-${{ env.CACHE_NUMBER }}-${{hashFiles('conda-linux-64.lock') }}
+            conda-${{ steps.detect.outputs.platform }}-${{ env.CACHE_NUMBER }}-${{hashFiles('conda-lock.yml') }}
 
       - name: Set up conda environment
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: false
           activate-environment: test-env
-          environment-file: conda-linux-64.lock
+          environment-file: conda-${{ steps.detect.outputs.platform }}.lock
       
       - name: Install pip deps
         run: |
-          cat conda-linux-64.lock | awk '/^# pip/ {print substr($0,7)}' > requirements.txt
+          cat conda-${{ steps.detect.outputs.platform }}.lock | awk '/^# pip/ {print substr($0,7)}' > requirements.txt
           pip install --no-deps -r requirements.txt
 
       - name: Install project
