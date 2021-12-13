@@ -74,7 +74,7 @@ def test_likelihood_ratio(asimov_llh: multillh.LLHEval, pinned):
     # fit for \Delta TS = 2.705 (90% CL for 1 degree of freedom)
     critical_ts = stats.chi2(1).ppf(0.9)
     limit = bisect(lambda f: ts(f) - critical_ts, 0, 1)
-    assert limit == pinned.approx(rel=1e-3)
+    assert limit == pinned.approx(rel=1e-2)
 
 
 @pytest.mark.parametrize(
