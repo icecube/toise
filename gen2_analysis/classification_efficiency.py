@@ -10,12 +10,54 @@ import os
 
 
 def get_classification_efficiency(geometry="IceCube", spacing=125):
-    if geometry == "IceCube":
+    if geometry == "Potemkin":
         return ClassificationEfficiency(
+            {
+                "nue": {
+                    "cascades": ["logpoly", [97.61798482, -0.92491068]],
+                    "starting_tracks": [
+                        "logpoly",
+                        [12.45575941, -4.52083962, 0.89284789, -0.05660718],
+                    ],
+                    "double_cascades": ["powerlaw", [0.29980095, 0.36109473]],
+                },
+                "numu": {
+                    "cascades": ["logpoly", [89.37025688, -17.82727776, 1.44100813]],
+                    "starting_tracks": [
+                        "logpoly",
+                        [-12.02248755, 29.98400471, -3.72778076, 0.13724512],
+                    ],
+                    "double_cascades": ["powerlaw", [0.86190289, 0.14669257]],
+                },
+                "nutau": {
+                    "cascades": [
+                        "sigmoid",
+                        [91.90034143, 0.79907467, 4.76995429, 36.0535759, 1.54379368],
+                    ],
+                    "starting_tracks": [
+                        "logpoly",
+                        [
+                            -353.501682,
+                            251.751001,
+                            -64.2850564,
+                            7.16802798,
+                            -0.292552097,
+                        ],
+                    ],
+                    "double_cascades": [
+                        "sigmoid",
+                        [0.0662404, 0.86871992, 5.03507898, 42.57592219, 1.75695386],
+                    ],
+                },
+            },
+            (6e4, 1e7),
+        )
+    elif geometry == "IceCube":
+        return ClassificationEfficiency.load(
             "icecube_doublecascade_efficiency.json", (6e4, 1e7)
         )
     elif 240 <= spacing <= 260:
-        return ClassificationEfficiency(
+        return ClassificationEfficiency.load(
             "sparsecube_doublecascade_efficiency.json", (6e4, 1e7)
         )
 
@@ -51,11 +93,15 @@ class ClassificationEfficiency(object):
         """
         return ((a - d) / (1 + (np.exp(b * np.log(x / 1e3) - c)) ** m)) + d
 
-    def __init__(self, filename, energy_range=(0, np.inf)):
+    @classmethod
+    def load(cls, filename, energy_range=(0, np.inf)):
         if not filename.startswith("/"):
             filename = os.path.join(data_dir, "selection_efficiency", filename)
         with open(filename) as f:
-            self._params = json.load(f)
+            return cls(params, energy_range)
+
+    def __init__(self, params, energy_range=(0, np.inf)):
+        self._params = params
         classes = set()
         for item in self._params.values():
             for channel, values in item.items():

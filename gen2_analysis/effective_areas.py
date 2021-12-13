@@ -165,9 +165,7 @@ class HECascadeSelectionEfficiency(object):
         outer = get_fiducial_surface(geometry, spacing)
         side_padding = spacing / 2.0
         top_padding = 180  # top + dust layer exclusion
-        fiducial = surfaces.ExtrudedPolygon.from_file(
-            surfaces.get_geometry_file(geometry, spacing), padding=-side_padding
-        )
+        fiducial = surfaces.get_inner_volume(geometry, spacing)
 
         self._fiducial_surface = fiducial
 

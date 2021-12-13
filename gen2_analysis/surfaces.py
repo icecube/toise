@@ -57,6 +57,17 @@ def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
     return ExtrudedPolygon.from_file(gcd, padding=padding)
 
 
+def get_inner_volume(geometry="Sunflower", spacing=200):
+    """Get HESE-like inner volume"""
+    if geometry == "Potemkin":
+        return Cylinder(400, 700)
+    else:
+        side_padding = spacing / 2.0
+        return ExtrudedPolygon.from_file(
+            get_geometry_file(geometry, spacing), padding=-side_padding
+        )
+
+
 def convex_hull(points):
     """Computes the convex hull of a set of 2D points.
 
