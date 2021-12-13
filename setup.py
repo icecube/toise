@@ -5,15 +5,19 @@ from setuptools import find_packages
 from subprocess import check_call, PIPE
 from os import path, unlink, environ, mkdir
 
-if not 'ICECUBE_PASSWORD' in environ:
-    raise EnvironmentError('You need to set the environment variable ICECUBE_PASSWORD to the icecube user password.')
-
 cwd = path.join(path.dirname(__file__), 'gen2_analysis', 'data')
 if not path.isdir(cwd):
     mkdir(cwd)
-check_call(['curl', '--fail', '-u', 'icecube:'+environ['ICECUBE_PASSWORD'], '-O', 'https://convey.icecube.wisc.edu/data/user/jvansanten/projects/2015/gen2_benchmark/data/archive.tar.gz'], cwd=cwd)
-check_call(['tar', 'xzf', 'archive.tar.gz'], cwd=cwd)
-unlink(path.join(path.dirname(__file__), 'gen2_analysis', 'data', 'archive.tar.gz'))
+
+# if not 'ICECUBE_PASSWORD' in environ:
+#     raise EnvironmentError('You need to set the environment variable ICECUBE_PASSWORD to the icecube user password.')
+# check_call(['curl', '--fail', '-u', 'icecube:'+environ['ICECUBE_PASSWORD'], '-O', 'https://convey.icecube.wisc.edu/data/user/jvansanten/projects/2015/gen2_benchmark/data/archive.tar.gz'], cwd=cwd)
+# check_call(['tar', 'xzf', 'archive.tar.gz'], cwd=cwd)
+# unlink(path.join(path.dirname(__file__), 'gen2_analysis', 'data', 'archive.tar.gz'))
+
+check_call(['curl', '--fail', '-o', 'minimal-archive.tar.gz', 'https://sandbox.zenodo.org/record/981577/files/minimal-archive.tar.gz?download=1'], cwd=cwd)
+check_call(['tar', 'xzf', 'minimal-archive.tar.gz'], cwd=cwd)
+unlink(path.join(path.dirname(__file__), 'gen2_analysis', 'data', 'minimal-archive.tar.gz'))
 
 setup(name='gen2-analysis',
       version='0.1',
