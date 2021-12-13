@@ -11,11 +11,10 @@ from scipy.optimize import bisect
 
 @pytest.fixture(scope="session")
 def dummy_configuration():
-    # FIXME: make this independent of IceCube data tables
     factory.add_configuration(
         "__dummy_config__",
         factory.make_options(
-            **dict(geometry="IceCube", spacing=125, veto_area=1.0, veto_threshold=1e5),
+            **dict(geometry="Potemkin", spacing=125, veto_area=1.0, veto_threshold=1e5),
         ),
         psi_bins={k: [0, np.pi] for k in ("cascades", "tracks", "radio")},
     )
