@@ -14,7 +14,9 @@ def get_energy_resolution(geometry="Sunflower", spacing=200, channel="muon"):
         return PotemkinCascadeEnergyResolution(
             lower_limit=numpy.log10(1 + 0.2), crossover_energy=1e8
         )
-    if geometry == "IceCube":
+    if geometry == "Potemkin":
+        return PotemkinMuonEnergyResolution()
+    elif geometry == "IceCube":
         fname = "aachen_muon_energy_profile.npz"
         # FIXME: we have to stretch the energy resolution for IC86 to get the
         # right shape at threshold. why?
@@ -96,6 +98,14 @@ class MuonEnergyResolution(EnergySmearingMatrix):
         super(MuonEnergyResolution, self).__init__(
             bias, sigma, loge_range, overdispersion
         )
+
+
+class PotemkinMuonEnergyResolution(EnergySmearingMatrix):
+    def bias(self, loge):
+        return numpy.log10(10 ** (loge / 1.13) + 500)
+
+    def sigma(self, loge):
+        return 0.22 + 0.23 * (1 - numpy.exp(-(10 ** loge) / 5e6))
 
 
 class PotemkinCascadeEnergyResolution(EnergySmearingMatrix):

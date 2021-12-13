@@ -445,6 +445,17 @@ default_configs = {
     "IceCube-TracksOnly": dict(
         geometry="IceCube", spacing=125, veto_area=1.0, veto_threshold=1e5
     ),
+    "Potemkin-Optical": dict(
+        geometry="Potemkin",
+        cascade_energy_threshold=1e5,
+        veto_area=5.0,
+        veto_threshold=1e5,
+    ),
+    "Potemkin-Optical-TracksOnly": dict(
+        geometry="Potemkin",
+        veto_area=5.0,
+        veto_threshold=1e5,
+    ),
     "Gen2-InIce": scale_gen2_sensors(3.0),
     "Gen2-InIce-TracksOnly": scale_gen2_sensors(3.0, with_cascades=False),
     "Gen2-Radio": dict(geometry="Radio", nstations=200),
