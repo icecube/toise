@@ -43,11 +43,13 @@ The above will install the latest available versions of all dependencies. You ca
 ```
 cd gen2-analysis
 
-conda create -n gen2-analysis --file conda-linux-64.lock
-conda run -n gen2-analysis pip install -r <(cat conda-linux-64.lock | awk '/^# pip/ {print substr($0,7)}')
+PLATFORM_LOCKFILE=$(conda info --json | jq -r '"conda-\(.platform).lock"')
+conda create -n gen2-analysis --file $PLATFORM_LOCKFILE
+cat $PLATFORM_LOCKFILE > requirements.txt
+conda run -n gen2-analysis pip install -r requirements.txt
 ICECUBE_PASSWORD=xxxx conda run -n gen2-analysis pip install -e .
 ```
-replacing `conda-linux-64.lock` with the lockfile for your current platform. This should be much faster, as it does not have to solve for compatible versions of all the dependencies.
+This should be much faster, as it does not have to solve for compatible versions of all the dependencies. If you do not have `jq` installed, you can set `PLATFORM_LOCKFILE` by hand to e.g. `conda-osx-64.lock`.
 
 If you have a Jupyter notebook installation from another conda environment, you should now be able to open this notebook in Jupyter and select the "Python [conda env:miniconda3-gen2-analysis]" kernel.
 
