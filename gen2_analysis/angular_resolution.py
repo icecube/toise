@@ -91,6 +91,9 @@ class _king_gen(stats.rv_continuous):
 
     def _argcheck(self, sigma, gamma):
         return (gamma > 1).all() and (sigma > 0).all()
+    
+    def _get_support(self, *args, **kwargs):
+        return 0, 180
 
     def _pdf(self, x, sigma, gamma):
         return (
