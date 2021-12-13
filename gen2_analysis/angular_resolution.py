@@ -15,7 +15,9 @@ def get_angular_resolution(
         return PotemkinCascadePointSpreadFunction(
             lower_limit=numpy.radians(2), crossover_energy=0
         )
-    if geometry == "IceCube":
+    if geometry == "Potemkin":
+        return PotemkinKingPointSpreadFunction()
+    elif geometry == "IceCube":
         fname = "aachen_psf.fits"
     elif psf_class is not None:
         fname = "%s_%s_kingpsf%d" % (geometry, spacing, psf_class[1])
@@ -91,7 +93,7 @@ class _king_gen(stats.rv_continuous):
 
     def _argcheck(self, sigma, gamma):
         return (gamma > 1).all() and (sigma > 0).all()
-    
+
     def _get_support(self, *args, **kwargs):
         return 0, 180
 
@@ -216,6 +218,35 @@ class SplineKingPointSpreadFunction(KingPointSpreadFunctionBase):
             10 ** self._splines["gamma"].evaluate_simple([log_energy, cos_theta]) + 1
         )
 
+        return sigma, gamma
+
+
+class PotemkinKingPointSpreadFunction(KingPointSpreadFunctionBase):
+    """
+    A point-spread function for track reconstruction, with features that could be
+    expected from a sparse vertical string detector:
+    - Resolution increasing logarithmically with energy up to a systematic error floor
+    - Best resolution at the horizon, worst at poles
+    """
+
+    def get_params(self, log_energy, cos_theta):
+        """
+        Interpolate for sigma and gamma
+        """
+        angular_resolution_scale = numpy.where(
+            log_energy < 6, 0.05 * (6 - log_energy), 0
+        )
+        # dip at the horizon, improvement with energy up to 1e6
+        sigma = 10 ** (
+            numpy.where(
+                numpy.abs(cos_theta) < 0.15,
+                (cos_theta * 3) ** 2 - 1.2,
+                (cos_theta / 1.05) ** 2 - 1.0,
+            )
+            + angular_resolution_scale
+        )
+        # tails contract at the horizon, and with energy up to 1e6
+        gamma = 10 ** ((-0.5 - (cos_theta / 3) ** 2) + angular_resolution_scale / 2) + 1
         return sigma, gamma
 
 
