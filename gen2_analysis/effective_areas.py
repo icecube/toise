@@ -134,13 +134,27 @@ class ZenithDependentMuonSelectionEfficiency(object):
         )
 
 
+class PotemkinMuonSelectionEfficiency:
+    """
+    A selection efficiency for muon tracks, with features that could be
+    expected from a sparse vertical string detector:
+    - Soft threshold, asymptotically constant efficiency
+    - Higher threshold in vertical directions
+    """
+
+    def __call__(self, muon_energy, cos_theta):
+        # soft turn-on at threshold energy (higher threshold in vertical directions)
+        threshold = 10 ** (2 * (3 - np.exp(-np.abs(cos_theta))))
+        return 1 - np.exp(-muon_energy / threshold)
+
+
 class HECascadeSelectionEfficiency(object):
     """
     Imitate the efficiency one would get from a HESE-like selection.
-    
+
     This is functionally a high-energy cascade (all-flavor) selection.
     This provides a efficiency for a cascade to pass the analysis.
-    The efficiency parameterization is a logistic function. 
+    The efficiency parameterization is a logistic function.
     The user can tune the energy threshold where the logistic function
     turns over by adjusting 'energy_threshold'.
     """
@@ -176,7 +190,9 @@ def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0, scale=1
     """
     :param energy_threshold: artificial energy threshold in GeV
     """
-    if geometry == "IceCube":
+    if geometry == "Potemkin":
+        return PotemkinMuonSelectionEfficiency()
+    elif geometry == "IceCube":
         return MuonSelectionEfficiency(energy_threshold=energy_threshold)
     else:
         return ZenithDependentMuonSelectionEfficiency(

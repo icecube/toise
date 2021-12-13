@@ -47,7 +47,9 @@ def get_geometry_file(geometry="Sunflower", spacing=200):
 
 
 def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
-    if geometry == "IceCube":
+    if geometry == "Potemkin":
+        return Cylinder(1600, 1600)
+    elif geometry == "IceCube":
         return Cylinder()
     else:
         gcd = get_geometry_file(geometry, spacing)
