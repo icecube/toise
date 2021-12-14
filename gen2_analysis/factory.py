@@ -445,14 +445,14 @@ default_configs = {
     "IceCube-TracksOnly": dict(
         geometry="IceCube", spacing=125, veto_area=1.0, veto_threshold=1e5
     ),
-    "Potemkin-Optical": dict(
-        geometry="Potemkin",
+    "Fictive-Optical": dict(
+        geometry="Fictive",
         cascade_energy_threshold=1e5,
         veto_area=5.0,
         veto_threshold=1e5,
     ),
-    "Potemkin-Optical-TracksOnly": dict(
-        geometry="Potemkin",
+    "Fictive-Optical-TracksOnly": dict(
+        geometry="Fictive",
         veto_area=5.0,
         veto_threshold=1e5,
     ),

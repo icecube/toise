@@ -10,13 +10,13 @@ def get_angular_resolution(
     geometry="Sunflower", spacing=200, scale=1.0, psf_class=None, channel="muon"
 ):
     if channel == "cascade":
-        return PotemkinCascadePointSpreadFunction()
+        return FictiveCascadePointSpreadFunction()
     elif channel == "radio":
-        return PotemkinCascadePointSpreadFunction(
+        return FictiveCascadePointSpreadFunction(
             lower_limit=numpy.radians(2), crossover_energy=0
         )
-    if geometry == "Potemkin":
-        return PotemkinKingPointSpreadFunction()
+    if geometry == "Fictive":
+        return FictiveKingPointSpreadFunction()
     elif geometry == "IceCube":
         fname = "aachen_psf.fits"
     elif psf_class is not None:
@@ -221,7 +221,7 @@ class SplineKingPointSpreadFunction(KingPointSpreadFunctionBase):
         return sigma, gamma
 
 
-class PotemkinKingPointSpreadFunction(KingPointSpreadFunctionBase):
+class FictiveKingPointSpreadFunction(KingPointSpreadFunctionBase):
     """
     A point-spread function for track reconstruction, with features that could be
     expected from a sparse vertical string detector:
@@ -251,7 +251,7 @@ class PotemkinKingPointSpreadFunction(KingPointSpreadFunctionBase):
         return sigma, gamma
 
 
-class PotemkinCascadePointSpreadFunction(object):
+class FictiveCascadePointSpreadFunction(object):
     def __init__(self, lower_limit=numpy.radians(5), crossover_energy=1e6):
         self._b = lower_limit
         self._a = self._b * numpy.sqrt(crossover_energy)
