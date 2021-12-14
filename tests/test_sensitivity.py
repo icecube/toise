@@ -14,7 +14,7 @@ def dummy_configuration():
     factory.add_configuration(
         "__dummy_config__",
         factory.make_options(
-            **dict(geometry="Potemkin", spacing=125, veto_area=1.0, veto_threshold=1e5),
+            **dict(geometry="Fictive", spacing=125, veto_area=1.0, veto_threshold=1e5),
         ),
         psi_bins={k: [0, np.pi] for k in ("cascades", "tracks", "radio")},
     )
