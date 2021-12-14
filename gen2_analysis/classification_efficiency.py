@@ -98,6 +98,7 @@ class ClassificationEfficiency(object):
         if not filename.startswith("/"):
             filename = os.path.join(data_dir, "selection_efficiency", filename)
         with open(filename) as f:
+            params = json.load(f)
             return cls(params, energy_range)
 
     def __init__(self, params, energy_range=(0, np.inf)):
