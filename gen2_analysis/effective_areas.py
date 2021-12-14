@@ -288,7 +288,8 @@ def _interpolate_production_efficiency(
                 centers[0],
                 numpy.clip(cos_zenith, centers[1].min(), centers[1].max()),
             ] + centers[2:]
-            y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
+            with numpy.errstate(divide="ignore"):
+                y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
 
             assert not numpy.isnan(y).any()
             interpolant = interpolate.RegularGridInterpolator(

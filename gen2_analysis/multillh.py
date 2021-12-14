@@ -219,9 +219,10 @@ class LLHEval(object):
                 llh += self.components[param].prior(kwargs[param], **kwargs)
 
         for prop in lamb:
-            log_lambda = numpy.log(lamb[prop])
+            with numpy.errstate(divide="ignore"):
+                log_lambda = numpy.log(lamb[prop])
+                log_data = numpy.log(self.data[prop])
             log_lambda[numpy.isinf(log_lambda)] = 0
-            log_data = numpy.log(self.data[prop])
             log_data[numpy.isinf(log_data)] = 0
             if self.unbinned:
                 norm = numpy.sum(lamb[prop])
@@ -277,7 +278,7 @@ class LLHEval(object):
         If a parameter is fixed to an iterable value, it will be treated
         as a discrete parameter and minimized on a grid.
         """
-        from collections import Iterable
+        from collections.abc import Iterable
         import itertools
 
         freeparams = list(self.components.keys())

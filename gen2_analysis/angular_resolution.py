@@ -233,9 +233,10 @@ class PotemkinKingPointSpreadFunction(KingPointSpreadFunctionBase):
         """
         Interpolate for sigma and gamma
         """
-        angular_resolution_scale = numpy.where(
-            log_energy < 6, 0.05 * (6 - log_energy)**2.5, 0
-        )
+        with numpy.errstate(invalid="ignore"):
+            angular_resolution_scale = numpy.where(
+                log_energy < 6, 0.05 * (6 - log_energy)**2.5, 0
+            )
         # dip at the horizon, improvement with energy up to 1e6
         sigma = 10 ** (
             numpy.where(
