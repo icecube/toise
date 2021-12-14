@@ -13,7 +13,7 @@ def make_cylinder(volume=1.0, aspect=1.0):
     return surfaces.Cylinder(h * 1e3, r * 1e3)
 
 
-class PotemkinEnergyResolution(energy_resolution.EnergySmearingMatrix):
+class FictiveEnergyResolution(energy_resolution.EnergySmearingMatrix):
     def bias(self, loge):
         return loge
 
@@ -43,7 +43,7 @@ def base_aeff():
     ), efficiency = effective_areas.get_muon_production_efficiency(cos_theta)
 
     # Step 5: apply smearing for energy resolution
-    response = PotemkinEnergyResolution().get_response_matrix(e_mu, e_mu)
+    response = FictiveEnergyResolution().get_response_matrix(e_mu, e_mu)
     efficiency = numpy.apply_along_axis(numpy.inner, 3, efficiency, response)
 
     total_aeff = numpy.zeros((6,) + efficiency.shape[1:])

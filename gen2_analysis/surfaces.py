@@ -47,7 +47,7 @@ def get_geometry_file(geometry="Sunflower", spacing=200):
 
 
 def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
-    if geometry == "Potemkin":
+    if geometry == "Fictive":
         return Cylinder(500, 700)
     elif geometry == "IceCube":
         return Cylinder()
@@ -59,7 +59,7 @@ def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
 
 def get_inner_volume(geometry="Sunflower", spacing=200):
     """Get HESE-like inner volume"""
-    if geometry == "Potemkin":
+    if geometry == "Fictive":
         return Cylinder(400, 700)
     else:
         side_padding = spacing / 2.0
