@@ -9,13 +9,13 @@ from .util import data_dir
 
 def get_energy_resolution(geometry="Sunflower", spacing=200, channel="muon"):
     if channel == "cascade":
-        return PotemkinCascadeEnergyResolution()
+        return FictiveCascadeEnergyResolution()
     elif channel == "radio":
-        return PotemkinCascadeEnergyResolution(
+        return FictiveCascadeEnergyResolution(
             lower_limit=numpy.log10(1 + 0.2), crossover_energy=1e8
         )
-    if geometry == "Potemkin":
-        return PotemkinMuonEnergyResolution()
+    if geometry == "Fictive":
+        return FictiveMuonEnergyResolution()
     elif geometry == "IceCube":
         fname = "aachen_muon_energy_profile.npz"
         # FIXME: we have to stretch the energy resolution for IC86 to get the
@@ -100,7 +100,7 @@ class MuonEnergyResolution(EnergySmearingMatrix):
         )
 
 
-class PotemkinMuonEnergyResolution(EnergySmearingMatrix):
+class FictiveMuonEnergyResolution(EnergySmearingMatrix):
     def bias(self, loge):
         return numpy.log10(10 ** (loge / 1.13) + 500)
 
@@ -108,9 +108,9 @@ class PotemkinMuonEnergyResolution(EnergySmearingMatrix):
         return 0.22 + 0.23 * (1 - numpy.exp(-(10 ** loge) / 5e6))
 
 
-class PotemkinCascadeEnergyResolution(EnergySmearingMatrix):
+class FictiveCascadeEnergyResolution(EnergySmearingMatrix):
     def __init__(self, lower_limit=numpy.log10(1.1), crossover_energy=1e6):
-        super(PotemkinCascadeEnergyResolution, self).__init__()
+        super(FictiveCascadeEnergyResolution, self).__init__()
         self._b = lower_limit
         self._a = self._b * numpy.sqrt(crossover_energy)
 

@@ -134,7 +134,7 @@ class ZenithDependentMuonSelectionEfficiency(object):
         )
 
 
-class PotemkinMuonSelectionEfficiency:
+class FictiveMuonSelectionEfficiency:
     """
     A selection efficiency for muon tracks, with features that could be
     expected from a sparse vertical string detector:
@@ -188,8 +188,8 @@ def get_muon_selection_efficiency(geometry, spacing, energy_threshold=0, scale=1
     """
     :param energy_threshold: artificial energy threshold in GeV
     """
-    if geometry == "Potemkin":
-        return PotemkinMuonSelectionEfficiency()
+    if geometry == "Fictive":
+        return FictiveMuonSelectionEfficiency()
     elif geometry == "IceCube":
         return MuonSelectionEfficiency(energy_threshold=energy_threshold)
     else:

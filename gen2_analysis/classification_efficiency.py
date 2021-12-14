@@ -10,7 +10,7 @@ import os
 
 
 def get_classification_efficiency(geometry="IceCube", spacing=125):
-    if geometry == "Potemkin":
+    if geometry == "Fictive":
         return ClassificationEfficiency(
             {
                 "nue": {
