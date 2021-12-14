@@ -45,7 +45,7 @@ cd gen2-analysis
 
 PLATFORM_LOCKFILE=$(conda info --json | jq -r '"conda-\(.platform).lock"')
 conda create -n gen2-analysis --file $PLATFORM_LOCKFILE
-cat $PLATFORM_LOCKFILE > requirements.txt
+cat $PLATFORM_LOCKFILE | awk '/^# pip/ {print substr($0,7)}' > requirements.txt
 conda run -n gen2-analysis pip install -r requirements.txt
 ICECUBE_PASSWORD=xxxx conda run -n gen2-analysis pip install -e .
 ```
