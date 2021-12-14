@@ -1,3 +1,4 @@
+import warnings
 import numpy
 import itertools
 from scipy.integrate import quad
@@ -90,6 +91,12 @@ class DiffuseNuGen(object):
             itertools.product(("E", "Mu", "Tau"), ("", "Bar"))
         ):
             pt = getattr(PDGCode, "Nu" + flavor + anti)
+            # nuflux 2.0.3 raises an exception on unhandled particle types
+            try:
+                flux(pt, 0, 0)
+            except RuntimeError:
+                intflux[i,...] = 0.
+                continue
             for j in range(len(edges[1]) - 1):
                 ct_hi = edges[1][j + 1]
                 ct_lo = edges[1][j]
@@ -116,6 +123,8 @@ class DiffuseNuGen(object):
                         else 0.0
                     )
                 intflux[i, :, j] = fluxband
+        if intflux.sum() == 0:
+            warnings.warn(f"{flux} integrated to 0")
         # return integrated flux in 1/(m^2 yr sr)
         return intflux * constants.cm2 * constants.annum
 
