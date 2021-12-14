@@ -964,7 +964,7 @@ def transform_map(skymap):
 
 
 class FermiGalacticEmission(DiffuseNuGen):
-    """
+    r"""
     Diffuse emission from the galaxy, modeled as 0.95 times the Fermi
     :math:`\pi^0` map, extrapolated with a spectral index of 2.71.
     """
