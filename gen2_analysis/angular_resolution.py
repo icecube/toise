@@ -234,7 +234,7 @@ class PotemkinKingPointSpreadFunction(KingPointSpreadFunctionBase):
         Interpolate for sigma and gamma
         """
         angular_resolution_scale = numpy.where(
-            log_energy < 6, 0.05 * (6 - log_energy), 0
+            log_energy < 6, 0.05 * (6 - log_energy)**2.5, 0
         )
         # dip at the horizon, improvement with energy up to 1e6
         sigma = 10 ** (
@@ -254,6 +254,9 @@ class PotemkinCascadePointSpreadFunction(object):
     def __init__(self, lower_limit=numpy.radians(5), crossover_energy=1e6):
         self._b = lower_limit
         self._a = self._b * numpy.sqrt(crossover_energy)
+    
+    def get_params(self, loge, cos_theta):
+        return self._a / numpy.sqrt(10**loge) + self._b
 
     def __call__(self, psi, energy, cos_theta):
 
