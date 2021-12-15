@@ -1156,3 +1156,115 @@ def create_radio_aeff(
     return effective_area(
         edges, total_aeff, "cos_theta" if nside is None else "healpix"
     )
+
+
+def _interpolate_gen2_ehe_aeff(ct_edges=None):
+    """
+    Get the aeff for a neutrino of energy E_nu from zenith angle
+    ct_edges for Gen2 EHE analysis assuming pDOMs and Sunflower geometry.
+
+    :param ct_edges: edges of *cos_theta* bins. Efficiencies will be interpolated
+        at the centers of these bins. If an integer, interpret as the NSide of
+        a HEALpix map
+
+    :returns: a tuple edges, aeff. *edges* is a 2-element tuple giving the
+        edges in E_nu, cos_theta, while *aeff* is a 2D array
+        with the same axes.
+    """
+    from scipy import interpolate
+    if ct_edges is None:
+        ct_edges = numpy.linspace(-1, 1, 11)
+    elif isinstance(ct_edges, int):
+        nside = ct_edges
+        ct_edges = _ring_range(nside)
+
+    # interpolate to a grid compatible with the IceCube/Gen2 effective areas
+    loge_edges = numpy.linspace(2, 12, 101)
+
+    flavors = ['NuE', 'NuMu', 'NuTau']
+    filenames = [
+        os.path.join(data_dir, 'aeff', f'Gen2_EHE_{flavor}_effective_area.npz')
+        for flavor in flavors
+    ]
+
+    aeffs = []
+    for filename in filenames:
+        data = numpy.load(filename)
+        cos_theta_bins = data['cos_theta_bins']
+        energy_bins = data['energy_bins']
+        energy_bins_at_det = data['energy_bins_at_det']
+        aeffs.append(data['area_in_sqm'])
+
+    e_center = center(energy_bins)
+    cos_theta_center = center(cos_theta_bins)
+    e_center_at_det = center(energy_bins_at_det)
+
+    new_centers = [
+        center(loge_edges),
+        numpy.clip(center(ct_edges),
+                   cos_theta_center.min(),
+                   cos_theta_center.max()),
+        center(loge_edges)
+    ]
+
+    xi = numpy.vstack(
+        [x.flatten() for x in numpy.meshgrid(*new_centers, indexing='ij')]
+    )
+
+    vs = []
+    for aeff in aeffs:
+        interpolant = interpolate.RegularGridInterpolator(
+            (numpy.log10(e_center),
+             cos_theta_center,
+             numpy.log10(e_center_at_det)
+            ),
+            np.moveaxis(aeff, -1, 0),
+            bounds_error=False,
+            fill_value=0
+        )
+        v = interpolant(xi.T, method='nearest').reshape(
+            [x.size for x in new_centers])
+        vs.append(v)
+
+    # Assume Nu/NuBar symmetry for effective areas
+    return (
+        (10**loge_edges, ct_edges, 10**loge_edges),
+        numpy.concatenate([numpy.repeat(v[None, ...], 2, axis=0) for v in vs])
+    )
+
+
+def create_gen2_ehe_aeff(
+    cos_theta=None,
+):
+    """
+    Create an effective area for a Gen2 EHE analysis prototype
+
+    :param cos_theta: sky binning to use. If cos_theta is an integer,
+        bin in a HEALpix map with this NSide, otherwise bin in cosine of
+        zenith angle. If None, use the native binning of the muon production
+        efficiency histogram.
+
+    :returns: an effective_area object
+    """
+    nside = None
+    if isinstance(cos_theta, int):
+        nside = cos_theta
+
+    # Step 1: Aeff for a neutrino to produce a muon that reaches the
+    #         detector with a given energy
+    (e_nu, cos_theta, e_det), aeff = _interpolate_gen2_ehe_aeff(cos_theta)
+
+    # Step 2: for now, assume no energy resolution
+
+    # Step 3: dummy angular resolution smearing
+    psi_bins = numpy.array([0, numpy.inf])
+    total_aeff = numpy.zeros(aeff.shape + (psi_bins.size - 1,))
+    # put everything in first psi_bin for no angular resolution
+    total_aeff[..., 0] = aeff[...]
+
+    edges = (e_nu, cos_theta, e_det, psi_bins)
+
+    return effective_area(
+        edges, total_aeff, "cos_theta" if nside is None else "healpix"
+    )
+
