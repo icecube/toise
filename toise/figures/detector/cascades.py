@@ -121,10 +121,7 @@ def effective_area(datasets):
     pretty_labels = {"Gen2-InIce": "Gen2-Optical"}
 
     for dataset in datasets:
-        assert (
-            dataset["source"]
-            == "toise.figures.detector.cascades.effective_area"
-        )
+        assert dataset["source"] == "toise.figures.detector.cascades.effective_area"
         assert len(dataset["detectors"]) == 1
         energy = np.asarray(dataset["data"]["energy"])
         area = np.asarray(dataset["data"]["area"]).mean(axis=(0, 2))
