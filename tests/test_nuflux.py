@@ -2,10 +2,10 @@ import itertools
 
 import numpy as np
 import pytest
-from gen2_analysis.diffuse import AtmosphericNu
-from gen2_analysis.effective_areas import effective_area
-from gen2_analysis.externals.AtmosphericSelfVeto import AnalyticPassingFraction
-from gen2_analysis.util import PDGCode
+from toise.diffuse import AtmosphericNu
+from toise.effective_areas import effective_area
+from toise.externals.AtmosphericSelfVeto import AnalyticPassingFraction
+from toise.util import PDGCode
 
 
 @pytest.fixture

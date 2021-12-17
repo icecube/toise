@@ -403,7 +403,7 @@ def get_cascade_production_density(ct_edges=None):
 
 
 def calculate_cascade_production_density(ct_edges, energy_edges, depth=0.5):
-    from gen2_analysis.externals import nuFATE
+    from toise.externals import nuFATE
 
     cc = nuFATE.NeutrinoCascadeToShowers(np.exp(center(np.log(energy_edges))))
     return (energy_edges, ct_edges, energy_edges), cc.transfer_matrix(

@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from icecube.gen2_analysis import plotting, effective_areas, util
+from icecube.toise import plotting, effective_areas, util
 
 # get muon production efficiency
 edges, muprod = effective_areas.get_muon_production_efficiency()

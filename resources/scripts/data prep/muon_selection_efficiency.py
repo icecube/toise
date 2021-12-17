@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-from icecube.gen2_analysis import surfaces, util
+from icecube.toise import surfaces, util
 
 
 def get_muon_selection_efficiency(
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     if opts.plot:
 
         import matplotlib.pyplot as plt
-        from icecube.gen2_analysis import plotting
+        from icecube.toise import plotting
         from icecube.photospline import spglam as glam
 
         from icecube.photospline import spglam as glam

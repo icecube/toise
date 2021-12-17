@@ -1,4 +1,4 @@
-from gen2_analysis import (
+from toise import (
     effective_areas,
     diffuse,
     pointsource,
@@ -8,8 +8,8 @@ from gen2_analysis import (
     multillh,
     plotting,
 )
-from gen2_analysis import factory, figures_of_merit, util, figures
-from gen2_analysis.util import data_dir, center
+from toise import factory, figures_of_merit, util, figures
+from toise.util import data_dir, center
 from tqdm import tqdm
 from collections import OrderedDict, defaultdict
 import json

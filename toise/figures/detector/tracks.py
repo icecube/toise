@@ -1,4 +1,4 @@
-from gen2_analysis.figures import figure
+from toise.figures import figure
 
 
 @figure
@@ -8,7 +8,7 @@ def performance(tabulated_psf=False):
     """
     import matplotlib.pyplot as plt
     import numpy as np
-    from gen2_analysis import (
+    from toise import (
         plotting,
         angular_resolution,
         effective_areas,

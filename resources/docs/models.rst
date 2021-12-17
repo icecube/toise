@@ -5,23 +5,23 @@ Neutrino flux models
 Effective areas
 ---------------
 
-.. autofunction:: icecube.gen2_analysis.effective_areas.create_throughgoing_aeff
+.. autofunction:: icecube.toise.effective_areas.create_throughgoing_aeff
 
 Diffuse sources
 ---------------
 
-.. autoclass:: icecube.gen2_analysis.diffuse.AtmosphericNu
+.. autoclass:: icecube.toise.diffuse.AtmosphericNu
 	:members: conventional, prompt, point_source_background
 
-.. autoclass:: icecube.gen2_analysis.diffuse.DiffuseAstro
+.. autoclass:: icecube.toise.diffuse.DiffuseAstro
 	:members: expectations
 
-.. autoclass:: icecube.gen2_analysis.diffuse.AhlersGZK
+.. autoclass:: icecube.toise.diffuse.AhlersGZK
 
-.. autoclass:: icecube.gen2_analysis.diffuse.FermiGalacticEmission
+.. autoclass:: icecube.toise.diffuse.FermiGalacticEmission
 
 Point sources
 -------------
 
-.. autoclass:: icecube.gen2_analysis.pointsource.SteadyPointSource
+.. autoclass:: icecube.toise.pointsource.SteadyPointSource
 

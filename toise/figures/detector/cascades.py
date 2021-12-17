@@ -1,5 +1,5 @@
-from gen2_analysis.figures import figure, figure_data
-from gen2_analysis.figures.diffuse.flavor import psi_binning
+from toise.figures import figure, figure_data
+from toise.figures.diffuse.flavor import psi_binning
 
 import dashi
 import numpy as np
@@ -57,7 +57,7 @@ def volume():
     import matplotlib.pyplot as plt
     import numpy as np
     import os
-    from gen2_analysis import factory, effective_areas, surfaces, plotting
+    from toise import factory, effective_areas, surfaces, plotting
 
     edep = np.logspace(4, 8, 101)
     fig = plt.figure(figsize=(3.375, 3.375))
@@ -96,7 +96,7 @@ def volume():
 
 @figure_data(setup=psi_binning)
 def effective_area(exposures):
-    from gen2_analysis import factory
+    from toise import factory
 
     assert len(exposures) == 1
     aeff = factory.get(exposures[0][0])["cascades"][0]
@@ -113,7 +113,7 @@ def effective_area(exposures):
 def effective_area(datasets):
     import matplotlib.pyplot as plt
     import os
-    from gen2_analysis import plotting
+    from toise import plotting
 
     fig = plt.figure(figsize=(3.375, 3.375))
     ax = plt.gca()
@@ -123,7 +123,7 @@ def effective_area(datasets):
     for dataset in datasets:
         assert (
             dataset["source"]
-            == "gen2_analysis.figures.detector.cascades.effective_area"
+            == "toise.figures.detector.cascades.effective_area"
         )
         assert len(dataset["detectors"]) == 1
         energy = np.asarray(dataset["data"]["energy"])

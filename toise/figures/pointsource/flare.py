@@ -1,6 +1,6 @@
-from gen2_analysis.figures import figure_data, figure
+from toise.figures import figure_data, figure
 
-from gen2_analysis import (
+from toise import (
     diffuse,
     multillh,
     plotting,
@@ -10,7 +10,7 @@ from gen2_analysis import (
     figures_of_merit,
     util,
 )
-from gen2_analysis.cache import ecached, lru_cache
+from toise.cache import ecached, lru_cache
 
 from collections import OrderedDict, defaultdict
 from scipy import stats, optimize
@@ -88,8 +88,8 @@ def single_flare_time_to_signficance(
     :param flux: average flare flux in TXS paper units (TeV^-1 cm^-2 s^-2 at 100 TeV)
     :param dec: source declination in degrees
     """
-    from gen2_analysis.multillh import asimov_llh
-    from gen2_analysis.pointsource import nevents
+    from toise.multillh import asimov_llh
+    from toise.pointsource import nevents
 
     # convert to our flux units (1e-12 TeV^-1 cm^-2 s^-2 at 1 TeV)
     flux_norm = flux * (100.0 ** -gamma) / 1e-12
