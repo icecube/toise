@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from icecube.gen2_analysis import plotting, surfaces, effective_areas
+from icecube.toise import plotting, surfaces, effective_areas
 from icecube import icetray, dataclasses, dataio
 
 

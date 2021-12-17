@@ -1,4 +1,4 @@
-name: gen2-analysis
+name: toise
 channels:
   - conda-forge
 platforms:

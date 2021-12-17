@@ -1,4 +1,4 @@
-from gen2_analysis import (
+from toise import (
     effective_areas,
     diffuse,
     pointsource,
@@ -8,15 +8,15 @@ from gen2_analysis import (
     multillh,
     plotting,
 )
-from gen2_analysis import factory, figures_of_merit, util, figures
-from gen2_analysis.util import data_dir, center
+from toise import factory, figures_of_merit, util, figures
+from toise.util import data_dir, center
 from tqdm import tqdm
 import numpy as np
 from collections import OrderedDict, defaultdict
 import json
 
 # generate aeff for radio
-from gen2_analysis import radio_aeff_generation
+from toise import radio_aeff_generation
 
 # this file is basically a copy/strip down of the figures.pointsource.flare.sensitivity workbook
 

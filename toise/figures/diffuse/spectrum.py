@@ -1,6 +1,6 @@
-from gen2_analysis.figures import figure_data, figure
+from toise.figures import figure_data, figure
 
-from gen2_analysis import (
+from toise import (
     diffuse,
     multillh,
     plotting,
@@ -8,7 +8,7 @@ from gen2_analysis import (
     pointsource,
     factory,
 )
-from gen2_analysis.cache import ecached, lru_cache
+from toise.cache import ecached, lru_cache
 
 from scipy import stats, optimize
 from copy import copy
@@ -455,7 +455,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
 
     plot_crs(ax)
 
-    assert datasets[0]["source"] == "gen2_analysis.figures.diffuse.spectrum.unfold"
+    assert datasets[0]["source"] == "toise.figures.diffuse.spectrum.unfold"
     args = datasets[0]["args"]
     # plot underlying fluxes
     x = np.logspace(4, 10, 51)

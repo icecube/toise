@@ -1,7 +1,7 @@
-from gen2_analysis.figures import figure_data, figure
+from toise.figures import figure_data, figure
 
-from gen2_analysis import diffuse, pointsource, surface_veto, multillh, factory
-from gen2_analysis.cache import ecached, lru_cache
+from toise import diffuse, pointsource, surface_veto, multillh, factory
+from toise.cache import ecached, lru_cache
 
 # from scipy import stats, optimize
 from copy import copy
@@ -118,7 +118,7 @@ def rates(datasets):
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
     import healpy
-    from gen2_analysis import plotting
+    from toise import plotting
 
     dataset = datasets[0]
     # print(dataset['data']['ts'])

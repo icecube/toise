@@ -2,7 +2,7 @@
 Gen2 Benchmark Analysis
 =======================
 
-.. py:module:: icecube.gen2_analysis
+.. py:module:: icecube.toise
 
 .. toctree::
    :maxdepth: 3

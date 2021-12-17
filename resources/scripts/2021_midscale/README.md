@@ -23,10 +23,10 @@ For the reconstructions run with dropped strings, you can run the recos yourself
 
 # Preparation for the Framework
 
-As of 2021-02-25, the files that Brian used are part of the data bundle that is (re)downloaded when the gen2-analysis package is installed. The muon energy resolution for each geometry is symlinked to the energy resolution for the full geometry.
+As of 2021-02-25, the files that Brian used are part of the data bundle that is (re)downloaded when the toise package is installed. The muon energy resolution for each geometry is symlinked to the energy resolution for the full geometry.
 
 ## Making New Geometry Files
-The framework needs to know the location of the DOMs and strings in "plain text" e.g., not in I3 file format. These various geomeries are stored in `gen2-analysis/gen2_analysis/data/geometries`.
+The framework needs to know the location of the DOMs and strings in "plain text" e.g., not in I3 file format. These various geomeries are stored in `toise/toise/data/geometries`.
 
 The original geometry file for the full Sunflower is `IceCubeHEX_Sunflower_240m_v3_ExtendedDepthRange.GCD.txt.gz`. In order to redact strings from the full sunflower, and write them to a new file, you can use the `remove_lines.py` script. It will ingest the [midscale_geos.json](https://code.icecube.wisc.edu/projects/icecube/browser/IceCube/sandbox/Gen2-Scripts/branches/midscale/resources/midscale_geos.json) file to figure out what strings to remove, and then write them to a new file. Then, you should zip up that result (`gzip` will work) and put the new geometry file into the folder list above.
 
@@ -55,7 +55,7 @@ The PSF extractor takes two arguments. `-n` to name the geometry. E.g. `-n hcr`.
 
 The PSF extractor ingests the output of the compiled tabulated simulation results (see the previous section), where the compiled results are expected to be of the name `data_sunflower_{geometry}.hdf5`. E.g. `data_sunflower_standalone.hdf5`.
 
-The outputs of the PSF extractor are 3 fits files. Two represents the PSF (the `*king*.fits` files). These files should be moved into the `gen2-analysis/gen2_analysis/data/psf` directory. And one represents the muon selection efficiency (the `_cut.fits` file). This one should be moved into the `gen2-analysis/gen2_analysis/data/selection_efficiency` folder.
+The outputs of the PSF extractor are 3 fits files. Two represents the PSF (the `*king*.fits` files). These files should be moved into the `toise/toise/data/psf` directory. And one represents the muon selection efficiency (the `_cut.fits` file). This one should be moved into the `toise/toise/data/selection_efficiency` folder.
 
 The fits files Brian used are available at `/data/user/brianclark/Gen2_optical/midscale/psf/` and `/data/user/brianclark/Gen2_optical/midscale/selection_efficiency/`.
 
@@ -81,7 +81,7 @@ Both take two arguments passed through flags.
 The plotting script also requires that you have pre-calculated the sensitivity of the IceCube and standard Sunflower. To do this, we can use the standard functions in the framework. So, make sure to also run:
 
 ```
-gen2-figure-data pointsource.flare.sensitivity -d Gen2-InIce-TracksOnly 1 IceCube-TracksOnly 1 --gamma -2 -o gen2_ic86_1yr_sens_-2.0
+toise-figure-data pointsource.flare.sensitivity -d Gen2-InIce-TracksOnly 1 IceCube-TracksOnly 1 --gamma -2 -o gen2_ic86_1yr_sens_-2.0
 ```
 
 ## Number of Events

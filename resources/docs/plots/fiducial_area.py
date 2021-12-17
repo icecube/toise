@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from icecube.gen2_analysis import plotting, surfaces
+from icecube.toise import plotting, surfaces
 
 configs = [
     ("IceCube", None),
