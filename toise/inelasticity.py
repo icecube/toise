@@ -4,7 +4,7 @@ import matplotlib.colors as mcolors
 import time
 import os
 from scipy import interpolate
-from gen2_analysis.util import *
+from toise.util import *
 
 
 class radio_inelasticities:

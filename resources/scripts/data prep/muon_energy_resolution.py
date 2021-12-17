@@ -18,7 +18,7 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
     from matplotlib import gridspec, cm
     from matplotlib.colors import LogNorm
     from matplotlib.ticker import NullFormatter
-    from gen2_analysis import plotting
+    from toise import plotting
 
     with plotting.pretty(tex=False):
         fig = plt.figure(figsize=(7, 4))
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     import dashi
 
     with tables.open_file(
-        "/Users/brianclark/Documents/work/Gen2/gen2_optical/gen2-analysis/gen2_analysis/data/energy_reconstruction/aachen_muon_energy_resolution.hdf5"
+        "/Users/brianclark/Documents/work/Gen2/gen2_optical/gen2-analysis/toise/data/energy_reconstruction/aachen_muon_energy_resolution.hdf5"
     ) as hdf:
         h3 = dashi.histload(hdf, "/muex")
 

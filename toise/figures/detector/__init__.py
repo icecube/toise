@@ -1,6 +1,6 @@
-from gen2_analysis.figures import figure
+from toise.figures import figure
 
-from gen2_analysis import surfaces
+from toise import surfaces
 import gzip
 import numpy as np
 import itertools

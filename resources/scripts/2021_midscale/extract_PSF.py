@@ -3,7 +3,7 @@ import tables
 import pandas as pd
 import numpy as np
 from toolz import memoize
-from gen2_analysis import plotting, surfaces
+from toise import plotting, surfaces
 
 import photospline
 from scipy import optimize
@@ -446,7 +446,7 @@ def to_splinetable(spline_spec):
 
 
 print("Writing fits to file...")
-from gen2_analysis.angular_resolution import SplineKingPointSpreadFunction
+from toise.angular_resolution import SplineKingPointSpreadFunction
 
 for label, spl in zip(("sigma", "gamma"), splines):
     to_splinetable(spl).write(
@@ -519,7 +519,7 @@ def get_muon_selection_efficiency(
 
 
 def fit_muon_selection_efficiency(efficiency, error, binedges, smoothing=1):
-    from gen2_analysis.util import center
+    from toise.util import center
 
     def pad_knots(knots, order=2):
         """

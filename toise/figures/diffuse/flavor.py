@@ -12,9 +12,9 @@ from tqdm import tqdm
 import toolz
 import copy
 
-from gen2_analysis.figures import figure_data, figure
-from gen2_analysis.cache import ecached, lru_cache
-from gen2_analysis import diffuse, multillh, plotting, surface_veto, factory, plotting
+from toise.figures import figure_data, figure
+from toise.cache import ecached, lru_cache
+from toise import diffuse, multillh, plotting, surface_veto, factory, plotting
 
 
 def make_components(aeffs, astro_class=diffuse.DiffuseAstro):
@@ -412,7 +412,7 @@ def triangle(datasets):
     """
     Plot exclusion contours in flavor composition
     """
-    from gen2_analysis.externals import ternary
+    from toise.externals import ternary
     import matplotlib.pyplot as plt
 
     ax = ternary.flavor_triangle(grid=True)
@@ -461,7 +461,7 @@ def muon_damping(datasets, preliminary=False):
     """
     Plot exclusion contours in flavor composition
     """
-    from gen2_analysis.externals import ternary
+    from toise.externals import ternary
     import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
     from scipy import optimize, interpolate, stats

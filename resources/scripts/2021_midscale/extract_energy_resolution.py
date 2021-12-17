@@ -3,7 +3,7 @@ import tables
 import pandas as pd
 import numpy as np
 from toolz import memoize
-from gen2_analysis import plotting, surfaces
+from toise import plotting, surfaces
 
 import argparse
 

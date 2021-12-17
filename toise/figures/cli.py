@@ -139,9 +139,9 @@ def jsonify(obj):
 
 
 def make_figure_data():
-    from gen2_analysis import figures
+    from toise import figures
 
-    # find all submodules of gen2_analysis.figures and import them
+    # find all submodules of toise.figures and import them
     for submod in find_modules(os.path.dirname(sys.modules[__name__].__file__)):
         importlib.import_module(".".join(__name__.split(".")[:-1] + [submod]))
 
@@ -237,9 +237,9 @@ def _add_options_for_args(parser, spec, param_help):
 
 
 def make_figure():
-    from gen2_analysis import figures
+    from toise import figures
 
-    # find all submodules of gen2_analysis.figures and import them
+    # find all submodules of toise.figures and import them
     for submod in find_modules(os.path.dirname(sys.modules[__name__].__file__)):
         importlib.import_module(".".join(__name__.split(".")[:-1] + [submod]))
 

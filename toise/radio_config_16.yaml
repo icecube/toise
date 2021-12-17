@@ -1,15 +1,15 @@
-# radio config file for gen2-analysis framework
+# radio config file for toise framework
 
 #############
 ### booleans to apply smearing/efficiencies or not...
 apply_smearing_inelasticity: False
-apply_analysis_efficiency: False
-apply_energy_resolution: False
+apply_analysis_efficiency: True
+apply_energy_resolution: True
 
 #############
 ### detector setup scales effective area with number of stations,
 detector_setup:
-    nstations: 144
+    nstations: 16
 
 #############
 ### effective volume of radio review simulations: 144 deep (+surface) + 169 surface-only stations

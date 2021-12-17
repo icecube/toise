@@ -1,24 +1,24 @@
-# radio config file for gen2-analysis framework
+# radio config file for toise framework
 
 #############
 ### booleans to apply smearing/efficiencies or not...
 apply_smearing_inelasticity: False
-apply_analysis_efficiency: True
-apply_energy_resolution: True
+apply_analysis_efficiency: False
+apply_energy_resolution: False
 
 #############
 ### detector setup scales effective area with number of stations,
 detector_setup:
-    nstations: 16
+    nstations: 144
 
 #############
 ### effective volume of radio review simulations: 144 deep (+surface) + 169 surface-only stations
 # combined to one file
 effective_volume:
-    e: 'review_array_deep_only_dict_e.json'
-    mu: 'review_array_deep_only_dict_mu.json'
-    tau: 'review_array_deep_only_dict_tau.json'
-    trigger_name: "PA_4channel_100Hz"
+    e: 'review_array_dict_e.json'
+    mu: 'review_array_dict_mu.json'
+    tau: 'review_array_dict_tau.json'
+    trigger_name: "combined_array"
     # number of stations for which the veffs were generated. The veffs will be downscaled by that factor to a per-station veff.
     simulated_stations: 144
 
@@ -36,7 +36,7 @@ effective_volume:
 #    log_turnon_gev: 8.46903659
 #    log_turnon_width: 1.03517252
 
-## for gen2 review (simulations by Kaeli) (*=0.85 for all sky in min/max val?)
+## for gen2 review (simulations by Kaeli)
 analysis_efficiency:
     minval: 0.43725862
     maxval: 0.99336176

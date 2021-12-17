@@ -2,9 +2,9 @@ from typing import Optional
 
 import numpy as np
 import pytest
-from gen2_analysis import diffuse, factory, figures_of_merit, multillh, surface_veto
-from gen2_analysis.effective_areas import effective_area
-from gen2_analysis.figures import figure
+from toise import diffuse, factory, figures_of_merit, multillh, surface_veto
+from toise.effective_areas import effective_area
+from toise.figures import figure
 from scipy import stats
 from scipy.optimize import bisect
 

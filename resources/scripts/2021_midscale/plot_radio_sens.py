@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from gen2_analysis import util, grb
+from toise import util, grb
 import json
 import gzip
 
