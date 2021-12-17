@@ -12,7 +12,8 @@ or the median discovery potential (i.e. the flux level at which the null
 hypothesis would be rejected at 5 sigma in 50% of realizations).
 
 A [toise](https://en.wikipedia.org/wiki/Toise) is also an archaic French unit of
-length, area, or volume, depending on context.
+length, area, or volume, depending on context. `toise` may also emit projected
+sensitivities in different units depending on context.
 
 ## Installation
 
