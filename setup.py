@@ -21,7 +21,8 @@ check_call(
         "--fail",
         "-o",
         "minimal-archive.tar.gz",
-        "https://sandbox.zenodo.org/record/981577/files/minimal-archive.tar.gz?download=1",
+        "https://www.zeuthen.desy.de/~jvsanten/toise/minimal-archive.tar.gz",
+        # "https://sandbox.zenodo.org/record/981577/files/minimal-archive.tar.gz?download=1",
     ],
     cwd=cwd,
 )
