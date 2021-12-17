@@ -21,36 +21,34 @@ with `conda`. If you do not already have `miniconda` on your system, obtain the
 installer from https://conda.io/miniconda.html, and install in a location of
 your choice, e.g.:
 
-```
-     sh ./Miniconda3-latest-Linux-x86_64.sh -p $CONDA_PREFIX
+```sh
+sh ./Miniconda3-latest-Linux-x86_64.sh -p $CONDA_PREFIX
 ```
 
 replacing `CONDA_PREFIX` with the prefix you chose.
 
 Then, obtain `toise`:
 
-```
+```sh
 git clone git@github.com:IceCubeOpenSource/toise.git
 ```
 
 Then, from the `toise` source directory, create a new environment:
+```sh
+cd toise
+$CONDA_PREFIX/bin/conda env create -n toise --file environment.yml
 ```
-  cd toise
 
-  ICECUBE_PASSWORD=xxxx $CONDA_PREFIX/bin/conda env create -n toise --file environment.yml
-```
-
-Replace `xxxx` with the standard IceCube password. This will also download the required data tables.
+This will also download the required data tables.
 
 The above will install the latest available versions of all dependencies. You can also install exactly the versions that were most recently tested with:
-```
+```sh
 cd toise
 
 PLATFORM_LOCKFILE=$(conda info --json | jq -r '"conda-\(.platform).lock"')
 conda create -n toise --file $PLATFORM_LOCKFILE
 cat $PLATFORM_LOCKFILE | awk '/^# pip/ {print substr($0,7)}' > requirements.txt
-conda run -n toise pip install -r requirements.txt
-ICECUBE_PASSWORD=xxxx conda run -n toise pip install -e .
+conda run -n toise pip install -r requirements.txt -e .
 ```
 This should be much faster, as it does not have to solve for compatible versions of all the dependencies. If you do not have `jq` installed, you can set `PLATFORM_LOCKFILE` by hand to e.g. `conda-osx-64.lock`.
 
@@ -58,10 +56,12 @@ If you have a Jupyter notebook installation from another conda environment, you 
 
 Otherwise, activate the environment with `. $CONDA_PREFIX/bin/activate toise`. This should leave you with a prompt that looks like
 ```
-  (toise) [jakob@TheInfoSphere3:~]$.
+(toise) [jakob@TheInfoSphere3:~]$.
 ```
 
 If you'd like to install jupyter at this stage, you can do: 
 ```
-  conda install --channel conda-forge notebook
+conda install --channel conda-forge notebook
 ```
+
+
