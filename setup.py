@@ -5,7 +5,7 @@ from setuptools import find_packages
 from subprocess import check_call, PIPE
 from os import path, unlink, environ, mkdir
 
-cwd = path.join(path.dirname(__file__), 'toise', 'data')
+cwd = path.join(path.dirname(__file__), "toise", "data")
 if not path.isdir(cwd):
     mkdir(cwd)
 
