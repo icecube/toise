@@ -1,0 +1,3 @@
+# slightly more minimal style than matplotlib 2 defaults
+legend.frameon : False
+legend.handlelength : 1
