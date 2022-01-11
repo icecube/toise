@@ -1,3 +1,4 @@
 # slightly more minimal style than matplotlib 2 defaults
+figure.figsize : 6, 3
 legend.frameon : False
 legend.handlelength : 1
