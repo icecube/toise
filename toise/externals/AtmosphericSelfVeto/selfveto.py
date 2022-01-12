@@ -564,7 +564,7 @@ def plot_response_function(enu, depth, cos_theta, kind):
     )
 
     pylab.loglog()
-    ax.set_ylabel("Partial flux $[GeV^{-1}\, m^{-2}\, sr^{-1}\, s^{-1}]$")
+    ax.set_ylabel(r"Partial flux $[GeV^{-1}\, m^{-2}\, sr^{-1}\, s^{-1}]$")
     # ax.legend(loc='best', prop=dict(size='small'), title='Flux contributions')
     ax.legend(
         loc="lower left", prop=dict(size="small"), title="Flux contributions", ncol=2
