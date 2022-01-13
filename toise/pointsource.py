@@ -377,7 +377,7 @@ def nevents(llh, **hypo):
 def discovery_potential(
     point_source, diffuse_components, sigma=5.0, baseline=None, tolerance=1e-2, **fixed
 ):
-    """
+    r"""
     Calculate the scaling of the flux in *point_source* required to discover it
     over the background in *diffuse_components* at *sigma* sigma in 50% of
     experiments.

@@ -94,7 +94,7 @@ def create_aeff(opts, **kwargs):
     resolution_geometry = opts.geometry
     fiducial_geometry = opts.geometry
     if "Sunflower" in opts.geometry:
-        if opts.geometry is not "Sunflower":
+        if opts.geometry != "Sunflower":
             resolution_geometry = "Sunflower"
             print(
                 (
