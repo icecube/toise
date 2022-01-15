@@ -518,7 +518,6 @@ class radio_aeff:
 def combine_aeffs(aeff1, aeff2):
     """
     Combine two effective area tuples while removing the overlap of events seen in both
-  
     :param aeff1: first aeff tuple
     :param aeff2: second aeff tuple
     """
