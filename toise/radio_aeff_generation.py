@@ -1,8 +1,6 @@
 ##
 
 ##
-import dashi
-import tables
 from scipy import interpolate
 import numpy as np
 
@@ -518,8 +516,11 @@ class radio_aeff:
 
 
 def combine_aeffs(aeff1, aeff2):
-    import copy
-
+    """
+    Combine two effective area tuples while removing the overlap of events seen in both
+    :param aeff1: first aeff tuple
+    :param aeff2: second aeff tuple
+    """
     if not aeff1.compatible_with(aeff2):
         logger.error("provided incompatible aeffs to combine function")
     else:
@@ -532,7 +533,10 @@ def combine_aeffs(aeff1, aeff2):
             interpolation_result = np.maximum(interpolator(np.log10(E)), 0)
             return (interpolation_result + 1.0) ** -1
 
-        print(overlap(aeff.get_bin_centers("true_energy")))
+        logger.info("Subtracting overlap in aeff combination.")
+        logger.info(f"E={aeff.get_bin_centers('true_energy')}")
+        logger.info(f"overlap={overlap(aeff.get_bin_centers('true_energy'))}")
+
         aeff.values = (aeff1.values + aeff2.values) * overlap(
             aeff.get_bin_centers("true_energy")
         )[None, :, None, None, None]

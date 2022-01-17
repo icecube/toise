@@ -3,8 +3,8 @@
 #############
 ### booleans to apply smearing/efficiencies or not...
 apply_smearing_inelasticity: False
-apply_analysis_efficiency: False
-apply_energy_resolution: False
+apply_analysis_efficiency: True
+apply_energy_resolution: True
 
 #############
 ### detector setup scales effective area with number of stations,
