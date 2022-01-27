@@ -1,25 +1,25 @@
-from toise.figures import figure_data, figure
+import re
+from collections import OrderedDict
+from copy import copy
+from functools import partial
 
+import numpy as np
 from toise import (
     diffuse,
-    multillh,
-    plotting,
-    surface_veto,
-    pointsource,
     factory,
     figures_of_merit,
+    multillh,
+    pointsource,
+    surface_veto,
     util,
 )
-from toise.cache import ecached, lru_cache
-
-from collections import OrderedDict, defaultdict
-from scipy import stats, optimize
-from copy import copy
-import numpy as np
-import re
+from toise.figures import figure, figure_data
 from tqdm import tqdm
-from functools import partial
-from io import StringIO
+
+try:
+    from typing import List
+except ImportError:
+    List = list
 
 
 @figure_data()
@@ -82,7 +82,14 @@ def sensitivity(datasets):
 
 @figure_data()
 def single_flare_time_to_signficance(
-    exposures, flux=1.6e-15, gamma=-2.1, dec=5.69, emin=0.0, emax=np.inf
+    exposures,
+    flux=1.6e-15,
+    gamma=-2.1,
+    dec=5.69,
+    emin=0.0,
+    emax=np.inf,
+    days: List[float] = [3, 10, 20, 50, 100, 158, 200, 300, 500],
+    duration_penalty: bool = True,
 ):
     """
     :param flux: average flare flux in TXS paper units (TeV^-1 cm^-2 s^-2 at 100 TeV)
@@ -128,6 +135,8 @@ def single_flare_time_to_signficance(
 
     def ts(flare_time, total_time):
 
+        # NB: hypotheses are only compared over the flare time. the total exposure
+        # time enters via an optional penalty term
         components = bundle.get_components({exposures[0][0]: flare_time})
         flux_levels = {k: v.seed for k, v in components.items()}
         flux_levels["ps"] = flux_norm
@@ -166,14 +175,13 @@ def single_flare_time_to_signficance(
             * (
                 allh.llh(**null)
                 - allh.llh(**alternate)
-                - np.log(flare_time / total_time)
+                - (np.log(flare_time / total_time) if duration_penalty else 0.0)
             ),
             "ns": ns,
             "nb": nb,
         }
         # return -2*(allh.llh(ps=0, **fixed)-allh.llh(ps=flux_norm, **fixed))
 
-    days = [3, 10, 20, 50, 100, 158, 200, 300, 500]
     return {"days": days, "ts": [ts(dt / 365.0, exposures[0][1]) for dt in days]}
 
 
