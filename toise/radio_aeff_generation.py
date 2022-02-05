@@ -3,6 +3,8 @@
 ##
 from scipy import interpolate
 import numpy as np
+import pandas as pd
+import json
 
 import logging
 
@@ -32,8 +34,6 @@ def _load_rno_veff(
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
-    import pandas as pd
-    import json
 
     if not filename.startswith("/"):
         filename = os.path.join(data_dir, "aeff", filename)
@@ -80,32 +80,35 @@ def _load_radio_review_veff(
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
-    import pandas as pd
-    import numpy as np
-    import json
 
-    if not filename.startswith("/"):
+    if not os.path.isfile(filename):
+        # look in the data directory if provided file does not exist
         filename = os.path.join(data_dir, "aeff", filename)
 
     # read filename and convert to pandas
     data = open(filename, "r")
     jsonfile = json.load(data)
     dataframe = pd.DataFrame(jsonfile)
-    # print(dataframe)
+    # sort input data by energy and cos(zenith)
+    dataframe.sort_values(by=["energy", "thetamin"], ascending=[True, False], inplace=True)
+    dataframe.reset_index(inplace=True)
+    
     def _list_of_triggers(df):
         triggerlist = [list(df.veff[i]) for i in range(len(df))]
         triggerlist_flat = np.concatenate(triggerlist).ravel().tolist()
         triggerlist_set = list(set(triggerlist_flat))
+        logger.debug(f"found triggers: {triggerlist_set}")
         return triggerlist_set
 
     if trigger == None:
         # simply take the first
+        found_triggers = _list_of_triggers(dataframe)
+        trigger = found_triggers[0]
         logger.warning(
-            "no trigger name requested, simply taking the first... this may be dangerous"
-        )
-        trigger = _list_of_triggers(dataframe)[0]
+              f"No trigger name requested, simply picking the first ('{trigger}') from available {found_triggers}."
+        )        
 
-    logger.warning("using trigger: {}".format(trigger))
+    logger.info("Using trigger: {}".format(trigger))
 
     def _extract_veff(df, triggername):
         veff = np.array([df.veff[i][triggername][0] for i in range(len(df))])
@@ -155,7 +158,6 @@ def _load_radio_review_veff(
 def _interpolate_rno_veff(
     energy_edges, ct_edges=None, filename="jaml.file", trigger=None
 ):
-    from scipy import interpolate
 
     # print("interpolating effective area")
     edges, veff = _load_radio_review_veff(filename, trigger)
@@ -238,7 +240,6 @@ from .radio_response import RadioPointSpreadFunction
 from .radio_response import RadioEnergyResolution
 from .effective_areas import calculate_cascade_production_density
 from .effective_areas import effective_area
-import os
 
 
 class radio_aeff:
