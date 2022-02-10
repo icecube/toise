@@ -4,3 +4,7 @@
 data/
 figures/**/*.json.gz
 figures/**/*.pdf
+notebooks/**/*.pdf
+notebooks/**/*.fits
+notebooks/**/.ipynb_checkpoints
+.vscode
