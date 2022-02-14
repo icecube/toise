@@ -65,4 +65,35 @@ If you'd like to install jupyter at this stage, you can do:
 conda install --channel conda-forge notebook
 ```
 
+## Adding your detector to toise
+
+`toise` uses parameterized response functions to calculate expected
+sensitivities to scenarios of astrophysical neutrino production. It comes with
+parameterizations for a fictive under-ice optical detector as well as a radio
+detector. To use `toise` with your own detector design, you will have to provide parameterizations of
+
+### Optical detector
+
+1. The instrumented volume of the detector.
+2. For muons that enter the instrumented volume from the outside:
+    1. Selection efficiency, as a function of muon energy at the boundary of the
+       instrumented volume and zenith angle.
+    2. Energy resolution, in the form of a transfer matrix from muon energy at
+       the boundary of the instrumented volume to energy observable.
+    3. Angular resolution, in the form of a cumulative distribution of opening
+       angle between the true and reconstructed muon direction, as a function of
+       muon energy at the boundary of the instrumented volume and zenith angle.
+3. For neutrino interactions inside the instrumented volume:
+    1. Selection efficiency, as a function of deposited energy and zenith angle.
+    2. Energy resolution, in the form of a transfer matrix from deposited energy
+       to energy observable.
+    3. Angular resolution, in the form of a cumulative distribution of opening
+       angle between the true and reconstructed neutrino direction, as a
+       function of deposited energy and zenith angle.
+    4. Flavor signature classification efficiency, in terms of an
+       energy-dependent transfer matrix from interaction type to flavor
+       signature (cascade, double cascade, starting track).
+
+### Radio detector
+
 
