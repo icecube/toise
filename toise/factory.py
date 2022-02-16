@@ -341,7 +341,7 @@ def gen2_throughgoing_muon_angular_resolution_correction(
     """
     :param scale: cherenkov effective area per sensor, relative to PDOM
     :param sspmpe: approximate resolution improvement from Segmented SplineMPE
-    :param mdom: approxmate resoluteion improvement from mDOM
+    :param mdom: approxmate resolution improvement from mDOM
     """
 
     def b(x):
