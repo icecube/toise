@@ -1,17 +1,18 @@
+import os
 import numpy as np
 from scipy.stats import multivariate_normal
 from scipy import interpolate
-import os
 from scipy.special import erf
+from scipy.stats import cauchy
 
 from .energy_resolution import EnergySmearingMatrix
 
 import logging
-
-logger = logging.getLogger("radio resolution param")
+logger = logging.getLogger("radio resolution parametrisation")
 
 
 class RadioPointSpreadFunction(object):
+    """ A possible point spread function for radio, consisting two Gaussian terms and a constant term (well, ok, extremely poor reconstruction) """
     def __init__(
         self,
         norm1=0.6192978004334891,
@@ -25,7 +26,8 @@ class RadioPointSpreadFunction(object):
         self.norm1 = abs(norm1)
         self.norm2 = abs(norm2)
         self.norm_const = abs(norm_const)
-        self.max_const = 100
+        # arbitrarily use a constant term in the range from 0 to 100 deg
+        self.max_const = 100.
 
     def PDF(self, space_angle):
         return self.pdf(
@@ -41,8 +43,8 @@ class RadioPointSpreadFunction(object):
         const = (
             norm_const
             * np.heaviside(space_angle, 1)
-            * np.heaviside(100 - space_angle, 1)
-            / 100.0
+            * np.heaviside(self.max_const - space_angle, 1)
+            / self.max_const
         )
         return (
             multivariate_normal.pdf(space_angle, mean=0, cov=sigma1) * 2 * norm1
@@ -64,10 +66,10 @@ class RadioPointSpreadFunction(object):
         const = (
             norm_const
             * np.heaviside(space_angle, 1)
-            * np.heaviside(100 - space_angle, 1)
-            / 100.0
+            * np.heaviside(self.max_const - space_angle, 1)
+            / self.max_const
             * space_angle
-            + np.heaviside(space_angle - 100, 0) * norm_const
+            + np.heaviside(space_angle - self.max_const, 0) * norm_const
         )
         return (
             multivariate_normal.cdf(space_angle, mean=0, cov=sigma1) * 2 * norm1
@@ -124,7 +126,6 @@ class RadioPointSpreadFunction(object):
         self.norm_const *= factor_bad
 
     def __call__(self, psi, energy, cos_theta):
-
         psi, energy, cos_theta = np.broadcast_arrays(psi, energy, cos_theta)
         logger.info(psi)
         logger.info(np.shape(psi))
@@ -132,10 +133,8 @@ class RadioPointSpreadFunction(object):
         return np.where(np.isfinite(evaluates), evaluates, 1.0)
 
 
-from scipy.stats import cauchy
-
-
 class RadioEnergyResolution(EnergySmearingMatrix):
+    """ A 1D energy resolution matrix parameterised by a Cauchy function in log(Erec/Eshower) """
     def __init__(
         self,
         lower_limit=np.log10(1.1),
@@ -177,10 +176,10 @@ class RadioEnergyResolution(EnergySmearingMatrix):
         loge_hi = np.log10(reco_energy[1:])
 
         # evaluate at the right edge for maximum smearing on a falling spectrum
-        #### loge_center = loge_hi
         mu, hi = np.meshgrid(
             self.bias(loge_center), loge_hi, indexing="ij"
-        )  # was: bias+logewidth
+        )
+        # do not use sigma for radio
         sigma, lo = np.meshgrid(self.sigma(loge_center), loge_lo, indexing="ij")
 
         return (
@@ -192,7 +191,7 @@ class RadioEnergyResolution(EnergySmearingMatrix):
 
 
 def efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax):
-    # sigmoid function in logE for efficiency between 0 and 1
+    """ sigmoid function in logE for efficiency between max(0, eff_low) and eff_high """
     logx = np.log10(x)
     # choose factors conveniently
     # loge_halfmax should correspond to units in logE from turnover, where 0.25/0.75 of max are reached
@@ -206,7 +205,7 @@ def efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax):
 
 
 def bound_efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax):
-    # sigmoid function in logE for efficiency between 0 and 1
+    """ sigmoid function in logE for efficiency between 0 and 1 """
     # hard limits between 0 and 1
     eff = efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax)
     # limit to range between 0 and 1
@@ -216,6 +215,15 @@ def bound_efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax):
 
 
 def radio_analysis_efficiency(E, minval, maxval, log_turnon_gev, log_turnon_width):
+    """
+    A sigmoid analysis efficiency curve rising from minval to maxval and bounded by 0 and 1
+
+    :param E: energy values for which to return efficiency values
+    :param minval: sigmoid value for -inf limit
+    :param maxval: sigmoid value for +inf limit
+    :param log_turnon_gev: log10 energy turnon in GeV (the point at which 50% value between minval and maxval is reached)
+    :param log_turnon_width: with of transition region (log10 width from 25% to 75% transition of the sigmoid)
+    """
     # any3_gtr3
     # [-0.19848465  0.92543898  7.42347294  1.2133977 ]
     # 3phased_2support_gtr3
@@ -224,72 +232,4 @@ def radio_analysis_efficiency(E, minval, maxval, log_turnon_gev, log_turnon_widt
     # [-0.16480194  0.76853897  8.46903659  1.03517252]
     # 3power_2support_gtr3
     # [-0.0923469   0.73836631  8.72327879  0.85703575]
-    # return bound_efficiency_sigmoid(E, -0.16480194,  0.76853897,  8.46903659,  1.03517252)
     return bound_efficiency_sigmoid(E, minval, maxval, log_turnon_gev, log_turnon_width)
-
-
-class StationOverlap:
-    """overlap is parametrised for different values of station spacing as function of energy"""
-
-    # is deprecated... simulations are now done for full array.
-    overlap_fit_data = {
-        0: [1.16915194, 0.76565583],
-        100: [14.71768875, 0.59238456],
-        250: [16.15636026, 0.50626117],
-        500: [16.92610908, 0.520047],
-        750: [17.49885381, 0.45712464],
-        1000: [17.90166045, 0.48601167],
-        1250: [18.26189115, 0.5322479],
-        1500: [18.6003936, 0.55918667],
-        2000: [19.1751211, 0.58951958],
-        2500: [19.64801491, 0.58333683],
-        3000: [20.06492668, 0.56412106],
-    }
-
-    def __init__(self, spacing):
-        self.find_spacing(spacing)
-
-    def find_spacing(self, spacing):
-        print(("requested spacing %f" % spacing))
-        spacings = np.array(list(self.overlap_fit_data.keys()))
-        best = spacings[np.abs(spacings - spacing).argmin()]
-        print(("using nearest available:", best))
-        self.spacing = best
-
-    def overlap_sigmoid(self, x, loge_turn, loge_halfmax):
-        # sigmoid function in logE for overlap between 0 and 1
-        logx = np.log10(x)
-        # choose factors conveniently
-        # loge_halfmax should correspond to units in logE from turnover, where 0.25/0.75 of max are reached
-        # = number of orders of magnitude in x between 0.25..0.75*(max-min) range
-        b = np.log(3) / loge_halfmax
-
-        y_low = 0  # in the limit of zero energy there will be no overlap
-        y_high = 1  # in the limit of infinite energy 100% overlap can be expected
-
-        y = ((y_low - y_high) / (1 + (np.exp(b * (logx - loge_turn))))) + y_high
-        return y
-
-    def overlap_sigmoid_fit(self, energies, the_overlap):
-        # print(loge, the_eff)
-        res, vals = optimize.curve_fit(self.overlap_sigmoid, energies, the_overlap)
-        return res
-
-    def get_overlap(self, e):
-        turn = self.overlap_fit_data[self.spacing][0]
-        width = self.overlap_fit_data[self.spacing][1]
-        return self.overlap_sigmoid(e, turn, width)
-
-        """
-        Idea, apply downscaling to account for station overlap, like:
-        Caveat!: This needs modification if applied!!!
-
-        if 'spacing_m' in configuration['detector_setup']:
-            spacing = configuration['detector_setup']['spacing_m']
-            print('requested station spacing: %f' %spacing)
-            overlap = StationOverlap(spacing)
-
-            scale_factor = 1.-overlap.get_overlap(e_nu[:-1]*1e9)
-            print('scale factor:', e_nu, scale_factor)
-            aeff = numpy.apply_along_axis(numpy.multiply, 1, aeff, scale_factor)
-        """
