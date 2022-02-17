@@ -566,9 +566,14 @@ class radio_aeff:
         )
 
 
-def combine_aeffs(aeff1, aeff2,
-        overlap_E=10**np.array([7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11.0]),
-        overlap_values=np.array([0.004, 0.007, 0.019, 0.074, 0.153, 0.245, 0.323, 0.368, 0.393])):
+def combine_aeffs(
+    aeff1,
+    aeff2,
+    overlap_E=10 ** np.array([7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11.0]),
+    overlap_values=np.array(
+        [0.004, 0.007, 0.019, 0.074, 0.153, 0.245, 0.323, 0.368, 0.393]
+    ),
+):
     """
     Combine two effective area tuples while removing the overlap of events seen in both
     (as done in the Feb. review array sims, where deep + shallow arrays had been simulated separately)
