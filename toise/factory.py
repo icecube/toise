@@ -459,6 +459,7 @@ default_configs = {
     "Gen2-InIce": scale_gen2_sensors(3.0),
     "Gen2-InIce-TracksOnly": scale_gen2_sensors(3.0, with_cascades=False),
     "Gen2-Radio": dict(geometry="Radio", nstations=200),
+    "Fictive-Radio": dict(geometry="Radio", nstations=30),
     "Sunflower_240": dict(
         geometry="Sunflower",
         spacing=240,

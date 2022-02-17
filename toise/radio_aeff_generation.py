@@ -1,6 +1,7 @@
 import os
 from copy import copy
 import json
+
 import logging
 import numpy as np
 import pandas as pd
@@ -589,7 +590,7 @@ def combine_aeffs(aeff1, aeff2,
         logger.info("Subtracting overlap in aeff combination.")
         logger.info(f"E={aeff.get_bin_centers('true_energy')}")
         logger.info(f"overlap={overlap(aeff.get_bin_centers('true_energy'))}")
-        
+
         # apply to neutrino energy axis
         aeff.values = (aeff1.values + aeff2.values) * overlap(
             aeff.get_bin_centers("true_energy"), np.log10(overlap_E), overlap_values

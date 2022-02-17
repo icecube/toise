@@ -1,3 +1,5 @@
+# Adapted from [multillh](http://code.icecube.wisc.edu/svn/sandbox/nwhitehorn/multillh)
+
 import logging
 import numpy
 import scipy.optimize
