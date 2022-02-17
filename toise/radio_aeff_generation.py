@@ -95,7 +95,9 @@ def _load_radio_veff_json(
         jsonfile = json.load(data)
     dataframe = pd.DataFrame(jsonfile)
     # sort input data by energy and cos(zenith)
-    dataframe.sort_values(by=["energy", "thetamin"], ascending=[True, False], inplace=True)
+    dataframe.sort_values(
+        by=["energy", "thetamin"], ascending=[True, False], inplace=True
+    )
     dataframe.reset_index(inplace=True)
 
     def _list_of_triggers(df):
