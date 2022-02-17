@@ -9,7 +9,7 @@ logger = logging.getLogger("toise radio muon background")
 def get_muon_distribution(
     cosz_edges=np.linspace(-1, 1, 21), energy_edges=np.logspace(6, 12, 61)
 ):
-    """ First best guess muon distribution
+    """First best guess muon distribution
 
     Distribution was given as function of zenith and as function of energy
     in Phys. Rev. D 102, 083011 (2020) / DOI: 10.1103/PhysRevD.102.083011
