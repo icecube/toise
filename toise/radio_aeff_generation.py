@@ -168,10 +168,10 @@ def _interpolate_radio_veff(
     """
         Loads a NuRadioMC effective volume and interpolates for the requested energy / cos theta binning
 
-    :param energy_edges: final energy binning to interpolate Veff to
-    :param ct_edges: final cos theta binning to interpolate Veff to, if None, keep original binning
-    :param filename: name of the json export of the Veff calculated using NuRadioMC
-    :param trigger: name of the trigger to be used
+        :param energy_edges: final energy binning to interpolate Veff to
+        :param ct_edges: final cos theta binning to interpolate Veff to, if None, keep original binning
+        :param filename: name of the json export of the Veff calculated using NuRadioMC
+        :param trigger: name of the trigger to be used
 
 :returns: a tuple (edges, veff). veff has units of m^3
     """
