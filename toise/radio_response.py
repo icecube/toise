@@ -27,7 +27,7 @@ class RadioPointSpreadFunction(object):
         self.norm2 = abs(norm2)
         self.norm_const = abs(norm_const)
         # arbitrarily use a constant term in the range from 0 to 100 deg
-        self.max_const = 100.
+        self.max_const = 100.0
 
     def PDF(self, space_angle):
         return self.pdf(
