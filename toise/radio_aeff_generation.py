@@ -22,6 +22,7 @@ from .util import *
 
 logger = logging.getLogger("toise aeff calculation for radio")
 
+
 def _load_rno_veff(
     filename=data_dir
     + "/aeff/run_input_500km2_01_surface_4LPDA_1dipole_RNOG_1.50km_config_Alv2009_nonoise_100ns_D01surface_4LPDA_1dipole_250MHz_dipoles_RNOG_200m_3.00km_D02single_dipole_250MHz_e.json",
