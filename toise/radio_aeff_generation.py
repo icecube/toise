@@ -173,7 +173,7 @@ def _interpolate_radio_veff(
         :param filename: name of the json export of the Veff calculated using NuRadioMC
         :param trigger: name of the trigger to be used
 
-:returns: a tuple (edges, veff). veff has units of m^3
+    :returns: a tuple (edges, veff). veff has units of m^3
     """
     logger.debug("interpolating effective area")
     edges, veff = _load_radio_veff_json(filename, trigger)
