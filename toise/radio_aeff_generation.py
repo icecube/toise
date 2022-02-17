@@ -607,7 +607,8 @@ def combine_aeffs(
 
 
 class MuonBackground(object):
-    """ add the muon background assuming the Aeff is in reality just the number of events per zenith/energy bin """
+    """add the muon background assuming the Aeff is in reality just the number of events per zenith/energy bin"""
+
     def __init__(self, effective_area, livetime=1.0):
         self._aeff = effective_area
 
