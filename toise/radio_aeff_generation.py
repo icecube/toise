@@ -74,7 +74,7 @@ def _load_rno_veff(
 
 
 def _load_radio_veff_json(
-    filename=data_dir + "/aeff/review_array_dict_e.json", trigger=None
+    filename=data_dir + "/aeff/fictive_radio_dict_e.json", trigger=None
 ):
     """
     Loads the effective volume for an exported via NuRadioMC
