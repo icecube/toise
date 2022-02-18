@@ -166,7 +166,7 @@ def _interpolate_radio_veff(
     energy_edges, ct_edges=None, filename="json.file", trigger=None
 ):
     """
-            Loads a NuRadioMC effective volume and interpolates for the requested energy / cos theta binning
+                Loads a NuRadioMC effective volume and interpolates for the requested energy / cos theta binning
 
             :param energy_edges: final energy binning to interpolate Veff to
             :param ct_edges: final cos theta binning to interpolate Veff to, if None, keep original binning
