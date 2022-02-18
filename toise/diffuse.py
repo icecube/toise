@@ -724,8 +724,7 @@ class AhlersGZKFlux(object):
     Fig 2. left panel, solid red line (protons with source evolution)
     """
 
-
-
+    def __init__(self):
         from scipy import interpolate
 
         logE, logWeight = numpy.log10(
