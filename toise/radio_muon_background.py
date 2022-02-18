@@ -104,10 +104,12 @@ def get_muon_distribution(
     logger.info(("Total muons per station:", np.sum(extended_muon_distribution)))
     return extended_muon_distribution
 
+
 def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
     """Get a tabulated muon distribution from a pickle file"""
 
     import pickle
+
     with open(pickle_file, "rb") as fin:
         shower_energy_bins, cos_zenith_bins, z_zen, z_zen_crcut = pickle.load(fin)
         # simply check if the shower_energy_bins and cos_zenith_bins match the expected shape or not.
