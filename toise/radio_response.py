@@ -8,11 +8,13 @@ from scipy.stats import cauchy
 from .energy_resolution import EnergySmearingMatrix
 
 import logging
+
 logger = logging.getLogger("radio resolution parametrisation")
 
 
 class RadioPointSpreadFunction(object):
-    """ A possible point spread function for radio, consisting two Gaussian terms and a constant term (well, ok, extremely poor reconstruction) """
+    """A possible point spread function for radio, consisting two Gaussian terms and a constant term (well, ok, extremely poor reconstruction)"""
+
     def __init__(
         self,
         norm1=0.6192978004334891,
@@ -134,7 +136,8 @@ class RadioPointSpreadFunction(object):
 
 
 class RadioEnergyResolution(EnergySmearingMatrix):
-    """ A 1D energy resolution matrix parameterised by a Cauchy function in log(Erec/Eshower) """
+    """A 1D energy resolution matrix parameterised by a Cauchy function in log(Erec/Eshower)"""
+
     def __init__(
         self,
         lower_limit=np.log10(1.1),
@@ -191,7 +194,7 @@ class RadioEnergyResolution(EnergySmearingMatrix):
 
 
 def efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax):
-    """ sigmoid function in logE for efficiency between max(0, eff_low) and eff_high """
+    """sigmoid function in logE for efficiency between max(0, eff_low) and eff_high"""
     logx = np.log10(x)
     # choose factors conveniently
     # loge_halfmax should correspond to units in logE from turnover, where 0.25/0.75 of max are reached
@@ -205,7 +208,7 @@ def efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax):
 
 
 def bound_efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax):
-    """ sigmoid function in logE for efficiency between 0 and 1 """
+    """sigmoid function in logE for efficiency between 0 and 1"""
     # hard limits between 0 and 1
     eff = efficiency_sigmoid(x, eff_low, eff_high, loge_turn, loge_halfmax)
     # limit to range between 0 and 1
