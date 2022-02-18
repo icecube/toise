@@ -723,6 +723,7 @@ class AhlersGZKFlux(object):
     see: http://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.083010
     Fig 2. left panel, solid red line (protons with source evolution)
     """
+
     def __init__(self):
         from scipy import interpolate
 
