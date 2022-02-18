@@ -219,6 +219,7 @@ def _interpolate_radio_veff(
 
         return (energy_edges, ct_edges), interp(center_ct)
 
+
 class radio_aeff:
     """ convenience class to generate neutrino aeffs and background aeffs from config file settings """
     def __init__(self, config="radio_config.yaml", psi_bins=None):
