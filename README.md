@@ -96,4 +96,16 @@ detector. To use `toise` with your own detector design, you will have to provide
 
 ### Radio detector
 
+1. The (zenith and neutrino energy dependent) effective volumes for neutrinos at trigger level
+2. (Optionally) The PDF of triggered shower energies for given neutrino energy.
+   Otherwise the default transfer matrices of provided within `toise` will be used.
 
+Default parametrisation functions for analysis efficiency, energy resolution and angular point spread are
+available within the framework. The provided function parameters can be steered by the configuration `.yaml` files.
+To find appropriate parameters describing the detector to be studied, producing the following distributions is sufficient:
+
+3. The efficiency with which triggered events can be reconstructed and analysed as a function of shower energy.
+4. The (1D) energy resolution in terms of `log10(E_rec/E_shower)`.
+5. The angular resolution point spread function. If using the default double-Gaussian implementation,
+   the fraction of well reconstrucable events and the fraction of poorly reconstructable events with corresponding sigma.
+   These angular resolution quantities may be provided energy dependently.
