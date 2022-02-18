@@ -963,6 +963,7 @@ class ReasonableGZK(ArbitraryFlux):
     Neutrino flux for gamma = 2.5, Emax = 10^20 eV, m = 3.4 and 10% protons at Ecr = 10^19.6 eV
     cf.: A. van Vliet, R. Alves Batista, and J. R. Hoerandel, Phys. Rev. D 100 no. 2, (2019) 021302.
     """
+
     def __init__(self, *args, **kwargs):
         super(ReasonableGZK, self).__init__(*args, **kwargs)
         self._flux_func = ReasonableGZKFlux()
