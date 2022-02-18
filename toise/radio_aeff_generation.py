@@ -620,10 +620,7 @@ class MuonBackground(object):
         # FIXME: account for healpix binning
         self._solid_angle = 2 * np.pi * np.diff(self._aeff.bin_edges[1])
 
-
-        total = (self._aeff.values).sum(axis=0) * (
-            livetime
-        )
+        total = (self._aeff.values).sum(axis=0) * (livetime)
         self._livetime = livetime
 
         # up to now we've assumed that everything is azimuthally symmetric and
