@@ -717,6 +717,13 @@ class MuonDampedDiffuseAstro(DiffuseAstro):
 
 
 class AhlersGZKFlux(object):
+    """
+    Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
+    pure protons
+    see: http://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.083010
+    Fig 2. left panel, solid red line (protons with source evolution)
+    """
+
     def __init__(self):
         from scipy import interpolate
 
@@ -778,8 +785,9 @@ class AhlersGZKFlux(object):
 
 class VanVlietGZKFlux(object):
     """
+    A. Van Vliet, R Alves Batista, J. R. Hoerandel, Phys. Rev. D 100, 021302 (2019)
     See Fig. 1 of https://arxiv.org/pdf/1901.01899.pdf
-    alpha = 2.0, Emax = 100 EeV
+    alpha = 2.0, Emax = 100 EeV, pure proton
     """
 
     def __init__(self):
@@ -829,7 +837,12 @@ class VanVlietGZKFlux(object):
 
 
 class ReasonableGZKFlux(object):
-    """Flux from NuRadioMC"""
+    """
+    Neutrino flux for alpha = 2.5, Emax = 10^20 eV, m = 3.4 and 10% protons at Ecr = 10^19.6 eV
+    A. Van Vliet, R Alves Batista, J. R. Hoerandel, Phys. Rev. D 100, 021302 (2019)
+    See Fig. 1 of https://arxiv.org/pdf/1901.01899.pdf
+    Flux file copied from NuRadioMC
+    """
 
     def __init__(self):
         from scipy import interpolate
@@ -947,6 +960,11 @@ class VanVlietGZK(ArbitraryFlux):
 
 
 class ReasonableGZK(ArbitraryFlux):
+    """
+    Neutrino flux for gamma = 2.5, Emax = 10^20 eV, m = 3.4 and 10% protons at Ecr = 10^19.6 eV
+    cf.: A. van Vliet, R. Alves Batista, and J. R. Hoerandel, Phys. Rev. D 100 no. 2, (2019) 021302.
+    """
+
     def __init__(self, *args, **kwargs):
         super(ReasonableGZK, self).__init__(*args, **kwargs)
         self._flux_func = ReasonableGZKFlux()
