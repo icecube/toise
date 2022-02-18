@@ -546,8 +546,12 @@ class radio_aeff:
         else:
             for key in configuration["angular_resolution"]:
                 if np.isscalar(configuration["angular_resolution"][key]):
-                    configuration["angular_resolution"][key] = np.full(psf_shape, configuration["angular_resolution"][key])
-            psf_params = pd.DataFrame(configuration["angular_resolution"]).to_dict(orient="records")
+                    configuration["angular_resolution"][key] = np.full(
+                        psf_shape, configuration["angular_resolution"][key]
+                    )
+            psf_params = pd.DataFrame(configuration["angular_resolution"]).to_dict(
+                orient="records"
+            )
             psf_array = []
             for psf_param in psf_params:
                 psf.set_params(psf_param)
