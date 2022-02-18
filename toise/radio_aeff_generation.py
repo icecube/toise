@@ -680,9 +680,9 @@ class MuonBackground(object):
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):
             background.expectations = (
-                np.nansum(
-                    (self.expectations * zenith_index[:, None]) / omega, axis=0
-                )[..., None]
+                np.nansum((self.expectations * zenith_index[:, None]) / omega, axis=0)[
+                    ..., None
+                ]
                 * bin_areas
             )
         else:
