@@ -578,7 +578,6 @@ def combine_aeffs(
     """
     Combine two effective area tuples while removing the overlap of events seen in both
     (as done in the Feb. review array sims, where deep + shallow arrays had been simulated separately)
-  
     :param aeff1: first aeff tuple
     :param aeff2: second aeff tuple
     :param overlap_E: energies for overlap to be subtracted
