@@ -660,7 +660,7 @@ class MuonBackground(object):
         ), "Don't know how to make PS backgrounds from HEALpix maps yet"
 
         background = copy(self)
-        bin_areas = (np.pi * np.diff(psi_bins ** 2))[None, ...]
+        bin_areas = (np.pi * np.diff(psi_bins**2))[None, ...]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             bin_areas *= livetime / self._livetime / constants.annum
