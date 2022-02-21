@@ -70,9 +70,12 @@ conda install --channel conda-forge notebook
 `toise` uses parameterized response functions to calculate expected
 sensitivities to scenarios of astrophysical neutrino production. It comes with
 parameterizations for a fictive under-ice optical detector as well as a radio
-detector. To use `toise` with your own detector design, you will have to provide parameterizations of
+detector. To use `toise` with your own detector design, you will have to provide
+parameterizations its performance.
 
 ### Optical detector
+
+For an optical detector, you will need to provide:
 
 1. The instrumented volume of the detector.
 2. For muons that enter the instrumented volume from the outside:
@@ -96,11 +99,13 @@ detector. To use `toise` with your own detector design, you will have to provide
 
 ### Radio detector
 
+For a radio detector, you will need to provide:
+
 1. The (zenith and neutrino energy dependent) effective volumes for neutrinos at trigger level
 2. (Optionally) The PDF of triggered shower energies for given neutrino energy.
    Otherwise the default transfer matrices of provided within `toise` will be used.
 
-Default parametrisation functions for analysis efficiency, energy resolution and angular point spread are
+Default parametrization functions for analysis efficiency, energy resolution and angular point spread are
 available within the framework. The provided function parameters can be steered by the configuration `.yaml` files.
 To find appropriate parameters describing the detector to be studied, producing the following distributions is sufficient:
 
