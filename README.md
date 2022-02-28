@@ -31,7 +31,7 @@ replacing `CONDA_PREFIX` with the prefix you chose.
 Then, obtain `toise`:
 
 ```sh
-git clone git@github.com:IceCubeOpenSource/toise.git
+git clone git@github.com:icecube/toise.git
 ```
 
 Then, from the `toise` source directory, create a new environment:
