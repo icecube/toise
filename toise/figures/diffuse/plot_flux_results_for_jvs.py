@@ -24,7 +24,7 @@ def create_figure(format=None):
 
 
 def get_auger():
-    #Values from EPJC 2021 https://arxiv.org/pdf/2109.13400.pdf
+    # Values from EPJC 2021 https://arxiv.org/pdf/2109.13400.pdf
     e = n.logspace(8.05, 11.15, 32)
     f = 10 ** n.array(
         [
