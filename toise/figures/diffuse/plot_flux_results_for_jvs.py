@@ -208,7 +208,8 @@ def get_ta():
         ]
     )
 
-    fu = n.array([
+    fu = n.array(
+        [
             1.961e-09,
             1.203e-09,
             9.055e-10,
