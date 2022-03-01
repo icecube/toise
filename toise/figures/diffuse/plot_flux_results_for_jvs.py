@@ -231,7 +231,8 @@ def get_ta():
             6.055e-10,
             3.472e-10,
             5.499e-10,
-        ])
+        ]
+    )
     ul = n.zeros_like(e)
     e *= 1e-9
     return dict(x=e, y=f, yerr=[fd, fu], uplims=ul)
