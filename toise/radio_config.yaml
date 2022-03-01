@@ -1,0 +1,53 @@
+# radio config file for toise framework
+
+#############
+### booleans to apply smearing/efficiencies or not...
+apply_analysis_efficiency: True
+apply_energy_resolution: True
+
+#############
+### detector setup scales effective area with number of stations,
+detector_setup:
+    nstations: 150
+
+#############
+### effective volume of a fictive radio array
+effective_volume:
+    e: 'fictive_radio_dict_e.json'
+    mu: 'fictive_radio_dict_mu.json'
+    tau: 'fictive_radio_dict_tau.json'
+    trigger_name: "combined_array"
+    # number of stations for which the veffs were generated. The veffs will be downscaled by that factor to a per-station veff.
+    simulated_stations: 150
+
+#############
+### analysis efficiency is implemented as sigmoid function with
+#  - minval: low energy limit for efficiency (minval values < 0 are allowed, efficiencies are limited to [0,1])
+#  - maxval: high energy limit for efficiency (maxval values > 1 are allowed, efficiencies are limited to [0,1])
+#  - log_turnon_gev: turning point of the sigmoid in log10(E [GeV])
+#  - log_turnon_width: width of the turnon region in log10(E)
+
+### analysis values corresponding roughly to the ones in JINST 16 P03025 2021
+analysis_efficiency:
+    minval: -0.16480194
+    maxval: 0.76853897
+    log_turnon_gev: 8.46903659
+    log_turnon_width: 1.03517252
+
+#############
+### energy resolution for a fictive radio array
+# implemented as Cauchy for larger tails compared to Gaussian
+energy_resolution:
+    loc: 0.02
+    scale: 0.14
+
+#############
+### angular resolution for a fictive radio array
+# implemented as combination of "well-reco" gaus (1) + "bad-reco" components (gaus (2) plus constant
+# constant fraction is normalised wrt. 0-100 deg.
+angular_resolution:
+    norm1: 0.6
+    sigma1: 4.0
+    norm2: 0.25
+    sigma2: 30.0
+    norm_const: 0.15

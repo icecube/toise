@@ -2,14 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from icecube.gen2_analysis import (
+from icecube.toise import (
     plotting,
     effective_areas,
     diffuse,
     pointsource,
     multillh,
 )
-from icecube.gen2_analysis import angular_resolution, energy_resolution
+from icecube.toise import angular_resolution, energy_resolution
 
 
 def create_aeff(
