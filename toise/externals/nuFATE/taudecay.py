@@ -5,9 +5,9 @@ import scipy.integrate
 class TauDecay:
     """See Appendix A, Table 1 of https://journals.aps.org/prd/pdf/10.1103/PhysRevD.62.123001"""
 
-    R_PION = 0.07856 ** 2
-    R_RHO = 0.43335 ** 2
-    R_A1 = 0.70913 ** 2
+    R_PION = 0.07856**2
+    R_RHO = 0.43335**2
+    R_A1 = 0.70913**2
     R_OTHER = 0.7
     # points where to_all() is not C^1 continuous
     breakpoints = np.array([R_PION, R_RHO, R_A1, R_OTHER])
@@ -77,7 +77,7 @@ class TauDecay:
             x < 1,
             np.where(
                 x > 0,
-                0.18 * (3 * x ** 2 - 2 * x ** 3)
+                0.18 * (3 * x**2 - 2 * x**3)
                 + 0.12 * cls.to_pion(1 - x, polarization)
                 + 0.26 * cls.to_rho(1 - x, polarization)
                 + 0.13 * cls.to_a1(1 - x, polarization)
@@ -175,7 +175,7 @@ def tau_secondary_crossdiff(nucrossdiff, e1, e2, polarization):
         else:
             # nb: d(e_tau)/d(log(e_tau)) cancels d(z)/d(e2)
             z = e2 / e_tau
-            dndz = 0.18 * (4 - 12 * z + 12 * z ** 2 - 4 * z ** 3)
+            dndz = 0.18 * (4 - 12 * z + 12 * z**2 - 4 * z**3)
             return dndz * nucrossdiff(e1, e_tau)
 
     hi = np.log(e1)

@@ -50,7 +50,7 @@ class AngularResolution(object):
         mu_reco = self._spline.ev(loge.flatten(), ct.flatten()).reshape(loge.shape)
 
         # dirty hack: add the muon/neutrino opening angle in quadtrature
-        return numpy.radians(numpy.sqrt(mu_reco ** 2 + 0.7 ** 2 / (10 ** (loge - 3))))
+        return numpy.radians(numpy.sqrt(mu_reco**2 + 0.7**2 / (10 ** (loge - 3))))
 
 
 class PointSpreadFunction(object):
@@ -100,15 +100,15 @@ class _king_gen(stats.rv_continuous):
     def _pdf(self, x, sigma, gamma):
         return (
             x
-            / (sigma ** 2)
+            / (sigma**2)
             * (1.0 - 1.0 / gamma)
             * (1 + 1.0 / (2.0 * gamma) * (x / sigma) ** 2) ** -gamma
         )
 
     def _cdf(self, x, sigma, gamma):
-        x2 = x ** 2
-        a = 2 * gamma * (sigma ** 2)
-        b = 2 * sigma ** 2
+        x2 = x**2
+        a = 2 * gamma * (sigma**2)
+        b = 2 * sigma**2
         return (1.0 - 1.0 / gamma) / (a - b) * (a - (a + x2) * (x2 / a + 1) ** -gamma)
 
 
@@ -138,7 +138,7 @@ class KingPointSpreadFunctionBase(object):
     def get_quantile(self, p, energy, cos_theta):
         p, loge, ct = numpy.broadcast_arrays(p, numpy.log10(energy), cos_theta)
         if hasattr(self._scale, "__call__"):
-            scale = self._scale(10 ** loge)
+            scale = self._scale(10**loge)
         else:
             scale = self._scale
         sigma, gamma = self.get_params(loge, ct)
@@ -149,7 +149,7 @@ class KingPointSpreadFunctionBase(object):
             numpy.degrees(psi), numpy.log10(energy), cos_theta
         )
         if hasattr(self._scale, "__call__"):
-            scale = self._scale(10 ** loge)
+            scale = self._scale(10**loge)
         else:
             scale = self._scale
         sigma, gamma = self.get_params(loge, ct)
@@ -235,7 +235,7 @@ class FictiveKingPointSpreadFunction(KingPointSpreadFunctionBase):
         """
         with numpy.errstate(invalid="ignore"):
             angular_resolution_scale = numpy.where(
-                log_energy < 6, 0.05 * (6 - log_energy)**2.5, 0
+                log_energy < 6, 0.05 * (6 - log_energy) ** 2.5, 0
             )
         # dip at the horizon, improvement with energy up to 1e6
         sigma = 10 ** (
@@ -255,7 +255,7 @@ class FictiveCascadePointSpreadFunction(object):
     def __init__(self, lower_limit=numpy.radians(5), crossover_energy=1e6):
         self._b = lower_limit
         self._a = self._b * numpy.sqrt(crossover_energy)
-    
+
     def get_params(self, loge, cos_theta):
         return self._a / numpy.sqrt(10**loge) + self._b
 
@@ -264,5 +264,5 @@ class FictiveCascadePointSpreadFunction(object):
         psi, energy, cos_theta = numpy.broadcast_arrays(psi, energy, cos_theta)
         sigma = self._a / numpy.sqrt(energy) + self._b
 
-        evaluates = 1 - numpy.exp(-(psi ** 2) / (2 * sigma ** 2))
+        evaluates = 1 - numpy.exp(-(psi**2) / (2 * sigma**2))
         return numpy.where(numpy.isfinite(evaluates), evaluates, 1.0)

@@ -97,7 +97,6 @@ try:
         doc.walkabout(harvester)
         return (doc.astext().strip(), harvester.params)
 
-
 except ImportError:
 
     def getdoc(obj):
@@ -295,7 +294,10 @@ def make_figure():
         p.add_argument("-o", "--outfile")
         spec = inspect.signature(func)
         num_required_args = 0
-        if sum(1 for param in spec.parameters.values() if param.default is param.empty) == 1:
+        if (
+            sum(1 for param in spec.parameters.values() if param.default is param.empty)
+            == 1
+        ):
             p.add_argument("infiles", nargs="+")
             num_required_args = 1
         _add_options_for_args(p, spec, param_help)

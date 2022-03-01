@@ -117,10 +117,14 @@ def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
         expected_cos_zenith_bins = np.linspace(1.0, 0.0, 11)
         expected_cos_zenith_bins[-1] = 1e-3
         if not np.allclose(shower_energy_bins, expected_shower_energy_bins):
-            logger.error(f"energy binning not as expected. Got {shower_energy_bins}, expected {expected_shower_energy_bins}")
+            logger.error(
+                f"energy binning not as expected. Got {shower_energy_bins}, expected {expected_shower_energy_bins}"
+            )
             return None
         if not np.allclose(cos_zenith_bins, expected_cos_zenith_bins):
-            logger.error(f"cos zenith binning not as expected. Got {cos_zenith_bins}, expected {expected_cos_zenith_bins}")
+            logger.error(
+                f"cos zenith binning not as expected. Got {cos_zenith_bins}, expected {expected_cos_zenith_bins}"
+            )
             return None
 
         energy_centers = 0.5 * (shower_energy_bins[1:] + shower_energy_bins[:-1])
