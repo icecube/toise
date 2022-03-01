@@ -156,7 +156,8 @@ def plot_auger(ax, lh, ll, label=None, **kwargs):
 def get_ta():
     # Values from ICRC2019https://doi.org/10.22323/1.358.0298
     e = n.logspace(18.25, 20.25, 21)
-    f = n.array([
+    f = n.array(
+        [
             1.087e-07,
             7.959e-08,
             5.850e-08,
