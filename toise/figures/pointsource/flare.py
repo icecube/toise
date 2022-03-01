@@ -99,7 +99,7 @@ def single_flare_time_to_signficance(
     from toise.pointsource import nevents
 
     # convert to our flux units (1e-12 TeV^-1 cm^-2 s^-2 at 1 TeV)
-    flux_norm = flux * (100.0 ** -gamma) / 1e-12
+    flux_norm = flux * (100.0**-gamma) / 1e-12
 
     cos_theta = np.linspace(-1, 1, 41)
     factory.set_kwargs(

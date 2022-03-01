@@ -189,7 +189,7 @@ def overburden(cos_theta, depth=1950, elevation=2400):
     r = 6371315 + elevation
     # this is secrety a translation in polar coordinates
     return (
-        numpy.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth ** 2)
+        numpy.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth**2)
         - (r - depth) * cos_theta
     )
 
@@ -203,7 +203,7 @@ def minimum_muon_energy(distance, emin=1e3):
     """
 
     def polynomial(x, coefficients):
-        return sum(c * x ** i for i, c in enumerate(coefficients))
+        return sum(c * x**i for i, c in enumerate(coefficients))
 
     coeffs = [[2.793, -0.476, 0.187], [2.069, -0.201, 0.023], [-2.689, 3.882]]
     a, b, c = (polynomial(numpy.log10(emin), c) for c in coeffs)
@@ -357,7 +357,7 @@ def bundle_flux_at_depth(emu, cos_theta):
     return contrib, penergy
 
 
-def trigger_efficiency(eprim, threshold=10 ** 5.5, sharpness=7):
+def trigger_efficiency(eprim, threshold=10**5.5, sharpness=7):
     """
     Trigger efficiency fit to IT73 data
 
@@ -441,7 +441,7 @@ class MuonBundleBackground(object):
         ), "Don't know how to make PS backgrounds from HEALpix maps yet"
 
         background = copy(self)
-        bin_areas = (numpy.pi * numpy.diff(psi_bins ** 2))[None, ...]
+        bin_areas = (numpy.pi * numpy.diff(psi_bins**2))[None, ...]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             bin_areas *= livetime / self._livetime / constants.annum

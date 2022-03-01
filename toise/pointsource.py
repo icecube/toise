@@ -259,7 +259,7 @@ class powerlaw_gen(stats.rv_continuous):
         return gamma > 1
 
     def _pdf(self, x, gamma):
-        return (gamma - 1) * x ** -gamma
+        return (gamma - 1) * x**-gamma
 
     def _cdf(self, x, gamma):
         return 1.0 - x ** (1.0 - gamma)
@@ -399,7 +399,7 @@ def discovery_potential(
         number of signal events corresponding to that normalization and the
         total number of background events
     """
-    critical_ts = sigma ** 2
+    critical_ts = sigma**2
 
     components = dict(ps=point_source)
     components.update(diffuse_components)

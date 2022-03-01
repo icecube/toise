@@ -155,7 +155,7 @@ class RadioEnergyResolution(EnergySmearingMatrix):
         return loge
 
     def sigma(self, loge):
-        return self._b + self._a / np.sqrt(10 ** loge)
+        return self._b + self._a / np.sqrt(10**loge)
 
     def set_params(self, paramdict):
         logger.debug("setting energy resolution parameters: {}".format(paramdict))
@@ -179,9 +179,7 @@ class RadioEnergyResolution(EnergySmearingMatrix):
         loge_hi = np.log10(reco_energy[1:])
 
         # evaluate at the right edge for maximum smearing on a falling spectrum
-        mu, hi = np.meshgrid(
-            self.bias(loge_center), loge_hi, indexing="ij"
-        )
+        mu, hi = np.meshgrid(self.bias(loge_center), loge_hi, indexing="ij")
         # do not use sigma for radio
         sigma, lo = np.meshgrid(self.sigma(loge_center), loge_lo, indexing="ij")
 
