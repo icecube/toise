@@ -244,7 +244,9 @@ def plot_ta(ax, lh, ll, label=None, **kwargs):
         color="k", ecolor="k", marker="s", markersize=4, linestyle="None", capsize=2
     )
     plot_kwargs.update(kwargs)
-    art = ax.errorbar(vals["x"], vals["y"], yerr=vals["yerr"], uplims=vals["uplims"], **plot_kwargs)
+    art = ax.errorbar(
+        vals["x"], vals["y"], yerr=vals["yerr"], uplims=vals["uplims"], **plot_kwargs
+    )
     if label is not None:
         lh.append(art)
         ll.append(label)
