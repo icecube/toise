@@ -27,7 +27,7 @@ class NuisanceParam:
     def prior(self, value, **kwargs):
         if self.uncertainty == None:
             return 0
-        return -((value - self.seed) ** 2) / (2.0 * self.uncertainty ** 2)
+        return -((value - self.seed) ** 2) / (2.0 * self.uncertainty**2)
 
 
 class Combination(object):

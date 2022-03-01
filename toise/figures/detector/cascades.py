@@ -32,14 +32,14 @@ def sparse_hese_veto_plot(ax, f):
         npe, f["arr_3"], f["arr_6"], label="125 m veto", marker="^", **style
     )[0]
     ax.plot(
-        *fit(f["arr_3"], f["arr_6"], (10 ** 3.48, 1e4)), color=line.get_color(), ls="--"
+        *fit(f["arr_3"], f["arr_6"], (10**3.48, 1e4)), color=line.get_color(), ls="--"
     )
 
     line = ax.errorbar(
         npe, f["arr_2"], f["arr_5"], label="250 m veto", marker="s", **style
     )[0]
     ax.plot(
-        *fit(f["arr_2"], f["arr_5"], (10 ** 3.5, 10 ** 4.7)),
+        *fit(f["arr_2"], f["arr_5"], (10**3.5, 10**4.7)),
         color=line.get_color(),
         ls="--"
     )
@@ -172,13 +172,13 @@ def sparse_veto():
         npe, f["arr_3"], f["arr_6"], label="Single-spaced veto", marker="^", **style
     )[0]
     ax.plot(
-        *fit(f["arr_3"], f["arr_6"], (10 ** 3.48, 1e4)), color=line.get_color(), ls="--"
+        *fit(f["arr_3"], f["arr_6"], (10**3.48, 1e4)), color=line.get_color(), ls="--"
     )
 
     line = ax.errorbar(
         npe, f["arr_2"], f["arr_5"], label="Double-spaced veto", marker="s", **style
     )[0]
-    x, y = fit(f["arr_2"], f["arr_5"], (10 ** 3.5, 10 ** 4.7))
+    x, y = fit(f["arr_2"], f["arr_5"], (10**3.5, 10**4.7))
     ax.plot(x, y, color=line.get_color(), ls="--")
     # ax.plot(x/3, y, color=line.get_color(), ls='-')
 

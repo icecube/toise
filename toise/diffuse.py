@@ -75,7 +75,7 @@ class DiffuseNuGen(object):
         if self.uncertainty is None:
             return 0.0
         else:
-            return -((value - self.seed) ** 2) / (2 * self.uncertainty ** 2)
+            return -((value - self.seed) ** 2) / (2 * self.uncertainty**2)
 
     @staticmethod
     def _integrate_flux(
@@ -95,7 +95,7 @@ class DiffuseNuGen(object):
             try:
                 flux(pt, 0, 0)
             except RuntimeError:
-                intflux[i,...] = 0.
+                intflux[i, ...] = 0.0
                 continue
             for j in range(len(edges[1]) - 1):
                 ct_hi = edges[1][j + 1]
@@ -231,7 +231,7 @@ class AtmosphericNu(DiffuseNuGen):
 
         background = copy(self)
         psi_bins = self._aeff.bin_edges[-1][:-1]
-        bin_areas = (numpy.pi * numpy.diff(psi_bins ** 2))[None, ...]
+        bin_areas = (numpy.pi * numpy.diff(psi_bins**2))[None, ...]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             bin_areas *= livetime / self._livetime / constants.annum
@@ -411,7 +411,7 @@ class DiffuseAstro(DiffuseNuGen):
     def _integral_flux(aeff, gamma=-2):
         # reference flux is E^2 Phi = 1e-8 GeV cm^-2 sr^-1 s^-1
         def intflux(e, gamma):
-            return ((1e5 ** -gamma) / (1 + gamma)) * e ** (1 + gamma)
+            return ((1e5**-gamma) / (1 + gamma)) * e ** (1 + gamma)
 
         enu = aeff.bin_edges[0]
         # 1 / m^2 yr
@@ -437,7 +437,7 @@ class DiffuseAstro(DiffuseNuGen):
         psi_bins = self._aeff.bin_edges[-1][:-1]
         expand = [None] * 5
         expand[-1] = slice(None)
-        bin_areas = (numpy.pi * numpy.diff(psi_bins ** 2))[expand]
+        bin_areas = (numpy.pi * numpy.diff(psi_bins**2))[expand]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             background._livetime = livetime / constants.annum
@@ -538,7 +538,7 @@ class DiffuseAstro(DiffuseNuGen):
             chunk._flux = self._flux.copy()
             chunk._flux[:, : max((start, 0)), ...] = 0
             chunk._flux[:, min((stop, loge.size - 1)) :, ...] = 0
-            chunk.energy_range = 10 ** bounds
+            chunk.energy_range = 10**bounds
 
             yield e_center, chunk
 
@@ -780,7 +780,7 @@ class AhlersGZKFlux(object):
         )
 
     def __call__(self, e_center):
-        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center ** 2
+        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
 
 
 class VanVlietGZKFlux(object):
@@ -833,7 +833,7 @@ class VanVlietGZKFlux(object):
         )
 
     def __call__(self, e_center):
-        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center ** 2
+        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
 
 
 class ReasonableGZKFlux(object):
@@ -856,7 +856,7 @@ class ReasonableGZKFlux(object):
         )
 
     def __call__(self, e_center):
-        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center ** 2
+        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
 
 
 def atmos_flux(enu, model):
@@ -887,7 +887,7 @@ def astro_flux(enu, norm=4.11e-6, spec=-2.46, cutoff=3e6):
     normalization and spectral index with cutoff at 3PeV. Default
     values from: http://dx.doi.org/10.1088/0954-3899/43/8/084001
     """
-    return 3 * norm * enu ** spec * np.exp(-enu / cutoff)
+    return 3 * norm * enu**spec * np.exp(-enu / cutoff)
 
 
 def astro_gzk_flux(enu, norm=4.11e-6, spec=-2.46, cutoff=3e6):
@@ -1098,7 +1098,7 @@ class KRAGalacticFlux(object):
         # NB: flux is given as all-particle, here we return per-particle (/6)
         return (
             10 ** (self._interpolant(numpy.log10(e_center) - 3) - 8)
-            / e_center ** 2
+            / e_center**2
             / 6.0
         )
 

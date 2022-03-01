@@ -119,7 +119,7 @@ class ZenithDependentMuonSelectionEfficiency(object):
     def __call__(self, muon_energy, cos_theta):
         loge, cos_theta = numpy.broadcast_arrays(numpy.log10(muon_energy), cos_theta)
         if hasattr(self._scale, "__call__"):
-            scale = self._scale(10 ** loge)
+            scale = self._scale(10**loge)
         else:
             scale = self._scale
         return numpy.where(
@@ -289,7 +289,9 @@ def _interpolate_production_efficiency(
                 numpy.clip(cos_zenith, centers[1].min(), centers[1].max()),
             ] + centers[2:]
             with numpy.errstate(divide="ignore"):
-                y = numpy.where(~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf)
+                y = numpy.where(
+                    ~(h.bincontent <= 0), numpy.log10(h.bincontent), -numpy.inf
+                )
 
             assert not numpy.isnan(y).any()
             interpolant = interpolate.RegularGridInterpolator(
@@ -313,7 +315,7 @@ def _interpolate_production_efficiency(
 
             assert not numpy.isnan(v).any()
 
-            efficiencies.append(10 ** v)
+            efficiencies.append(10**v)
 
     return (h.binedges[0], None,) + tuple(
         h.binedges[2:]
@@ -977,7 +979,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
     v = interpolant(xi, method="nearest").reshape([x.size for x in newcenters])
 
     # assume flavor-independence for ARA by extending same aeff across all flavors
-    return (10 ** loge_edges, ct_edges), numpy.repeat(v[None, ...], 6, axis=0)
+    return (10**loge_edges, ct_edges), numpy.repeat(v[None, ...], 6, axis=0)
 
 
 def create_ara_aeff(

@@ -221,7 +221,8 @@ def _interpolate_radio_veff(
 
 
 class radio_aeff:
-    """ convenience class to generate neutrino aeffs and background aeffs from config file settings """
+    """convenience class to generate neutrino aeffs and background aeffs from config file settings"""
+
     def __init__(self, config="radio_config.yaml", psi_bins=None):
         if not os.path.isfile(config):
             config = os.path.realpath(os.path.join(os.path.dirname(__file__), config))
@@ -234,21 +235,21 @@ class radio_aeff:
         self.set_psi_bins(psi_bins=psi_bins)
 
     def switch_energy_resolution(self, on=True):
-        """ (De)activate energy smearing """
+        """(De)activate energy smearing"""
         if type(on) == bool:
             self.configuration["apply_energy_resolution"] = on
         else:
             self.logger.warning("no boolean provided for switch")
 
     def switch_analysis_efficiency(self, on=True):
-        """ (De)activate reduction to Aeff due to analysis efficiency """
+        """(De)activate reduction to Aeff due to analysis efficiency"""
         if type(on) == bool:
             self.configuration["apply_analysis_efficiency"] = on
         else:
             self.logger.warning("no boolean provided for switch")
 
     def restore_config(self):
-        """ Revert all changed settings back to what is in the provided config file """
+        """Revert all changed settings back to what is in the provided config file"""
         import yaml
 
         config = self.configfile
@@ -256,7 +257,7 @@ class radio_aeff:
             self.configuration = yaml.full_load(file)
 
     def scale_veff(self, factor):
-        """ Apply up/down scaling by a factor *factor* """
+        """Apply up/down scaling by a factor *factor*"""
         if not "nstations" in self.configuration["detector_setup"]:
             self.configuration["detector_setup"]["nstations"] = 1.0
         self.configuration["detector_setup"]["nstations"] *= factor
@@ -265,9 +266,13 @@ class radio_aeff:
         return self.configuration[group][name]
 
     def set_parameter(self, group, name, value):
-        self.logger.debug(f"Old value for parameter {group}/{name}: {self.get_parameter(group, name)}")
+        self.logger.debug(
+            f"Old value for parameter {group}/{name}: {self.get_parameter(group, name)}"
+        )
         self.configuration[group][name] = value
-        self.logger.info(f"New value for parameter {group}/{name}: {self.get_parameter(group, name)}")
+        self.logger.info(
+            f"New value for parameter {group}/{name}: {self.get_parameter(group, name)}"
+        )
 
     def set_psi_bins(self, psi_bins):
         self.psi_bins = psi_bins
@@ -328,9 +333,16 @@ class radio_aeff:
         psi_bins = self.psi_bins
         configuration = self.configuration
 
-        if ("nstations" in configuration["detector_setup"]) and ("simulated_stations" in configuration["effective_volume"]):
-            veff_scale = configuration["detector_setup"]["nstations"]/configuration["effective_volume"]["simulated_stations"]
-            self.logger.info(f"Using number of stations from config. Rescaling atm. muon count by {veff_scale}.")
+        if ("nstations" in configuration["detector_setup"]) and (
+            "simulated_stations" in configuration["effective_volume"]
+        ):
+            veff_scale = (
+                configuration["detector_setup"]["nstations"]
+                / configuration["effective_volume"]["simulated_stations"]
+            )
+            self.logger.info(
+                f"Using number of stations from config. Rescaling atm. muon count by {veff_scale}."
+            )
         else:
             veff_scale = 1
             self.logger.warning(
@@ -340,7 +352,9 @@ class radio_aeff:
         cr_cut = False
         if "cr_cut" in configuration["muon_background"]:
             cr_cut = configuration["muon_background"]["cr_cut"]
-        (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(configuration["muon_background"]["table"], cr_cut)#cos_theta, neutrino_energy)
+        (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(
+            configuration["muon_background"]["table"], cr_cut
+        )  # cos_theta, neutrino_energy)
         aeff = muon_distro * veff_scale
         edges = (neutrino_energy, cos_theta, neutrino_energy)
         # print(cos_theta)
@@ -377,7 +391,7 @@ class radio_aeff:
         Create an effective area for radio
         """
         psi_bins = self.psi_bins
-        configuration = self.configuration        
+        configuration = self.configuration
 
         nside = None
         if isinstance(cos_theta, int):
@@ -390,26 +404,53 @@ class radio_aeff:
         if "transfer_matrix" in configuration:
             # use a transfer matrix taking account for the inelasticity distribution of triggered events
             self.logger.warning("using transfer matrices from external file")
+
             def neutrino_interaction_length_ice(flavor, energy_edges):
-                ice_density=.917 * 1e-3 / (1e-2)**3 # kg/m**3
+                ice_density = 0.917 * 1e-3 / (1e-2) ** 3  # kg/m**3
                 from scipy import constants
-                m_n = constants.m_p  # in kg  * units.kg  # nucleon mass, assuming proton mass
-                cc = nuFATE.NeutrinoCascade(10**(0.5*(np.log10(energy_edges[:-1]) + np.log10(energy_edges[1:]))))
-                L_int = m_n / (cc.total_cross_section(0) * 1e-4) / ice_density    
+
+                m_n = (
+                    constants.m_p
+                )  # in kg  * units.kg  # nucleon mass, assuming proton mass
+                cc = nuFATE.NeutrinoCascade(
+                    10
+                    ** (
+                        0.5 * (np.log10(energy_edges[:-1]) + np.log10(energy_edges[1:]))
+                    )
+                )
+                L_int = m_n / (cc.total_cross_section(0) * 1e-4) / ice_density
                 return L_int
 
-            matrix_data = np.load(configuration["transfer_matrix"]["table"], allow_pickle=True)
-            if (not np.allclose(neutrino_energy,  matrix_data["bin_edges"][0]*1e-9)) or (not np.allclose(cos_theta,  matrix_data["bin_edges"][1])) or (not np.allclose(neutrino_energy,  matrix_data["bin_edges"][2]*1e-9)):
-                self.logger.error("shapes of requested veff and transfer matrices do not match. Will fall back to default transfer matrix!")
-                print("got:\n", matrix_data["bin_edges"], "\nexpected:\n", neutrino_energy, cos_theta)
+            matrix_data = np.load(
+                configuration["transfer_matrix"]["table"], allow_pickle=True
+            )
+            if (
+                (not np.allclose(neutrino_energy, matrix_data["bin_edges"][0] * 1e-9))
+                or (not np.allclose(cos_theta, matrix_data["bin_edges"][1]))
+                or (
+                    not np.allclose(neutrino_energy, matrix_data["bin_edges"][2] * 1e-9)
+                )
+            ):
+                self.logger.error(
+                    "shapes of requested veff and transfer matrices do not match. Will fall back to default transfer matrix!"
+                )
+                print(
+                    "got:\n",
+                    matrix_data["bin_edges"],
+                    "\nexpected:\n",
+                    neutrino_energy,
+                    cos_theta,
+                )
                 use_default_transfer = True
 
             else:
                 aeffs_flavor = []
                 for fi, flavor in enumerate(["e", "e", "mu", "mu", "tau", "tau"]):
                     data = matrix_data[f"transfer_matrix_{flavor}"]
-                    prod_dens = 1./neutrino_interaction_length_ice(fi, neutrino_energy)
-                    data[:,:,:] *= prod_dens[:,np.newaxis,np.newaxis]
+                    prod_dens = 1.0 / neutrino_interaction_length_ice(
+                        fi, neutrino_energy
+                    )
+                    data[:, :, :] *= prod_dens[:, np.newaxis, np.newaxis]
                     aeffs_flavor.append(data)
                 aeff = np.array(aeffs_flavor)
                 e_nu = neutrino_energy
@@ -421,7 +462,9 @@ class radio_aeff:
             (e_nu, cos_theta, e_showering), aeff = calculate_cascade_production_density(
                 cos_theta, neutrino_energy
             )
-            self.logger.warning("using default transfer matrices designed for optical as proxy. Using downgoing region also for upgoing to avoid double accounting for Earth absorption")
+            self.logger.warning(
+                "using default transfer matrices designed for optical as proxy. Using downgoing region also for upgoing to avoid double accounting for Earth absorption"
+            )
             # quick fix to ignore Earth absorption... this is already included in the effective volumes
             for i in range((len(cos_theta) - 1) // 2):
                 aeff[:, :, i, :] = aeff[:, :, -i - 1, :]
@@ -484,7 +527,6 @@ class radio_aeff:
         aeff[2:4, ...] *= (veff_mu)[None, ..., None] * veff_scale  # muon neutrino
         aeff[4:6, ...] *= (veff_tau)[None, ..., None] * veff_scale  # tau neutrino
 
-
         # Step 4: Scale down effective volume to account for analysis efficiency
         if configuration["apply_analysis_efficiency"] == True:
             self.logger.info(
@@ -498,7 +540,9 @@ class radio_aeff:
                 configuration["analysis_efficiency"]["log_turnon_gev"],
                 configuration["analysis_efficiency"]["log_turnon_width"],
             )
-            aeff = np.apply_along_axis(np.multiply, 3, aeff, ana_efficiency) #3 if shower E, 1 if neutrino E
+            aeff = np.apply_along_axis(
+                np.multiply, 3, aeff, ana_efficiency
+            )  # 3 if shower E, 1 if neutrino E
         else:
             self.logger.warning("requested to skip accounting for analysis efficiency")
 
@@ -541,7 +585,7 @@ class radio_aeff:
             # an empty array
             total_aeff = np.zeros_like(np.empty(aeff.shape + (psi_bins.size - 1,)))
             # expand differential contributions along the opening-angle axis
-            #print(np.shape(np.diff(cdf)))
+            # print(np.shape(np.diff(cdf)))
             total_aeff[..., :] = aeff[..., None] * np.diff(cdf)[None, ...]
         else:
             for key in configuration["angular_resolution"]:
