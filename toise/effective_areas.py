@@ -538,7 +538,7 @@ def create_bundle_aeff(
     selection_efficiency=defer(MuonSelectionEfficiency),
     surface=defer(get_fiducial_surface, "IceCube"),
     cos_theta=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Create an effective area for atmospheric muon bundles
@@ -1174,6 +1174,7 @@ def _interpolate_gen2_ehe_aeff(ct_edges=None):
         with the same axes.
     """
     from scipy import interpolate
+
     if ct_edges is None:
         ct_edges = numpy.linspace(-1, 1, 11)
     elif isinstance(ct_edges, int):
@@ -1183,19 +1184,19 @@ def _interpolate_gen2_ehe_aeff(ct_edges=None):
     # interpolate to a grid compatible with the IceCube/Gen2 effective areas
     loge_edges = numpy.linspace(2, 12, 101)
 
-    flavors = ['NuE', 'NuMu', 'NuTau']
+    flavors = ["NuE", "NuMu", "NuTau"]
     filenames = [
-        os.path.join(data_dir, 'aeff', f'Gen2_EHE_{flavor}_effective_area.npz')
+        os.path.join(data_dir, "aeff", f"Gen2_EHE_{flavor}_effective_area.npz")
         for flavor in flavors
     ]
 
     aeffs = []
     for filename in filenames:
         data = numpy.load(filename)
-        cos_theta_bins = data['cos_theta_bins']
-        energy_bins = data['energy_bins']
-        energy_bins_at_det = data['energy_bins_at_det']
-        aeffs.append(data['area_in_sqm'])
+        cos_theta_bins = data["cos_theta_bins"]
+        energy_bins = data["energy_bins"]
+        energy_bins_at_det = data["energy_bins_at_det"]
+        aeffs.append(data["area_in_sqm"])
 
     e_center = center(energy_bins)
     cos_theta_center = center(cos_theta_bins)
@@ -1203,35 +1204,29 @@ def _interpolate_gen2_ehe_aeff(ct_edges=None):
 
     new_centers = [
         center(loge_edges),
-        numpy.clip(center(ct_edges),
-                   cos_theta_center.min(),
-                   cos_theta_center.max()),
-        center(loge_edges)
+        numpy.clip(center(ct_edges), cos_theta_center.min(), cos_theta_center.max()),
+        center(loge_edges),
     ]
 
     xi = numpy.vstack(
-        [x.flatten() for x in numpy.meshgrid(*new_centers, indexing='ij')]
+        [x.flatten() for x in numpy.meshgrid(*new_centers, indexing="ij")]
     )
 
     vs = []
     for aeff in aeffs:
         interpolant = interpolate.RegularGridInterpolator(
-            (numpy.log10(e_center),
-             cos_theta_center,
-             numpy.log10(e_center_at_det)
-            ),
+            (numpy.log10(e_center), cos_theta_center, numpy.log10(e_center_at_det)),
             np.moveaxis(aeff, -1, 0),
             bounds_error=False,
-            fill_value=0
+            fill_value=0,
         )
-        v = interpolant(xi.T, method='nearest').reshape(
-            [x.size for x in new_centers])
+        v = interpolant(xi.T, method="nearest").reshape([x.size for x in new_centers])
         vs.append(v)
 
     # Assume Nu/NuBar symmetry for effective areas
     return (
         (10**loge_edges, ct_edges, 10**loge_edges),
-        numpy.concatenate([numpy.repeat(v[None, ...], 2, axis=0) for v in vs])
+        numpy.concatenate([numpy.repeat(v[None, ...], 2, axis=0) for v in vs]),
     )
 
 
@@ -1269,4 +1264,3 @@ def create_gen2_ehe_aeff(
     return effective_area(
         edges, total_aeff, "cos_theta" if nside is None else "healpix"
     )
-
