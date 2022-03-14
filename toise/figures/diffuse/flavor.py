@@ -367,6 +367,8 @@ def muon_damping_constraints(exposures, steps=100, emu_crit=2e6, clean=False):
     :param gamma: astrophysical spectral index
     :param steps: number of steps along one axis of flavor scan
     :param gamma_step: granularity of optimization in spectral index. if 0, the spectral index is fixed.
+    :param emu_crit: critical energy at which muons are more likely to reinteract than decay (GeV)
+    :param clean: recalculate from scratch, ignoring cached results
     """
 
     from scipy import stats
