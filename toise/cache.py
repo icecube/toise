@@ -57,7 +57,10 @@ class PickleCache(AbstractCacheInstance):
         removed = set()
         for key, item in self._manifest.items():
             if item["expires"] is not None and item["expires"] <= time.time():
-                unlink(join(self._base_dir, item["filename"]))
+                try:
+                    unlink(join(self._base_dir, item["filename"]))
+                except FileNotFoundError:
+                    ...
                 removed.add(key)
         for k in removed:
             del self._manifest[k]
