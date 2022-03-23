@@ -6,6 +6,8 @@ import pickle
 import os
 import numpy
 from copy import copy
+
+from toise import effective_areas
 from . import surfaces
 from .util import *
 from .pointsource import is_zenith_weight
@@ -173,6 +175,48 @@ class EulerVetoProbability(object):
         p[logE < self.log_emin] = 0
         p[cos_theta < self.ct_min] = 0
         return p
+
+
+class UDelSurfaceVeto(effective_areas.VetoThreshold):
+    def __init__(
+        self, fname=os.path.join(data_dir, "veto", "udel-veto-passing-fraction.txt")
+    ):
+        self._order = [1, 1, 1, 1, 1]
+
+        coefficients = list(np.loadtxt(fname))
+
+        polys = []
+        for o in self._order:
+            target = slice(0, o + 1)
+            polys.append(np.polynomial.Polynomial(coefficients[target]))
+            del coefficients[target]
+
+        self._coefficients = polys
+
+    @staticmethod
+    def _fitfunc(eng, a, g1, g2, eng0, curve):
+        """
+        "When you work in cosmic rays, everything is a broken power law with a smooth roll-off :see_no_evil:"
+        -- A. Coleman
+        """
+        return (
+            a
+            * eng**g1
+            * (1 + (10**eng / 10**eng0) ** curve) ** ((g2 - g1) / curve)
+        )
+
+    def __call__(self, energy, cos_theta):
+        st2 = 1 - cos_theta**2
+        log_eV = np.log10(energy) + 9
+
+        params = [f(st2) for f in self._coefficients]
+        return self._fitfunc(log_eV, *params)
+
+    def accept(self, emu, cos_theta):
+        return self(emu, cos_theta)
+
+    def reject(self, emu, cos_theta):
+        return 1 - self.accept(emu, cos_theta)
 
 
 def overburden(cos_theta, depth=1950, elevation=2400):
