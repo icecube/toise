@@ -213,10 +213,7 @@ class UDelSurfaceVeto(effective_areas.VetoThreshold):
         return self._fitfunc(log_eV, *params)
 
     def accept(self, emu, cos_theta):
-        return self(emu, cos_theta)
-
-    def reject(self, emu, cos_theta):
-        return 1 - self.accept(emu, cos_theta)
+        return np.where(cos_theta > 0.05, 1-self(emu, cos_theta), True)
 
 
 def overburden(cos_theta, depth=1950, elevation=2400):

@@ -1,6 +1,7 @@
 import numpy
 from scipy import interpolate
 from functools import partial
+import numbers
 import os
 import pickle as pickle
 from . import (
@@ -110,7 +111,6 @@ def create_aeff(opts, **kwargs):
         ),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(fiducial_geometry, opts.spacing),
-        energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
         **kwargs
     )
 
@@ -120,7 +120,11 @@ def create_aeff(opts, **kwargs):
         ),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(fiducial_geometry, opts.spacing),
-        energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
+        energy_threshold=(
+            effective_areas.StepFunction(opts.veto_threshold, 90)
+            if isinstance(opts.veto_threshold, numbers.Number)
+            else opts.veto_threshold
+        ),
         **kwargs
     )
 
@@ -464,6 +468,10 @@ default_configs = {
     ),
     "Gen2-InIce": scale_gen2_sensors(3.0),
     "Gen2-InIce-TracksOnly": scale_gen2_sensors(3.0, with_cascades=False),
+    "Gen2-InIce-TracksOnly-UDelVeto": (
+        scale_gen2_sensors(3.0, with_cascades=False)
+        | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
+    ),
     "Gen2-Radio": dict(geometry="Radio", nstations=200),
     "Fictive-Radio": dict(geometry="Radio", nstations=30),
     "Sunflower_240": dict(
