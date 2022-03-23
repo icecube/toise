@@ -72,7 +72,7 @@ class PickleCache(AbstractCacheInstance):
         else:
             try:
                 return self._load_item(self._get_filename(key))
-            except EOFError:
+            except (EOFError, FileNotFoundError):
                 self.delete(key)
                 return default
 
