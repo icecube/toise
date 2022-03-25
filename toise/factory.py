@@ -120,7 +120,7 @@ def create_aeff(opts, **kwargs):
         ),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(fiducial_geometry, opts.spacing),
-        energy_threshold=(
+        veto_efficiency=(
             effective_areas.StepFunction(opts.veto_threshold, 90)
             if isinstance(opts.veto_threshold, numbers.Number)
             else opts.veto_threshold
