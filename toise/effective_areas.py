@@ -533,7 +533,7 @@ def eval_psf(point_spread_function, mu_energy, ct, psi_bins):
 
 def create_bundle_aeff(
     energy_resolution=defer(get_energy_resolution, "IceCube"),
-    veto_efficiency: VetoThreshold=StepFunction(numpy.inf),
+    veto_efficiency: VetoThreshold = StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
     selection_efficiency=defer(MuonSelectionEfficiency),
     surface=defer(get_fiducial_surface, "IceCube"),

@@ -430,8 +430,8 @@ def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True):
         geometry="Sunflower",
         spacing=240,
         cascade_energy_threshold=2e5 / scale if with_cascades else None,
-        veto_area=10.0,
-        veto_threshold=1e5,
+        veto_area=5.8,
+        veto_threshold=defer(surface_veto.UDelSurfaceVeto),
         angular_resolution_scale=partial(
             gen2_throughgoing_muon_angular_resolution_correction,
             scale=scale,
@@ -467,8 +467,7 @@ default_configs = {
         veto_threshold=1e5,
     ),
     "Gen2-InIce": scale_gen2_sensors(3.0),
-    "Gen2-InIce-TracksOnly": scale_gen2_sensors(3.0, with_cascades=False),
-    "Gen2-InIce-TracksOnly-UDelVeto": (
+    "Gen2-InIce-TracksOnly": (
         scale_gen2_sensors(3.0, with_cascades=False)
         | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
     ),
