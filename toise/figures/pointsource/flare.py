@@ -78,6 +78,7 @@ def sensitivity(datasets):
     ax.set_ylabel(
         r"$E^2 \Phi_{\nu_x + \overline{\nu_x}}$ $(\rm TeV \,\, cm^{-2} s^{-1})$"
     )
+    ax.legend()
 
 
 @figure_data()
