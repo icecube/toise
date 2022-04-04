@@ -134,11 +134,14 @@ def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
             distribution = z_zen
 
         # atm muon distributions don't contain upgoing region
+        # dimensions: cosz, E
         upgoing = np.zeros((10,np.shape(distribution)[1]))
-
         distribution_4pi = np.append(upgoing, np.flip(distribution, axis=0), axis=0)
-        distribution_4pi = distribution_4pi[:,10:]
+        # in order to make the input energy match the one from the framework, drop the lower end of the spectrum and add zeros on top
+        distribution_4pi = distribution_4pi[:,20:]
+        distribution_4pi = np.append(distribution_4pi, np.zeros((np.shape(distribution_4pi)[0], 10)), axis=1)
         extended_muon_distribution = distribution_4pi[..., None] * np.eye(60)
+        # dimensions: E, cosz, E
         extended_muon_distribution = np.swapaxes(extended_muon_distribution, 0, 1)
 
         return (new_shower_energy_bins, new_cos_zenith_bins, new_shower_energy_bins), extended_muon_distribution

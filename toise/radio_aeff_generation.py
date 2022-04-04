@@ -343,6 +343,23 @@ class radio_aeff:
             "Direction resolution smearing not applied for atm. muons for now!"
         )
 
+        # apply analysis efficency
+        if configuration["apply_analysis_efficiency"] == True and configuration["muon_background"]["apply_efficiency"] == True:
+            self.logger.info(
+                "applying analysis efficiency as function of shower energy"
+            )
+
+            ana_efficiency = radio_analysis_efficiency(
+                neutrino_energy[:-1],
+                configuration["analysis_efficiency"]["minval"],
+                configuration["analysis_efficiency"]["maxval"],
+                configuration["analysis_efficiency"]["log_turnon_gev"],
+                configuration["analysis_efficiency"]["log_turnon_width"],
+            )
+            aeff = np.apply_along_axis(np.multiply, 2, aeff, ana_efficiency)
+        else:
+            self.logger.warning("requested to skip accounting for analysis efficiency for atm. muons")
+
         # apply smearing for shower energy resolution
         configuration = self.configuration
         if configuration["apply_energy_resolution"] == True:
@@ -356,7 +373,7 @@ class radio_aeff:
             )
             aeff = np.apply_along_axis(np.inner, 2, aeff, response)
         else:
-            self.logger.warning("requested to skip accounting for energy resolution")
+            self.logger.warning("requested to skip accounting for energy resolution for atm. muons")
 
         return effective_area(edges, aeff, "cos_theta", source="atm_muon")
 
