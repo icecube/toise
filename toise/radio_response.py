@@ -47,8 +47,8 @@ class RadioPointSpreadFunction(object):
             / self.max_const
         )
         return (
-            multivariate_normal.pdf(space_angle, mean=0, cov=sigma1) * 2 * norm1
-            + multivariate_normal.pdf(space_angle, mean=0, cov=sigma2) * 2 * norm2
+            multivariate_normal.pdf(space_angle, mean=0, cov=sigma1**2) * 2 * norm1
+            + multivariate_normal.pdf(space_angle, mean=0, cov=sigma2**2) * 2 * norm2
             + const
         )
 
@@ -72,9 +72,9 @@ class RadioPointSpreadFunction(object):
             + np.heaviside(space_angle - self.max_const, 0) * norm_const
         )
         return (
-            multivariate_normal.cdf(space_angle, mean=0, cov=sigma1) * 2 * norm1
+            multivariate_normal.cdf(space_angle, mean=0, cov=sigma1**2) * 2 * norm1
             - norm1
-            + multivariate_normal.cdf(space_angle, mean=0, cov=sigma2) * 2 * norm2
+            + multivariate_normal.cdf(space_angle, mean=0, cov=sigma2**2) * 2 * norm2
             - norm2
             + const
         )
