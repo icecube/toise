@@ -8,6 +8,13 @@ from pkgutil import iter_modules
 import importlib
 import inspect
 
+from typing import Any, Literal, get_args, get_origin
+
+try:
+    from typing import List
+except ImportError:
+    List = list
+
 
 def find_modules(path):
     """Find all modules below the current path"""
@@ -90,7 +97,6 @@ try:
         doc.walkabout(harvester)
         return (doc.astext().strip(), harvester.params)
 
-
 except ImportError:
 
     def getdoc(obj):
@@ -154,7 +160,7 @@ def make_figure_data():
 
     for name, (func, setup, teardown) in sorted(figures._figure_data.items()):
         docstring, param_help = getdoc(func)
-        spec = inspect.getargspec(func)
+        spec = inspect.signature(func)
         p = subparsers.add_parser(
             name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
@@ -168,9 +174,7 @@ def make_figure_data():
             help="sequence of detector configuration/livetime pairs",
         )
         p.add_argument("-o", "--outputfile", action="append", help="")
-        assert len(spec.args) - (
-            (len(spec.defaults) if spec.defaults else 0) == 1
-        ), "exposures argument is required"
+        assert "exposures" in spec.parameters, "exposures argument is required"
         _add_options_for_args(p, spec, param_help)
     args = parser.parse_args().__dict__
     exposures = args.pop("detector")
@@ -213,27 +217,58 @@ def load_gzip(fname):
         return json.load(f)
 
 
-def _add_options_for_args(parser, spec, param_help):
-    num_required_args = 0
-    num_required_args = len(spec.args) - (len(spec.defaults) if spec.defaults else 0)
-    if spec.defaults:
-        for arg, default in zip(spec.args[num_required_args:], spec.defaults):
-            argname = arg.replace("_", "-")
-            if type(default) is bool:
-                parser.add_argument(
-                    "--{}".format("no-" if default else "") + argname,
-                    default=default,
-                    action="store_false" if default else "store_true",
-                    dest=arg,
-                    help=param_help.get(arg, None),
-                )
+def _add_options_for_args(parser, spec: inspect.Signature, param_help):
+    for param in spec.parameters.values():
+        if param.default is not param.empty:
+            argname = param.name.replace("_", "-")
+            if param.annotation is not param.empty:
+                if get_origin(param.annotation) is Literal:
+                    parser.add_argument(
+                        "--" + argname,
+                        default=param.default,
+                        choices=get_args(param.annotation),
+                        help=param_help.get(param.name, None),
+                    )
+                elif get_origin(param.annotation) is list:
+                    parser.add_argument(
+                        "--" + argname,
+                        default=param.default,
+                        type=get_args(param.annotation)[0],
+                        nargs="+",
+                        help=param_help.get(param.name, None),
+                    )
+                elif param.annotation is bool:
+                    parser.add_argument(
+                        "--{}".format("no-" if param.default else "") + argname,
+                        default=param.default,
+                        action="store_false" if param.default else "store_true",
+                        dest=param.name,
+                        help=param_help.get(param.name, None),
+                    )
+                else:
+                    parser.add_argument(
+                        "--" + argname,
+                        default=param.default,
+                        type=param.annotation,
+                        help=param_help.get(param.name, None),
+                    )
             else:
-                parser.add_argument(
-                    "--" + argname,
-                    type=type(default),
-                    default=default,
-                    help=param_help.get(arg, None),
-                )
+                # try in infer type from default if no annotation
+                if type(param.default) is bool:
+                    parser.add_argument(
+                        "--{}".format("no-" if param.default else "") + argname,
+                        default=param.default,
+                        action="store_false" if param.default else "store_true",
+                        dest=param.name,
+                        help=param_help.get(param.name, None),
+                    )
+                else:
+                    parser.add_argument(
+                        "--" + argname,
+                        type=type(param.default),
+                        default=param.default,
+                        help=param_help.get(param.name, None),
+                    )
 
 
 def make_figure():
@@ -252,17 +287,16 @@ def make_figure():
 
     for name, func in sorted(figures._figures.items()):
         docstring, param_help = getdoc(func)
-        spec = inspect.getargspec(func)
         p = subparsers.add_parser(
             name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
         p.set_defaults(command=func)
         p.add_argument("-o", "--outfile")
-        spec = inspect.getargspec(func)
+        spec = inspect.signature(func)
         num_required_args = 0
         if (
-            spec.args
-            and len(spec.args) - (len(spec.defaults) if spec.defaults else 0) == 1
+            sum(1 for param in spec.parameters.values() if param.default is param.empty)
+            == 1
         ):
             p.add_argument("infiles", nargs="+")
             num_required_args = 1

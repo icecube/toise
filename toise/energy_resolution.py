@@ -105,7 +105,7 @@ class FictiveMuonEnergyResolution(EnergySmearingMatrix):
         return numpy.log10(10 ** (loge / 1.13) + 500)
 
     def sigma(self, loge):
-        return 0.22 + 0.23 * (1 - numpy.exp(-(10 ** loge) / 5e6))
+        return 0.22 + 0.23 * (1 - numpy.exp(-(10**loge) / 5e6))
 
 
 class FictiveCascadeEnergyResolution(EnergySmearingMatrix):
@@ -118,4 +118,4 @@ class FictiveCascadeEnergyResolution(EnergySmearingMatrix):
         return loge
 
     def sigma(self, loge):
-        return self._b + self._a / numpy.sqrt(10 ** loge)
+        return self._b + self._a / numpy.sqrt(10**loge)

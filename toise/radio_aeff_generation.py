@@ -1,6 +1,7 @@
 import os
 from copy import copy
 import json
+
 import logging
 import numpy as np
 import pandas as pd
@@ -20,6 +21,7 @@ from .pointsource import is_zenith_weight
 from .util import *
 
 logger = logging.getLogger("toise aeff calculation for radio")
+
 
 def _load_rno_veff(
     filename=data_dir
@@ -93,7 +95,9 @@ def _load_radio_veff_json(
         jsonfile = json.load(data)
     dataframe = pd.DataFrame(jsonfile)
     # sort input data by energy and cos(zenith)
-    dataframe.sort_values(by=["energy", "thetamin"], ascending=[True, False], inplace=True)
+    dataframe.sort_values(
+        by=["energy", "thetamin"], ascending=[True, False], inplace=True
+    )
     dataframe.reset_index(inplace=True)
 
     def _list_of_triggers(df):
@@ -161,15 +165,14 @@ def _load_radio_veff_json(
 def _interpolate_radio_veff(
     energy_edges, ct_edges=None, filename="json.file", trigger=None
 ):
-    """
-    Loads a NuRadioMC effective volume and interpolates for the requested energy / cos theta binning
+    """Loads a NuRadioMC effective volume and interpolates for the requested energy / cos theta binning
 
     :param energy_edges: final energy binning to interpolate Veff to
     :param ct_edges: final cos theta binning to interpolate Veff to, if None, keep original binning
     :param filename: name of the json export of the Veff calculated using NuRadioMC
     :param trigger: name of the trigger to be used
 
-:returns: a tuple (edges, veff). veff has units of m^3
+    :returns: a tuple (edges, veff). veff has units of m^3
     """
     logger.debug("interpolating effective area")
     edges, veff = _load_radio_veff_json(filename, trigger)
@@ -215,8 +218,10 @@ def _interpolate_radio_veff(
 
         return (energy_edges, ct_edges), interp(center_ct)
 
+
 class radio_aeff:
-    """ convenience class to generate neutrino aeffs and background aeffs from config file settings """
+    """convenience class to generate neutrino aeffs and background aeffs from config file settings"""
+
     def __init__(self, config="radio_config.yaml", psi_bins=None):
         if not os.path.isfile(config):
             config = os.path.realpath(os.path.join(os.path.dirname(__file__), config))
@@ -229,21 +234,21 @@ class radio_aeff:
         self.set_psi_bins(psi_bins=psi_bins)
 
     def switch_energy_resolution(self, on=True):
-        """ (De)activate energy smearing """
+        """(De)activate energy smearing"""
         if type(on) == bool:
             self.configuration["apply_energy_resolution"] = on
         else:
             self.logger.warning("no boolean provided for switch")
 
     def switch_analysis_efficiency(self, on=True):
-        """ (De)activate reduction to Aeff due to analysis efficiency """
+        """(De)activate reduction to Aeff due to analysis efficiency"""
         if type(on) == bool:
             self.configuration["apply_analysis_efficiency"] = on
         else:
             self.logger.warning("no boolean provided for switch")
 
     def restore_config(self):
-        """ Revert all changed settings back to what is in the provided config file """
+        """Revert all changed settings back to what is in the provided config file"""
         import yaml
 
         config = self.configfile
@@ -251,7 +256,7 @@ class radio_aeff:
             self.configuration = yaml.full_load(file)
 
     def scale_veff(self, factor):
-        """ Apply up/down scaling by a factor *factor* """
+        """Apply up/down scaling by a factor *factor*"""
         if not "nstations" in self.configuration["detector_setup"]:
             self.configuration["detector_setup"]["nstations"] = 1.0
         self.configuration["detector_setup"]["nstations"] *= factor
@@ -260,9 +265,13 @@ class radio_aeff:
         return self.configuration[group][name]
 
     def set_parameter(self, group, name, value):
-        self.logger.debug(f"Old value for parameter {group}/{name}: {self.get_parameter(group, name)}")
+        self.logger.debug(
+            f"Old value for parameter {group}/{name}: {self.get_parameter(group, name)}"
+        )
         self.configuration[group][name] = value
-        self.logger.info(f"New value for parameter {group}/{name}: {self.get_parameter(group, name)}")
+        self.logger.info(
+            f"New value for parameter {group}/{name}: {self.get_parameter(group, name)}"
+        )
 
     def set_psi_bins(self, psi_bins):
         self.psi_bins = psi_bins
@@ -338,7 +347,6 @@ class radio_aeff:
         (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(configuration["muon_background"]["table"], cr_cut)#cos_theta, neutrino_energy)
         aeff = muon_distro * veff_scale
         edges = (e_cr_shower, cos_t, e_shower) #(neutrino_energy, cos_theta, neutrino_energy)
-        # print(cos_theta)
         self.logger.warning(
             "Direction resolution smearing not applied for atm. muons for now!"
         )
@@ -495,7 +503,6 @@ class radio_aeff:
         aeff[2:4, ...] *= (veff_mu)[None, ..., None] * veff_scale  # muon neutrino
         aeff[4:6, ...] *= (veff_tau)[None, ..., None] * veff_scale  # tau neutrino
 
-
         # Step 4: Scale down effective volume to account for analysis efficiency
         if configuration["apply_analysis_efficiency"] == True:
             self.logger.info(
@@ -552,7 +559,7 @@ class radio_aeff:
             # an empty array
             total_aeff = np.zeros_like(np.empty(aeff.shape + (psi_bins.size - 1,)))
             # expand differential contributions along the opening-angle axis
-            #print(np.shape(np.diff(cdf)))
+            # print(np.shape(np.diff(cdf)))
             total_aeff[..., :] = aeff[..., None] * np.diff(cdf)[None, ...]
         else:
             for key in configuration["angular_resolution"]:
@@ -605,7 +612,7 @@ def combine_aeffs(aeff1, aeff2,
         logger.info("Subtracting overlap in aeff combination.")
         logger.info(f"E={aeff.get_bin_centers('true_energy')}")
         logger.info(f"overlap={overlap(aeff.get_bin_centers('true_energy'))}")
-        
+
         # apply to neutrino energy axis
         aeff.values = (aeff1.values + aeff2.values) * overlap(
             aeff.get_bin_centers("true_energy"), np.log10(overlap_E), overlap_values
@@ -614,7 +621,8 @@ def combine_aeffs(aeff1, aeff2,
 
 
 class MuonBackground(object):
-    """ add the muon background assuming the Aeff is in reality just the number of events per zenith/energy bin """
+    """add the muon background assuming the Aeff is in reality just the number of events per zenith/energy bin"""
+
     def __init__(self, effective_area, livetime=1.0):
         self._aeff = effective_area
 
@@ -622,10 +630,7 @@ class MuonBackground(object):
         # FIXME: account for healpix binning
         self._solid_angle = 2 * np.pi * np.diff(self._aeff.bin_edges[1])
 
-
-        total = (self._aeff.values).sum(axis=0) * (
-            livetime
-        )
+        total = (self._aeff.values).sum(axis=0) * (livetime)
         self._livetime = livetime
 
         # up to now we've assumed that everything is azimuthally symmetric and
@@ -662,7 +667,7 @@ class MuonBackground(object):
         ), "Don't know how to make PS backgrounds from HEALpix maps yet"
 
         background = copy(self)
-        bin_areas = (np.pi * np.diff(psi_bins ** 2))[None, ...]
+        bin_areas = (np.pi * np.diff(psi_bins**2))[None, ...]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             bin_areas *= livetime / self._livetime / constants.annum

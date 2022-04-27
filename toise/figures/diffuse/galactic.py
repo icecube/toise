@@ -19,7 +19,7 @@ def make_components(aeffs, galactic_emission=diffuse.FermiGalacticEmission):
     atmo = diffuse.AtmosphericNu.conventional(
         aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None
     )
-    atmo.prior = lambda v, **kwargs: -((v - 1) ** 2) / (2 * 0.1 ** 2)
+    atmo.prior = lambda v, **kwargs: -((v - 1) ** 2) / (2 * 0.1**2)
     prompt = diffuse.AtmosphericNu.prompt(
         aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None
     )

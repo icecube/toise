@@ -31,8 +31,8 @@ class PSLikelihood(object):
 
     def signal(self, psi, sigma, E, cos_theta):
         sigma = numpy.radians(30.0)
-        s2 = sigma ** 2
-        pdf = numpy.exp(-(psi ** 2) / (2 * s2)) / (2 * numpy.pi * s2)
+        s2 = sigma**2
+        pdf = numpy.exp(-(psi**2) / (2 * s2)) / (2 * numpy.pi * s2)
         if self.with_energy:
             pdf *= self.signal_energy_pdf(E, cos_theta)
         return pdf
@@ -107,7 +107,7 @@ def astroflux(pt, e, cos_theta):
     """
     Benchmark astrophysical flux
     """
-    return 0.5e-8 * e ** -2
+    return 0.5e-8 * e**-2
 
 
 def pull_correction(logE):

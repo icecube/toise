@@ -68,6 +68,25 @@ def get_inner_volume(geometry="Sunflower", spacing=200):
         )
 
 
+# -----------------------------------------------------------------------------
+# Original copyright notice from eventinjector
+# -----------------------------------------------------------------------------
+# Copyright (c) 2014
+# Claudio Kopper <claudio.kopper@icecube.wisc.edu>
+# and the IceCube Collaboration <http://www.icecube.wisc.edu>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+# OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+# CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# -----------------------------------------------------------------------------
 def convex_hull(points):
     """Computes the convex hull of a set of 2D points.
 
@@ -182,7 +201,7 @@ class UprightSurface(object):
         :param cos_theta: cosine of the zenith angle
         """
         return self.get_cap_area() * abs(cos_theta) + self.get_side_area() * numpy.sqrt(
-            1 - cos_theta ** 2
+            1 - cos_theta**2
         )
 
     def get_maximum_area(self):
@@ -214,13 +233,13 @@ class UprightSurface(object):
     @staticmethod
     def _integrate_area(a, b, cap, sides):
         return (
-            cap * (b ** 2 - a ** 2)
+            cap * (b**2 - a**2)
             + sides
             * (
                 numpy.arccos(a)
                 - numpy.arccos(b)
-                - numpy.sqrt(1 - a ** 2) * a
-                + numpy.sqrt(1 - b ** 2) * b
+                - numpy.sqrt(1 - a**2) * a
+                + numpy.sqrt(1 - b**2) * b
             )
         ) / 2.0
 
@@ -468,7 +487,7 @@ class ExtrudedPolygon(UprightSurface):
 
     def _direction_to_vec(self, cos_zenith, azimuth):
         ct, azi = numpy.broadcast_arrays(cos_zenith, azimuth)
-        st = numpy.sqrt(1.0 - ct ** 2)
+        st = numpy.sqrt(1.0 - ct**2)
         cp = numpy.cos(azi)
         sp = numpy.sin(azi)
         return -numpy.array([st * cp, st * sp, ct])
@@ -559,7 +578,7 @@ class ExtrudedPolygon(UprightSurface):
             return self._distance_to_hull(point, vec)
         # general case: both rho and z components nonzero
         else:
-            sin_zenith = numpy.sqrt(1.0 - cos_zenith ** 2)
+            sin_zenith = numpy.sqrt(1.0 - cos_zenith**2)
             sides = numpy.array(self._distance_to_hull(point, vec)) / sin_zenith
             caps = self._distance_to_caps(point, vec)
 
@@ -581,7 +600,7 @@ class Cylinder(UprightSurface):
         return (-self.length / 2.0, self.length / 2)
 
     def get_cap_area(self):
-        return numpy.pi * self.radius ** 2
+        return numpy.pi * self.radius**2
 
     def get_side_area(self):
         return 2 * self.radius * self.length

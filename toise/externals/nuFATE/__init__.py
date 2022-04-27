@@ -32,7 +32,7 @@ class NeutrinoCascade(object):
         # for log scale, then by E_i^2/E_j^2 to account for variable change
         # phi -> E^2*phi
         ei, ej = np.meshgrid(energy_nodes, energy_nodes)
-        self.differential_element = 2 * dloge * (ei ** 2 / ej)
+        self.differential_element = 2 * dloge * (ei**2 / ej)
 
     def transfer_matrix_element(self, i, flavor, out_flavor, column_density):
         """
@@ -104,7 +104,7 @@ class NeutrinoCascade(object):
 
     def _attenuation_for_flavor(self, flux, flavor, out_flavor, column_density):
         assert np.asarray(flux).shape == self.energy_nodes.shape
-        flux0 = self.energy_nodes ** 2 * flux
+        flux0 = self.energy_nodes**2 * flux
         flux = flux0
         if out_flavor != flavor:
             # initial flux of nue/numu is zero

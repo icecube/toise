@@ -31,7 +31,7 @@ replacing `CONDA_PREFIX` with the prefix you chose.
 Then, obtain `toise`:
 
 ```sh
-git clone git@github.com:IceCubeOpenSource/toise.git
+git clone git@github.com:icecube/toise.git
 ```
 
 Then, from the `toise` source directory, create a new environment:
@@ -65,4 +65,52 @@ If you'd like to install jupyter at this stage, you can do:
 conda install --channel conda-forge notebook
 ```
 
+## Adding your detector to toise
 
+`toise` uses parameterized response functions to calculate expected
+sensitivities to scenarios of astrophysical neutrino production. It comes with
+parameterizations for a fictive under-ice optical detector as well as a radio
+detector. To use `toise` with your own detector design, you will have to provide
+parameterizations its performance.
+
+### Optical detector
+
+For an optical detector, you will need to provide:
+
+1. The instrumented volume of the detector.
+2. For muons that enter the instrumented volume from the outside:
+    1. Selection efficiency, as a function of muon energy at the boundary of the
+       instrumented volume and zenith angle.
+    2. Energy resolution, in the form of a transfer matrix from muon energy at
+       the boundary of the instrumented volume to energy observable.
+    3. Angular resolution, in the form of a cumulative distribution of opening
+       angle between the true and reconstructed muon direction, as a function of
+       muon energy at the boundary of the instrumented volume and zenith angle.
+3. For neutrino interactions inside the instrumented volume:
+    1. Selection efficiency, as a function of deposited energy and zenith angle.
+    2. Energy resolution, in the form of a transfer matrix from deposited energy
+       to energy observable.
+    3. Angular resolution, in the form of a cumulative distribution of opening
+       angle between the true and reconstructed neutrino direction, as a
+       function of deposited energy and zenith angle.
+    4. Flavor signature classification efficiency, in terms of an
+       energy-dependent transfer matrix from interaction type to flavor
+       signature (cascade, double cascade, starting track).
+
+### Radio detector
+
+For a radio detector, you will need to provide:
+
+1. The (zenith and neutrino energy dependent) effective volumes for neutrinos at trigger level
+2. (Optionally) The PDF of triggered shower energies for given neutrino energy.
+   Otherwise the default transfer matrices of provided within `toise` will be used.
+
+Default parametrization functions for analysis efficiency, energy resolution and angular point spread are
+available within the framework. The provided function parameters can be steered by the configuration `.yaml` files.
+To find appropriate parameters describing the detector to be studied, producing the following distributions is sufficient:
+
+3. The efficiency with which triggered events can be reconstructed and analysed as a function of shower energy.
+4. The (1D) energy resolution in terms of `log10(E_rec/E_shower)`.
+5. The angular resolution point spread function. If using the default double-Gaussian implementation,
+   the fraction of well reconstrucable events and the fraction of poorly reconstructable events with corresponding sigma.
+   These angular resolution quantities may be provided energy dependently.

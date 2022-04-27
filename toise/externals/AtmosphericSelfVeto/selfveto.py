@@ -49,7 +49,7 @@ def overburden(cos_theta, depth=1950, elevation=2400):
     r = 6371315 + elevation
     # this is secrety a translation in polar coordinates
     return (
-        numpy.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth ** 2)
+        numpy.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth**2)
         - (r - depth) * cos_theta
     )
 
@@ -63,7 +63,7 @@ def minimum_muon_energy(distance, emin=1e3):
     """
 
     def polynomial(x, coefficients):
-        return sum(c * x ** i for i, c in enumerate(coefficients))
+        return sum(c * x**i for i, c in enumerate(coefficients))
 
     coeffs = [[2.793, -0.476, 0.187], [2.069, -0.201, 0.023], [-2.689, 3.882]]
     a, b, c = (polynomial(numpy.log10(emin), c) for c in coeffs)
@@ -79,7 +79,7 @@ def effective_costheta(costheta):
     x = costheta
     p = [0.102573, -0.068287, 0.958633, 0.0407253, 0.817285]
     return numpy.sqrt(
-        (x ** 2 + p[0] ** 2 + p[1] * x ** p[2] + p[3] * x ** p[4])
+        (x**2 + p[0] ** 2 + p[1] * x ** p[2] + p[3] * x ** p[4])
         / (1 + p[0] ** 2 + p[1] + p[3])
     )
 
@@ -158,11 +158,11 @@ def elbert_yield(
         icdf = numpy.where(
             x >= 1,
             0.0,
-            a * primary_mass * decay_prob * x ** (-p1) * (1 - x ** p3) ** p2,
+            a * primary_mass * decay_prob * x ** (-p1) * (1 - x**p3) ** p2,
         )
         if differential:
             icdf *= (1.0 / En) * numpy.where(
-                x >= 1, 0.0, (p1 / x + p2 * p3 * x ** (p3 - 1) / (1 - x ** p3))
+                x >= 1, 0.0, (p1 / x + p2 * p3 * x ** (p3 - 1) / (1 - x**p3))
             )
 
     return icdf
@@ -224,7 +224,7 @@ def logspace(start, stop, num):
     num = int(num)
     step = (stop - start) / float(num - 1)
     y = (numpy.core.numeric.arange(0, num) * step + start).squeeze()
-    return 10 ** y
+    return 10**y
 
 
 def response_function(enu, emu, cos_theta, kind="numu"):

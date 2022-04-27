@@ -8,7 +8,7 @@ from . import surfaces, energy_resolution, effective_areas
 
 
 def make_cylinder(volume=1.0, aspect=1.0):
-    r = numpy.cbrt(2 * volume * aspect / numpy.pi ** 2)
+    r = numpy.cbrt(2 * volume * aspect / numpy.pi**2)
     h = numpy.pi * r / 2 / aspect
     return surfaces.Cylinder(h * 1e3, r * 1e3)
 
@@ -27,7 +27,7 @@ class GaussianPointSpreadFunction(object):
 
     def __call__(self, psi, energy, cos_theta):
         psi, loge, ct = numpy.broadcast_arrays(psi / self._sigma, energy, cos_theta)
-        return 1.0 - numpy.exp(-(psi ** 2) / 2.0)
+        return 1.0 - numpy.exp(-(psi**2) / 2.0)
 
 
 @memoize

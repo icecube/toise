@@ -28,7 +28,7 @@ def make_components(aeffs, emin=1e2, emax=1e11):
     atmo = diffuse.AtmosphericNu.conventional(
         aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None
     )
-    atmo.prior = lambda v, **kwargs: -((v - 1) ** 2) / (2 * 0.1 ** 2)
+    atmo.prior = lambda v, **kwargs: -((v - 1) ** 2) / (2 * 0.1**2)
     prompt = diffuse.AtmosphericNu.prompt(
         aeff, 1, hard_veto_threshold=np.inf, veto_threshold=None
     )
@@ -92,7 +92,7 @@ def asimov_llh(bundle, seed_flux, decades=1.0 / 3, emin=1e2, emax=1e11):
     return chunk_llh
 
 
-def find_limits(llh, key, nom=None, critical_ts=1 ** 2, plotit=False):
+def find_limits(llh, key, nom=None, critical_ts=1**2, plotit=False):
     if nom is None:
         nom = {k: v.seed for k, v in llh.components.items()}
     base = llh.llh(**nom)
@@ -312,7 +312,7 @@ def get_ic_contour(source="lars"):
 def ic_butterfly(energy, source="lars"):
     ic_contour = get_ic_contour(source)
     flux = (
-        energy ** 2
+        energy**2
         * 1e-18
         * (
             ic_contour[:, 1][:, None]
@@ -459,9 +459,9 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     args = datasets[0]["args"]
     # plot underlying fluxes
     x = np.logspace(4, 10, 51)
-    pl = x ** 2 * args["astro"] * powerlaw(x, args["gamma"], args["emax"])
+    pl = x**2 * args["astro"] * powerlaw(x, args["gamma"], args["emax"])
     assert args["gzk"] == "vanvliet"
-    gzk = args["gzk_norm"] * diffuse.VanVlietGZKFlux()(x) * x ** 2
+    gzk = args["gzk_norm"] * diffuse.VanVlietGZKFlux()(x) * x**2
     ax.plot(x, 3 * pl, ls=":", color="grey")
     ax.plot(x, 3 * gzk, ls=":", color="grey")
 

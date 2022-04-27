@@ -282,4 +282,4 @@ class GlashowResonanceCrossSection(object):
         NB: factor of 3 comes from integration over xl**2, not 3 families of leptons
         """
         xl = ef / enu
-        return np.where(xl < 1, cls.total(enu) * cls.RWmu * 3 * xl ** 2 / enu, 0)
+        return np.where(xl < 1, cls.total(enu) * cls.RWmu * 3 * xl**2 / enu, 0)

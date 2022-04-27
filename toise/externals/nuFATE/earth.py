@@ -21,7 +21,7 @@ def rho_earth(theta, x, d=0):
     # piecewise polynomial fit to Reference earth model STW105
     # you could also load a Ref earth model if you want.
 
-    r = np.sqrt((REarth - d) ** 2 + x ** 2 + 2.0 * (REarth - d) * x * np.cos(theta))
+    r = np.sqrt((REarth - d) ** 2 + x**2 + 2.0 * (REarth - d) * x * np.cos(theta))
 
     if r < 1221.0:
         p1 = -0.0002177
@@ -56,7 +56,7 @@ def rho_earth(theta, x, d=0):
         p2 = 0
         p3 = 1020
 
-    rho = p1 * r ** 2 + p2 * r + p3
+    rho = p1 * r**2 + p2 * r + p3
 
     return rho * 1.0e-3  # g/cm^3.1.0e-3 conversion factor from kg/m^3 to g/cm^3
 
