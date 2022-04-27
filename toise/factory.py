@@ -241,7 +241,7 @@ class aeff_factory(object):
                 radio = radio_aeff_generation.radio_aeff(
                     psi_bins=psi_bins["radio"], config=opts.config_file
                 )
-                aeffs["radio_events"] = (radio.create(), radio.create_muon_background())
+                aeffs["radio_events"] = (radio.create(), radio.create_muon_background_from_tabulated())
             else:
                 kwargs["nstations"] = opts.nstations
                 if hasattr(opts, "veff_filename"):
@@ -458,7 +458,7 @@ default_configs = {
     ),
     "Gen2-InIce": scale_gen2_sensors(3.0),
     "Gen2-InIce-TracksOnly": scale_gen2_sensors(3.0, with_cascades=False),
-    "Gen2-Radio": dict(geometry="Radio", nstations=200),
+    "Gen2-Radio": dict(geometry="Radio", config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/hex_shallow.yaml"),
     "Sunflower_240": dict(
         geometry="Sunflower",
         spacing=240,

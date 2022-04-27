@@ -337,7 +337,7 @@ class radio_aeff:
             cr_cut = configuration["muon_background"]["cr_cut"]
         (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(configuration["muon_background"]["table"], cr_cut)#cos_theta, neutrino_energy)
         aeff = muon_distro * veff_scale
-        edges = (neutrino_energy, cos_theta, neutrino_energy)
+        edges = (e_cr_shower, cos_t, e_shower) #(neutrino_energy, cos_theta, neutrino_energy)
         # print(cos_theta)
         self.logger.warning(
             "Direction resolution smearing not applied for atm. muons for now!"
@@ -374,7 +374,6 @@ class radio_aeff:
             aeff = np.apply_along_axis(np.inner, 2, aeff, response)
         else:
             self.logger.warning("requested to skip accounting for energy resolution for atm. muons")
-
         return effective_area(edges, aeff, "cos_theta", source="atm_muon")
 
     def create(
