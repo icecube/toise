@@ -2,13 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import logging
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> master
 logger = logging.getLogger("toise radio muon background")
 
 
 def get_muon_distribution(
     cosz_edges=np.linspace(-1, 1, 21), energy_edges=np.logspace(6, 12, 61)
 ):
-    """ First best guess muon distribution
+    """First best guess muon distribution
 
     Distribution was given as function of zenith and as function of energy
     in Phys. Rev. D 102, 083011 (2020) / DOI: 10.1103/PhysRevD.102.083011
@@ -125,8 +130,8 @@ def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
         n_tot = np.sum(z)
         n_crcut_tot = np.sum(z_crcut)
 
-        new_cos_zenith_bins = np.linspace(-1,1,21)
-        new_shower_energy_bins = np.logspace(15-9, 21-9, 61)
+        new_cos_zenith_bins = np.linspace(-1, 1, 21)
+        new_shower_energy_bins = np.logspace(15 - 9, 21 - 9, 61)
 
         if cr_cut is True:
             distribution = z_zen_crcut

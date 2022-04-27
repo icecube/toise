@@ -257,6 +257,12 @@ class aeff_factory(object):
                         effective_areas.create_radio_aeff(**kwargs),
                         None,
                     )
+        elif opts.geometry == "Sunflower_240_EHE":
+            psi_bins = kwargs.pop("psi_bins")
+            aeffs["EHE_events"] = (
+                effective_areas.create_gen2_ehe_aeff(**kwargs),
+                None,
+            )
         else:
             psi_bins = kwargs.pop("psi_bins")
             nu, mu = create_aeff(opts, psi_bins=psi_bins["tracks"], **kwargs)
@@ -459,12 +465,16 @@ default_configs = {
     "Gen2-InIce": scale_gen2_sensors(3.0),
     "Gen2-InIce-TracksOnly": scale_gen2_sensors(3.0, with_cascades=False),
     "Gen2-Radio": dict(geometry="Radio", config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/hex_shallow.yaml"),
+    "Fictive-Radio": dict(geometry="Radio", nstations=30),
     "Sunflower_240": dict(
         geometry="Sunflower",
         spacing=240,
         cascade_energy_threshold=2e5,
         veto_area=75.0,
         veto_threshold=1e5,
+    ),
+    "Sunflower_240_EHE": dict(
+        geometry="Sunflower_240_EHE",
     ),
     "ARA_37": dict(geometry="ARA", nstations=37, depth=200),
     "ARA_200": dict(geometry="ARA", nstations=200, depth=200),

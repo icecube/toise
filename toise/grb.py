@@ -64,7 +64,7 @@ class Winter2014GRBFluence(object):
             geometric_scale
             * luminosity_scale
             * (10 ** self._log_fluence(np.log10(energy)))
-            / energy ** 2
+            / energy**2
         )
 
 
@@ -77,8 +77,8 @@ class WaxmannBahcallFluence(object):
         fluence = 0.9e-8 / 3 / 2 / peryear
         return np.where(
             E < 1e5,
-            E ** -1 * fluence / 1e5,
-            np.where(E > 1e7, E ** -4 * (fluence * (1e7 ** 2)), E ** -2 * fluence),
+            E**-1 * fluence / 1e5,
+            np.where(E > 1e7, E**-4 * (fluence * (1e7**2)), E**-2 * fluence),
         )
 
 
@@ -299,14 +299,14 @@ def grb_density(z):
 
 
 def density_to_comoving_rate(density_function, z):
-    return (density_function(z) * units.cm ** 3) * comoving_volume(z) / (1.0 + z)
+    return (density_function(z) * units.cm**3) * comoving_volume(z) / (1.0 + z)
 
 
 def grb_rate(z):
     """
     :returns: GRB rate in sr^-1 s^-1
     """
-    return (grb_density(z) * units.cm ** 3) * comoving_volume(z) / (1.0 + z)
+    return (grb_density(z) * units.cm**3) * comoving_volume(z) / (1.0 + z)
 
 
 def luminosity(L):
@@ -319,7 +319,7 @@ def luminosity(L):
     redshift and luminosity distribution calculated from Swift detected GRBs
     """
     loglstar = 52.53  # * 624.15 #GeV
-    Lstar = 10 ** loglstar
+    Lstar = 10**loglstar
     alpha = 0.17
     beta = 1.44
     return np.where(L <= Lstar, (L / Lstar) ** (-alpha), (L / Lstar) ** (-beta))
@@ -391,7 +391,7 @@ def rejection_sample(func, xmin=0, xmax=8, steps=10000, size=10, log10=False):
     while hits < size:
         xr = np.random.uniform(xmin, xmax, size=chunk)
         if log10:
-            xr = 10 ** xr
+            xr = 10**xr
         yr = np.random.uniform(ymin, ymax, size=chunk)
         values = xr[yr <= func(xr)]
         if hits + values.size > size:

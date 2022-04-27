@@ -7,10 +7,10 @@ _figures = {}
 def _ensure_nullary(f):
     if f:
         try:
-            spec = inspect.getargspec(f)
+            spec = inspect.signature(f)
         except TypeError:
             raise TypeError("{} is not a function".format(f))
-        if spec.args:
+        if spec.parameters:
             raise TypeError("{} should take no arguments".format(f))
 
 
@@ -23,14 +23,17 @@ def figure_data(setup=None, teardown=None):
 
     def wrapper(wrapped):
         try:
-            spec = inspect.getargspec(wrapped)
+            spec = inspect.signature(wrapped)
         except TypeError:
             raise TypeError("{} is not a function".format(wrapped))
-        if not spec.args or spec.args[0] != "exposures":
+        if not spec.parameters or list(spec.parameters.keys())[0] != "exposures":
             raise ValueError(
                 "a function registered with figure_data must take at least an `exposures` argument"
             )
-        if len(spec.args) - (len(spec.defaults) if spec.defaults else 0) != 1:
+        if (
+            sum(1 for param in spec.parameters.values() if param.default is param.empty)
+            > 1
+        ):
             raise ValueError("all secondary arguments must have defaults")
         name = wrapped.__module__[len(__name__) + 1 :] + "." + wrapped.__name__
         _figure_data[name] = (wrapped, setup, teardown)

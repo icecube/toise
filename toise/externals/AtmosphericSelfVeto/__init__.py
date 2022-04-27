@@ -64,7 +64,7 @@ class AnalyticPassingFraction(object):
             slant = selfveto.overburden(ct_g, d)
             emu = selfveto.minimum_muon_energy(slant, veto_threshold)
             pr[..., i] = selfveto.uncorrelated_passing_rate(
-                10 ** log_enu_g, emu, ct_g, kind=kind
+                10**log_enu_g, emu, ct_g, kind=kind
             )
 
         centers = [log_enu, ct, depth]
