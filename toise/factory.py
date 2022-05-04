@@ -308,13 +308,13 @@ class component_bundle(object):
                             aeff_mu = aeff[1].truncate_energy_range(emin, emax)
                         except:
                             aeff_mu = aeff[1]
-                            self.components[key] = component_factory((aeff_c, aeff_mu))
+                            self.components[key] = component_factory((aeff_c, aeff_mu), **kwargs)
                     else:
                         self.components[key] = component_factory(
-                            aeff, emin=emin, emax=emax
+                            aeff, emin=emin, emax=emax, **kwargs
                         )
                 else:
-                    self.components[key] = component_factory(aeff)
+                    self.components[key] = component_factory(aeff, **kwargs)
                 self.detectors[key] = detector
 
     def get_component(self, key, livetimes=None):

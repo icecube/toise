@@ -2,11 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import logging
-<<<<<<< HEAD
-=======
 
 
->>>>>>> master
 logger = logging.getLogger("toise radio muon background")
 
 
