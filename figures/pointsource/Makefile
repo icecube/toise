@@ -32,3 +32,14 @@ time_to_significance_gen2_energyrange.json.gz:
 
 time_to_significance_energyrange.pdf: time_to_significance_icecube_energyrange.json.gz time_to_significance_gen2_energyrange.json.gz
 	toise-plot pointsource.flare.single_flare_time_to_signficance $^ -o $@
+
+DETECTORS = IceCube IceCube-TracksOnly Gen2-InIce Gen2-InIce-TracksOnly Gen2-Radio "Gen2-InIce Gen2-Radio"
+
+flare_sensitivity_100days.json.gz:
+	years=$$(printf "%.3f" $$(echo "100/365" | bc -l)); \
+	toise-figure-data pointsource.flare.sensitivity $$(for d in $(DETECTORS); do echo -d; for element in $$d; do echo $$element $$years; done; done) $$(for d in $(DETECTORS); do echo -o $(basename $(basename $@))_$$(echo $$d | sed -e 's| |+|g'); done)
+
+
+tdr: flare_sensitivity_100days.json.gz
+
+.PHONY: tdr

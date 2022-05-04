@@ -36,26 +36,27 @@ def sensitivity(exposures, decades=1, gamma=-2, emin=0.0):
         len({exposure for detector, exposure in exposures}) == 1
     ), "exposures are equal"
     meta = {"cos_zenith": factory.default_cos_theta_bins}
-    for detector, exposure in exposures:
-        dlabel = re.split("[_-]", detector)[0]
-        for zi in tqdm(list(range(20)), desc=dlabel):
-            fom = figures_of_merit.PointSource({detector: exposure}, zi)
-            for flabel, q in figures.items():
-                kwargs = {"gamma": gamma, "decades": decades}
-                if not flabel.startswith("differential"):
-                    kwargs["emin"] = emin
-                val = fom.benchmark(q, **kwargs)
-                if not flabel in meta:
-                    meta[flabel] = {}
-                if not dlabel in meta[flabel]:
-                    meta[flabel][dlabel] = {}
-                if flabel.startswith("differential"):
-                    val = OrderedDict(
-                        zip(("e_center", "flux", "n_signal", "n_background"), val)
-                    )
-                else:
-                    val = OrderedDict(zip(("flux", "n_signal", "n_background"), val))
-                meta[flabel][dlabel][str(zi)] = val
+    dlabel = "+".join([detector for detector, _ in exposures])
+    for zi in tqdm(list(range(20)), desc=dlabel):
+        fom = figures_of_merit.PointSource(
+            {detector: exposure for detector, exposure in exposures}, zi
+        )
+        for flabel, q in figures.items():
+            kwargs = {"gamma": gamma, "decades": decades}
+            if not flabel.startswith("differential"):
+                kwargs["emin"] = emin
+            val = fom.benchmark(q, **kwargs)
+            if not flabel in meta:
+                meta[flabel] = {}
+            if not dlabel in meta[flabel]:
+                meta[flabel][dlabel] = {}
+            if flabel.startswith("differential"):
+                val = OrderedDict(
+                    zip(("e_center", "flux", "n_signal", "n_background"), val)
+                )
+            else:
+                val = OrderedDict(zip(("flux", "n_signal", "n_background"), val))
+            meta[flabel][dlabel][str(zi)] = val
     return meta
 
 
@@ -78,6 +79,7 @@ def sensitivity(datasets):
     ax.set_ylabel(
         r"$E^2 \Phi_{\nu_x + \overline{\nu_x}}$ $(\rm TeV \,\, cm^{-2} s^{-1})$"
     )
+    ax.legend()
 
 
 @figure_data()
