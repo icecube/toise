@@ -515,7 +515,10 @@ def fc_upper_limit(point_source, diffuse_components, ecutoff=0, cl=0.9, **fixed)
     if cl != 0.9:
         raise ValueError("I can only handle 90% CL")
     try:
-        return fc_upper_limit.table(nb) / ns
+        if (np.array(nb)<=15).all():
+            return fc_upper_limit.table(nb) / ns
+        else:
+            return fc_upper_limit.calculated_table(nb) / ns
     except ValueError:
         raise ValueError(
             "nb=%.2g is too large for the FC construction to be useful" % nb
@@ -533,6 +536,10 @@ fc_upper_limit.table = interpolate.interp1d(
     ),
 )
 
+# Average 90% upper limit for known background
+# calculated averaging over Poisson probabilities of ROOT's TFeldmanCousins for a larger range of background counts
+fc_data = np.loadtxt(path.join(data_dir, "models/feldman_cousins_calculated.dat"), skiprows=1, delimiter=",")
+fc_upper_limit.calculated_table = interpolate.interp1d(fc_data[:,0], fc_data[:,1])
 
 def upper_limit(
     point_source, diffuse_components, cl=0.9, baseline=None, tolerance=1e-2, **fixed
