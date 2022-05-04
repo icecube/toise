@@ -536,7 +536,7 @@ def eval_psf(point_spread_function, mu_energy, ct, psi_bins):
 
 def create_bundle_aeff(
     energy_resolution=defer(get_energy_resolution, "IceCube"),
-    energy_threshold=StepFunction(numpy.inf),
+    veto_efficiency: VetoThreshold = StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
     selection_efficiency=defer(MuonSelectionEfficiency),
     surface=defer(get_fiducial_surface, "IceCube"),
@@ -610,11 +610,8 @@ def create_bundle_aeff(
     #           is not
     shadowed_fraction = veto_coverage(cos_theta)[None, :]
 
-    # Step 5.2: apply an energy threshold in the southern hemisphere
-    # NB: this is in units of true muon energy. While this isn't realizable, it
-    # avoids the mess of different E_true -> E_reco mappings for different
-    # detector geometries
-    veto_suppression = 1 - energy_threshold.accept(
+    # Step 5.2: apply suppression from surface veto
+    veto_suppression = 1 - veto_efficiency.accept(
         *numpy.meshgrid(center(e_mu), center(cos_theta), indexing="ij")
     )
 
@@ -636,7 +633,6 @@ def create_bundle_aeff(
 
 def create_throughgoing_aeff(
     energy_resolution=defer(get_energy_resolution, "IceCube"),
-    energy_threshold=StepFunction(numpy.inf),
     veto_coverage=lambda ct: numpy.zeros(len(ct) - 1),
     selection_efficiency=defer(MuonSelectionEfficiency),
     surface=defer(get_fiducial_surface, "IceCube"),

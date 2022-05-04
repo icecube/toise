@@ -1,6 +1,7 @@
 import numpy
 from scipy import interpolate
 from functools import partial
+import numbers
 import os
 import pickle as pickle
 from . import (
@@ -110,7 +111,6 @@ def create_aeff(opts, **kwargs):
         ),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(fiducial_geometry, opts.spacing),
-        energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
         **kwargs
     )
 
@@ -120,7 +120,11 @@ def create_aeff(opts, **kwargs):
         ),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(fiducial_geometry, opts.spacing),
-        energy_threshold=effective_areas.StepFunction(opts.veto_threshold, 90),
+        veto_efficiency=(
+            effective_areas.StepFunction(opts.veto_threshold, 90)
+            if isinstance(opts.veto_threshold, numbers.Number)
+            else opts.veto_threshold
+        ),
         **kwargs
     )
 
@@ -241,7 +245,10 @@ class aeff_factory(object):
                 radio = radio_aeff_generation.radio_aeff(
                     psi_bins=psi_bins["radio"], config=opts.config_file
                 )
-                aeffs["radio_events"] = (radio.create(), radio.create_muon_background_from_tabulated())
+                aeffs["radio_events"] = (
+                    radio.create(),
+                    radio.create_muon_background_from_tabulated(),
+                )
             else:
                 kwargs["nstations"] = opts.nstations
                 if hasattr(opts, "veff_filename"):
@@ -426,8 +433,8 @@ def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True):
         geometry="Sunflower",
         spacing=240,
         cascade_energy_threshold=2e5 / scale if with_cascades else None,
-        veto_area=10.0,
-        veto_threshold=1e5,
+        veto_area=5.8,
+        veto_threshold=defer(surface_veto.UDelSurfaceVeto),
         angular_resolution_scale=partial(
             gen2_throughgoing_muon_angular_resolution_correction,
             scale=scale,
@@ -463,8 +470,14 @@ default_configs = {
         veto_threshold=1e5,
     ),
     "Gen2-InIce": scale_gen2_sensors(3.0),
-    "Gen2-InIce-TracksOnly": scale_gen2_sensors(3.0, with_cascades=False),
-    "Gen2-Radio": dict(geometry="Radio", config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/hex_shallow.yaml"),
+    "Gen2-InIce-TracksOnly": (
+        scale_gen2_sensors(3.0, with_cascades=False)
+        | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
+    ),
+    "Gen2-Radio": dict(
+        geometry="Radio",
+        config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/hex_shallow.yaml",
+    ),
     "Fictive-Radio": dict(geometry="Radio", nstations=30),
     "Sunflower_240": dict(
         geometry="Sunflower",
