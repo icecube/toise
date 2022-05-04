@@ -216,6 +216,7 @@ class WBSteadyPointSource(PointSource):
         PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
         self._livetime = livetime
 
+
 class NSNSMerger(PointSource):
     def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
         # reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
@@ -483,10 +484,10 @@ def discovery_potential(
 def events_above(observables, edges, ecutoff):
     n = 0
     for k, edge_k in edges.items():
-        #print(ecutoff, edges)
-        #print(np.shape(edges))
-        #print(np.shape(observables[k]))
-        if len(edge_k)>2:
+        # print(ecutoff, edges)
+        # print(np.shape(edges))
+        # print(np.shape(observables[k]))
+        if len(edge_k) > 2:
             edge_k = [edge_k[1], edge_k[2]]
         cut = numpy.where(edge_k[1][1:] > ecutoff)[0][0]
         n += observables[k].sum(axis=0)[cut:].sum()

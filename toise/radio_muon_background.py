@@ -2,11 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import logging
-<<<<<<< HEAD
-=======
 
-
->>>>>>> master
 logger = logging.getLogger("toise radio muon background")
 
 
@@ -107,21 +103,27 @@ def get_muon_distribution(
     logger.info(("Total muons per station:", np.sum(extended_muon_distribution)))
     return extended_muon_distribution
 
+
 def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
-    """ Get a tabulated muon distribution from a pickle file """
+    """Get a tabulated muon distribution from a pickle file"""
 
     import pickle
+
     with open(pickle_file, "rb") as fin:
         shower_energy_bins, cos_zenith_bins, z_zen, z_zen_crcut = pickle.load(fin)
         # simply check if the shower_energy_bins and cos_zenith_bins match the expected shape or not.
-        expected_shower_energy_bins = np.linspace(13., 20., 71)
+        expected_shower_energy_bins = np.linspace(13.0, 20.0, 71)
         expected_cos_zenith_bins = np.linspace(1.0, 0.0, 11)
         expected_cos_zenith_bins[-1] = 1e-3
         if not np.allclose(shower_energy_bins, expected_shower_energy_bins):
-            logger.error(f"energy binning not as expected. Got {shower_energy_bins}, expected {expected_shower_energy_bins}")
+            logger.error(
+                f"energy binning not as expected. Got {shower_energy_bins}, expected {expected_shower_energy_bins}"
+            )
             return None
         if not np.allclose(cos_zenith_bins, expected_cos_zenith_bins):
-            logger.error(f"cos zenith binning not as expected. Got {cos_zenith_bins}, expected {expected_cos_zenith_bins}")
+            logger.error(
+                f"cos zenith binning not as expected. Got {cos_zenith_bins}, expected {expected_cos_zenith_bins}"
+            )
             return None
 
         energy_centers = 0.5 * (shower_energy_bins[1:] + shower_energy_bins[:-1])
@@ -140,13 +142,19 @@ def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
 
         # atm muon distributions don't contain upgoing region
         # dimensions: cosz, E
-        upgoing = np.zeros((10,np.shape(distribution)[1]))
+        upgoing = np.zeros((10, np.shape(distribution)[1]))
         distribution_4pi = np.append(upgoing, np.flip(distribution, axis=0), axis=0)
         # in order to make the input energy match the one from the framework, drop the lower end of the spectrum and add zeros on top
-        distribution_4pi = distribution_4pi[:,20:]
-        distribution_4pi = np.append(distribution_4pi, np.zeros((np.shape(distribution_4pi)[0], 10)), axis=1)
+        distribution_4pi = distribution_4pi[:, 20:]
+        distribution_4pi = np.append(
+            distribution_4pi, np.zeros((np.shape(distribution_4pi)[0], 10)), axis=1
+        )
         extended_muon_distribution = distribution_4pi[..., None] * np.eye(60)
         # dimensions: E, cosz, E
         extended_muon_distribution = np.swapaxes(extended_muon_distribution, 0, 1)
 
-        return (new_shower_energy_bins, new_cos_zenith_bins, new_shower_energy_bins), extended_muon_distribution
+        return (
+            new_shower_energy_bins,
+            new_cos_zenith_bins,
+            new_shower_energy_bins,
+        ), extended_muon_distribution

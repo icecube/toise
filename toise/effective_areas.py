@@ -464,8 +464,8 @@ class effective_area(object):
             )
 
     def get_bin_edges(self, dim_name):
-        if len(self.dimensions)==3:
-            return  self.bin_edges[self.dimensions.index(dim_name)]
+        if len(self.dimensions) == 3:
+            return self.bin_edges[self.dimensions.index(dim_name)]
         else:
             return self.bin_edges[self.dimensions.index(dim_name) - 1]
 

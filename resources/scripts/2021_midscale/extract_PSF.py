@@ -241,8 +241,8 @@ def king_cdf(x, sigma, gamma):
 
     See: http://fermi.gsfc.nasa.gov/ssc/data/analysis/documentation/Cicerone/Cicerone_LAT_IRFs/IRF_PSF.html
     """
-    s2 = sigma ** 2
-    x2 = x ** 2
+    s2 = sigma**2
+    x2 = x**2
     return (
         (1.0 - 1.0 / gamma)
         / (2 * (gamma - 1.0) * s2)
@@ -275,8 +275,8 @@ def fit_psf(bins, counts, nknots=(7, 10), smooth=1e1):
     basis = splinebasis(centers, knots, order)
 
     def cdf(x, sigma, gamma):
-        s2 = sigma ** 2
-        x2 = x ** 2
+        s2 = sigma**2
+        x2 = x**2
         return (
             (1.0 - 1.0 / gamma)
             / (2 * (gamma - 1.0) * s2)
@@ -501,7 +501,7 @@ def get_muon_selection_efficiency(
     counts = np.histogramdd(sample, bins=edges)[0]
 
     bincontent, _ = np.histogramdd(sample, weights=weights, bins=edges)
-    squaredweights, _ = np.histogramdd(sample, weights=weights ** 2, bins=edges)
+    squaredweights, _ = np.histogramdd(sample, weights=weights**2, bins=edges)
 
     # convert GeV m^2 sr to m^2
     bin_volume = 2 * np.pi * np.outer(*map(np.diff, edges))
@@ -530,7 +530,7 @@ def fit_muon_selection_efficiency(efficiency, error, binedges, smoothing=1):
         return np.concatenate((pre, knots, post))
 
     z = efficiency
-    w = 1.0 / error ** 2
+    w = 1.0 / error**2
 
     for i in range(z.shape[1]):
         # deweight empty declination bands
@@ -582,7 +582,7 @@ if args.do_plots:
         y = seleff_spline.grideval(
             [x, [(edges[1][ci] + edges[1][ci + 1]) / 2.0]]
         ).squeeze()
-        line = ax.plot(10 ** x, y)[0]
+        line = ax.plot(10**x, y)[0]
 
         x = 10 ** ((np.log10(edges[0][1:]) + np.log10(edges[0][:-1])) / 2.0)
         xerr = edges[0][1:] - x, x - edges[0][:-1]

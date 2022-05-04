@@ -332,9 +332,16 @@ class radio_aeff:
         psi_bins = self.psi_bins
         configuration = self.configuration
 
-        if ("nstations" in configuration["detector_setup"]) and ("simulated_stations" in configuration["effective_volume"]):
-            veff_scale = configuration["detector_setup"]["nstations"]/configuration["effective_volume"]["simulated_stations"]
-            self.logger.info(f"Using number of stations from config. Rescaling atm. muon count by {veff_scale}.")
+        if ("nstations" in configuration["detector_setup"]) and (
+            "simulated_stations" in configuration["effective_volume"]
+        ):
+            veff_scale = (
+                configuration["detector_setup"]["nstations"]
+                / configuration["effective_volume"]["simulated_stations"]
+            )
+            self.logger.info(
+                f"Using number of stations from config. Rescaling atm. muon count by {veff_scale}."
+            )
         else:
             veff_scale = 1
             self.logger.warning(
@@ -344,15 +351,24 @@ class radio_aeff:
         cr_cut = False
         if "cr_cut" in configuration["muon_background"]:
             cr_cut = configuration["muon_background"]["cr_cut"]
-        (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(configuration["muon_background"]["table"], cr_cut)#cos_theta, neutrino_energy)
+        (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(
+            configuration["muon_background"]["table"], cr_cut
+        )  # cos_theta, neutrino_energy)
         aeff = muon_distro * veff_scale
-        edges = (e_cr_shower, cos_t, e_shower) #(neutrino_energy, cos_theta, neutrino_energy)
+        edges = (
+            e_cr_shower,
+            cos_t,
+            e_shower,
+        )  # (neutrino_energy, cos_theta, neutrino_energy)
         self.logger.warning(
             "Direction resolution smearing not applied for atm. muons for now!"
         )
 
         # apply analysis efficency
-        if configuration["apply_analysis_efficiency"] == True and configuration["muon_background"]["apply_efficiency"] == True:
+        if (
+            configuration["apply_analysis_efficiency"] == True
+            and configuration["muon_background"]["apply_efficiency"] == True
+        ):
             self.logger.info(
                 "applying analysis efficiency as function of shower energy"
             )
@@ -366,7 +382,9 @@ class radio_aeff:
             )
             aeff = np.apply_along_axis(np.multiply, 2, aeff, ana_efficiency)
         else:
-            self.logger.warning("requested to skip accounting for analysis efficiency for atm. muons")
+            self.logger.warning(
+                "requested to skip accounting for analysis efficiency for atm. muons"
+            )
 
         # apply smearing for shower energy resolution
         configuration = self.configuration
@@ -381,7 +399,9 @@ class radio_aeff:
             )
             aeff = np.apply_along_axis(np.inner, 2, aeff, response)
         else:
-            self.logger.warning("requested to skip accounting for energy resolution for atm. muons")
+            self.logger.warning(
+                "requested to skip accounting for energy resolution for atm. muons"
+            )
         return effective_area(edges, aeff, "cos_theta", source="atm_muon")
 
     def create(
@@ -396,7 +416,7 @@ class radio_aeff:
         Create an effective area for radio
         """
         psi_bins = self.psi_bins
-        configuration = self.configuration        
+        configuration = self.configuration
 
         nside = None
         if isinstance(cos_theta, int):
@@ -409,26 +429,53 @@ class radio_aeff:
         if "transfer_matrix" in configuration:
             # use a transfer matrix taking account for the inelasticity distribution of triggered events
             self.logger.warning("using transfer matrices from external file")
+
             def neutrino_interaction_length_ice(flavor, energy_edges):
-                ice_density=.917 * 1e-3 / (1e-2)**3 # kg/m**3
+                ice_density = 0.917 * 1e-3 / (1e-2) ** 3  # kg/m**3
                 from scipy import constants
-                m_n = constants.m_p  # in kg  * units.kg  # nucleon mass, assuming proton mass
-                cc = nuFATE.NeutrinoCascade(10**(0.5*(np.log10(energy_edges[:-1]) + np.log10(energy_edges[1:]))))
-                L_int = m_n / (cc.total_cross_section(0) * 1e-4) / ice_density    
+
+                m_n = (
+                    constants.m_p
+                )  # in kg  * units.kg  # nucleon mass, assuming proton mass
+                cc = nuFATE.NeutrinoCascade(
+                    10
+                    ** (
+                        0.5 * (np.log10(energy_edges[:-1]) + np.log10(energy_edges[1:]))
+                    )
+                )
+                L_int = m_n / (cc.total_cross_section(0) * 1e-4) / ice_density
                 return L_int
 
-            matrix_data = np.load(configuration["transfer_matrix"]["table"], allow_pickle=True)
-            if (not np.allclose(neutrino_energy,  matrix_data["bin_edges"][0]*1e-9)) or (not np.allclose(cos_theta,  matrix_data["bin_edges"][1])) or (not np.allclose(neutrino_energy,  matrix_data["bin_edges"][2]*1e-9)):
-                self.logger.error("shapes of requested veff and transfer matrices do not match. Will fall back to default transfer matrix!")
-                print("got:\n", matrix_data["bin_edges"], "\nexpected:\n", neutrino_energy, cos_theta)
+            matrix_data = np.load(
+                configuration["transfer_matrix"]["table"], allow_pickle=True
+            )
+            if (
+                (not np.allclose(neutrino_energy, matrix_data["bin_edges"][0] * 1e-9))
+                or (not np.allclose(cos_theta, matrix_data["bin_edges"][1]))
+                or (
+                    not np.allclose(neutrino_energy, matrix_data["bin_edges"][2] * 1e-9)
+                )
+            ):
+                self.logger.error(
+                    "shapes of requested veff and transfer matrices do not match. Will fall back to default transfer matrix!"
+                )
+                print(
+                    "got:\n",
+                    matrix_data["bin_edges"],
+                    "\nexpected:\n",
+                    neutrino_energy,
+                    cos_theta,
+                )
                 use_default_transfer = True
 
             else:
                 aeffs_flavor = []
                 for fi, flavor in enumerate(["e", "e", "mu", "mu", "tau", "tau"]):
                     data = matrix_data[f"transfer_matrix_{flavor}"]
-                    prod_dens = 1./neutrino_interaction_length_ice(fi, neutrino_energy)
-                    data[:,:,:] *= prod_dens[:,np.newaxis,np.newaxis]
+                    prod_dens = 1.0 / neutrino_interaction_length_ice(
+                        fi, neutrino_energy
+                    )
+                    data[:, :, :] *= prod_dens[:, np.newaxis, np.newaxis]
                     aeffs_flavor.append(data)
                 aeff = np.array(aeffs_flavor)
                 e_nu = neutrino_energy
@@ -440,7 +487,9 @@ class radio_aeff:
             (e_nu, cos_theta, e_showering), aeff = calculate_cascade_production_density(
                 cos_theta, neutrino_energy
             )
-            self.logger.warning("using default transfer matrices designed for optical as proxy. Using downgoing region also for upgoing to avoid double accounting for Earth absorption")
+            self.logger.warning(
+                "using default transfer matrices designed for optical as proxy. Using downgoing region also for upgoing to avoid double accounting for Earth absorption"
+            )
             # quick fix to ignore Earth absorption... this is already included in the effective volumes
             for i in range((len(cos_theta) - 1) // 2):
                 aeff[:, :, i, :] = aeff[:, :, -i - 1, :]
@@ -516,7 +565,9 @@ class radio_aeff:
                 configuration["analysis_efficiency"]["log_turnon_gev"],
                 configuration["analysis_efficiency"]["log_turnon_width"],
             )
-            aeff = np.apply_along_axis(np.multiply, 3, aeff, ana_efficiency) #3 if shower E, 1 if neutrino E
+            aeff = np.apply_along_axis(
+                np.multiply, 3, aeff, ana_efficiency
+            )  # 3 if shower E, 1 if neutrino E
         else:
             self.logger.warning("requested to skip accounting for analysis efficiency")
 
@@ -564,8 +615,12 @@ class radio_aeff:
         else:
             for key in configuration["angular_resolution"]:
                 if np.isscalar(configuration["angular_resolution"][key]):
-                    configuration["angular_resolution"][key] = np.full(psf_shape, configuration["angular_resolution"][key])
-            psf_params = pd.DataFrame(configuration["angular_resolution"]).to_dict(orient="records")
+                    configuration["angular_resolution"][key] = np.full(
+                        psf_shape, configuration["angular_resolution"][key]
+                    )
+            psf_params = pd.DataFrame(configuration["angular_resolution"]).to_dict(
+                orient="records"
+            )
             psf_array = []
             for psf_param in psf_params:
                 psf.set_params(psf_param)
@@ -585,13 +640,18 @@ class radio_aeff:
         )
 
 
-def combine_aeffs(aeff1, aeff2,
-        overlap_E=10**np.array([7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11.0]),
-        overlap_values=np.array([0.004, 0.007, 0.019, 0.074, 0.153, 0.245, 0.323, 0.368, 0.393])):
+def combine_aeffs(
+    aeff1,
+    aeff2,
+    overlap_E=10 ** np.array([7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11.0]),
+    overlap_values=np.array(
+        [0.004, 0.007, 0.019, 0.074, 0.153, 0.245, 0.323, 0.368, 0.393]
+    ),
+):
     """
     Combine two effective area tuples while removing the overlap of events seen in both
     (as done in the Feb. review array sims, where deep + shallow arrays had been simulated separately)
-  
+
     :param aeff1: first aeff tuple
     :param aeff2: second aeff tuple
     :param overlap_E: energies for overlap to be subtracted
@@ -687,9 +747,9 @@ class MuonBackground(object):
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):
             background.expectations = (
-                np.nansum(
-                    (self.expectations * zenith_index[:, None]) / omega, axis=0
-                )[..., None]
+                np.nansum((self.expectations * zenith_index[:, None]) / omega, axis=0)[
+                    ..., None
+                ]
                 * bin_areas
             )
         else:

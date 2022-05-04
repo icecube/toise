@@ -36,7 +36,7 @@ def survey_volume(sindec, phi, L0=1e45, gamma=-2):
     :returns: the volume in Gpc^3 in which standard candles of luminosity L0 would be detectable
     """
     dl = survey_distance(phi, L0, gamma)
-    return ((sindec.max() - sindec.min()) * 2 * np.pi / 3.0) * ((dl ** 3).mean())
+    return ((sindec.max() - sindec.min()) * 2 * np.pi / 3.0) * ((dl**3).mean())
 
 
 import argparse

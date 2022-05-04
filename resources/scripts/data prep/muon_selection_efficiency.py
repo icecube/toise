@@ -59,7 +59,7 @@ def fit_muon_selection_efficiency(efficiency, error, binedges, smoothing=1):
     from icecube.photospline.utils import pad_knots
 
     z = efficiency
-    w = 1.0 / error ** 2
+    w = 1.0 / error**2
 
     for i in range(z.shape[1]):
         # deweight empty declination bands
@@ -167,7 +167,7 @@ if __name__ == "__main__":
                     label=label,
                 )
                 # ax.semilogx()
-                ax.semilogx(10 ** x, evaluates[:, i], color=ax.lines[-1].get_color())
+                ax.semilogx(10**x, evaluates[:, i], color=ax.lines[-1].get_color())
             ax.legend()
             # ax.set_ylim((0, 1))
             ax.set_xlabel("Muon energy [GeV]")
