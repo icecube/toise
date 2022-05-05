@@ -544,39 +544,45 @@ class radio_aeff:
         # check if angular resolution is array or integers
         # if it is not an array, simply apply it on the last dimension
         one_dimensional = True
+        angular_res_from_pickle = False
         # check if any of the keys is higher dimension
-        for key in configuration["angular_resolution"]:
-            if not np.isscalar(configuration["angular_resolution"][key]):
-                psf_shape = np.shape(configuration["angular_resolution"][key])
-                one_dimensional = False
-        if one_dimensional:
-            psf.set_params(configuration["angular_resolution"])
-            cdf = psf.CDF(np.degrees(psi_bins[:-1]))
-            # set overflow bin to 1
-            cdf = np.concatenate((cdf, [1]))
-            self.logger.debug("angular resolution cdf: {}".format(np.diff(cdf)))
+        if "angular_resolution_file" in configuration["angular_resolution"]:
+            print("using angular res from file")
+            # TODO: read/use distribution
 
-            # an empty array
-            total_aeff = np.zeros_like(np.empty(aeff.shape + (psi_bins.size - 1,)))
-            # expand differential contributions along the opening-angle axis
-            # print(np.shape(np.diff(cdf)))
-            total_aeff[..., :] = aeff[..., None] * np.diff(cdf)[None, ...]
         else:
             for key in configuration["angular_resolution"]:
-                if np.isscalar(configuration["angular_resolution"][key]):
-                    configuration["angular_resolution"][key] = np.full(psf_shape, configuration["angular_resolution"][key])
-            psf_params = pd.DataFrame(configuration["angular_resolution"]).to_dict(orient="records")
-            psf_array = []
-            for psf_param in psf_params:
-                psf.set_params(psf_param)
+                if not np.isscalar(configuration["angular_resolution"][key]):
+                    psf_shape = np.shape(configuration["angular_resolution"][key])
+                    one_dimensional = False
+            if one_dimensional:
+                psf.set_params(configuration["angular_resolution"])
                 cdf = psf.CDF(np.degrees(psi_bins[:-1]))
+                # set overflow bin to 1
                 cdf = np.concatenate((cdf, [1]))
-                psf_array.append(np.diff(cdf))
-            psf_array = np.array(psf_array)
-            # an empty array
-            total_aeff = np.zeros_like(np.empty(aeff.shape + (psi_bins.size - 1,)))
-            # expand differential contributions along the opening-angle axis
-            total_aeff[..., :] = aeff[..., None] * psf_array[None, ...]
+                self.logger.debug("angular resolution cdf: {}".format(np.diff(cdf)))
+
+                # an empty array
+                total_aeff = np.zeros_like(np.empty(aeff.shape + (psi_bins.size - 1,)))
+                # expand differential contributions along the opening-angle axis
+                # print(np.shape(np.diff(cdf)))
+                total_aeff[..., :] = aeff[..., None] * np.diff(cdf)[None, ...]
+            else:
+                for key in configuration["angular_resolution"]:
+                    if np.isscalar(configuration["angular_resolution"][key]):
+                        configuration["angular_resolution"][key] = np.full(psf_shape, configuration["angular_resolution"][key])
+                psf_params = pd.DataFrame(configuration["angular_resolution"]).to_dict(orient="records")
+                psf_array = []
+                for psf_param in psf_params:
+                    psf.set_params(psf_param)
+                    cdf = psf.CDF(np.degrees(psi_bins[:-1]))
+                    cdf = np.concatenate((cdf, [1]))
+                    psf_array.append(np.diff(cdf))
+                psf_array = np.array(psf_array)
+                # an empty array
+                total_aeff = np.zeros_like(np.empty(aeff.shape + (psi_bins.size - 1,)))
+                # expand differential contributions along the opening-angle axis
+                total_aeff[..., :] = aeff[..., None] * psf_array[None, ...]
 
         edges = (e_nu, cos_theta, e_showering, psi_bins)
         self.logger.info("generated aeff of shape {}".format(np.shape(total_aeff)))
