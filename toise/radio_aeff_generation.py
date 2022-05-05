@@ -551,7 +551,12 @@ class radio_aeff:
             angular_res_file = configuration["angular_resolution"]["filename"]
             self.logger.warning(f"using angular res from {angular_res_file}, will ignore all norm/sigma parameters in 'angular_resolution'")
             # TODO: read/use distribution
-            psf = RadioPointSpreadFunctionPickled(configuration["angular_resolution"]["filename"], configuration["angular_resolution"]["selection"])
+            if not "scaling" in configuration["angular_resolution"]:
+                psf = RadioPointSpreadFunctionPickled(configuration["angular_resolution"]["filename"], configuration["angular_resolution"]["selection"])
+            else:
+                psf = RadioPointSpreadFunctionPickled(configuration["angular_resolution"]["filename"],
+                                                      configuration["angular_resolution"]["selection"],
+                                                      configuration["angular_resolution"]["scaling"])
             cdf = psf.CDF(np.degrees(psi_bins[:-1]))
             # set overflow bin to 1
             cdf = np.concatenate((cdf, [1]))

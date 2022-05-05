@@ -17,7 +17,7 @@ class RadioPointSpreadFunctionPickled(object):
 
     def __init__(
         self,
-        filename, selection
+        filename, selection, scaling=1
     ):
         self.filename = filename
         self.selection = selection
@@ -26,7 +26,7 @@ class RadioPointSpreadFunctionPickled(object):
         def angular_cdf(reco_errors):
             x = np.sort(reco_errors)
             # reco uncertainties
-            xf = np.radians(np.concatenate([np.array([0]), x, np.array([180])]))
+            xf = np.radians(np.concatenate([np.array([0]), x*scaling, np.array([180])]))
             # cumulative distribution for interpolation
             yf = np.concatenate([np.array([0]), np.cumsum(np.ones_like(x))/max(np.cumsum(np.ones_like(x))), np.array([1])])
             cdf_resolution_reconstructed = interpolate.interp1d(xf,yf,bounds_error=False,fill_value=(0,1))
