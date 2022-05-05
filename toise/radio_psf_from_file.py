@@ -55,7 +55,7 @@ class RadioPointSpreadFunctionPickled(object):
 
     def CDF(self, space_angle):
         return self.cdf(
-            space_angle
+            np.radians(space_angle)
         )
 
     #def scale_well_reconstructed_fraction(self, factor):
