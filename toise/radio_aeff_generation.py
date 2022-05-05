@@ -11,6 +11,7 @@ from toise.externals import nuFATE
 
 from .radio_response import radio_analysis_efficiency
 from .radio_response import RadioPointSpreadFunction
+from .radio_psf_from_file import RadioPointSpreadFunctionPickled
 from .radio_response import RadioEnergyResolution
 from .effective_areas import calculate_cascade_production_density
 from .effective_areas import effective_area
@@ -546,10 +547,21 @@ class radio_aeff:
         one_dimensional = True
         angular_res_from_pickle = False
         # check if any of the keys is higher dimension
-        if "angular_resolution_file" in configuration["angular_resolution"]:
-            print("using angular res from file")
+        if "filename" in configuration["angular_resolution"]:
+            angular_res_file = configuration["angular_resolution"]["filename"]
+            self.logger.warning(f"using angular res from {angular_res_file}, will ignore all norm/sigma parameters in 'angular_resolution'")
             # TODO: read/use distribution
-
+            psf = RadioPointSpreadFunctionPickled(configuration["angular_resolution"]["filename"], configuration["angular_resolution"]["selection"])
+            cdf = psf.CDF(np.degrees(psi_bins[:-1]))
+            # set overflow bin to 1
+            cdf = np.concatenate((cdf, [1]))
+            self.logger.debug("angular resolution cdf: {}".format(np.diff(cdf)))
+  
+            # an empty array
+            total_aeff = np.zeros_like(np.empty(aeff.shape + (psi_bins.size - 1,)))
+            # expand differential contributions along the opening-angle axis
+            # print(np.shape(np.diff(cdf)))
+            total_aeff[..., :] = aeff[..., None] * np.diff(cdf)[None, ...]
         else:
             for key in configuration["angular_resolution"]:
                 if not np.isscalar(configuration["angular_resolution"][key]):
