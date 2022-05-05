@@ -563,6 +563,7 @@ class radio_aeff:
             # print(np.shape(np.diff(cdf)))
             total_aeff[..., :] = aeff[..., None] * np.diff(cdf)[None, ...]
         else:
+            self.logger.warning(f"using angular res from parameters Doublegauss+Norm")
             for key in configuration["angular_resolution"]:
                 if not np.isscalar(configuration["angular_resolution"][key]):
                     psf_shape = np.shape(configuration["angular_resolution"][key])
