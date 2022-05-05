@@ -29,7 +29,7 @@ class RadioPointSpreadFunctionPickled(object):
             xf = np.radians(np.concatenate([np.array([0]), x, np.array([360])]))
             # cumulative distribution for interpolation
             yf = np.concatenate([np.array([0]), np.cumsum(np.ones_like(x))/max(np.cumsum(np.ones_like(x))), np.array([1])])
-            cdf_resolution_reconstructed = interpolate.interp1d(xf,yf)
+            cdf_resolution_reconstructed = interpolate.interp1d(xf,yf,bounds_error=False,fill_value=[0,1])
             return cdf_resolution_reconstructed
         self.cdf = angular_cdf(data[f'distribution_{selection}'])
 
