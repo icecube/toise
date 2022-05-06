@@ -424,7 +424,7 @@ def add_aeffs(name, aeffs):
 set_kwargs = aeff_factory.get().set_kwargs
 
 
-def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True):
+def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True, veto_area=5.8):
     """
     Approximate a Gen2 instrumented with sensors `scale` times the photon
     effective area of a PDOM
@@ -433,7 +433,7 @@ def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True):
         geometry="Sunflower",
         spacing=240,
         cascade_energy_threshold=2e5 / scale if with_cascades else None,
-        veto_area=5.8,
+        veto_area=veto_area,
         veto_threshold=defer(surface_veto.UDelSurfaceVeto),
         angular_resolution_scale=partial(
             gen2_throughgoing_muon_angular_resolution_correction,
@@ -474,6 +474,7 @@ default_configs = {
         scale_gen2_sensors(3.0, with_cascades=False)
         | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
     ),
+    "Gen2-InIce-TracksOnly-NoVeto": scale_gen2_sensors(3.0, veto_area=0.0),
     "Gen2-Radio": dict(
         geometry="Radio",
         config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/hex_shallow.yaml",
