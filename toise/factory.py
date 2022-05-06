@@ -474,7 +474,11 @@ default_configs = {
         scale_gen2_sensors(3.0, with_cascades=False)
         | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
     ),
-    "Gen2-InIce-TracksOnly-NoVeto": scale_gen2_sensors(3.0, veto_area=0.0),
+    "Gen2-InIce-NoVeto": scale_gen2_sensors(3.0, veto_area=0.0),
+    "Gen2-InIce-TracksOnly-NoVeto": (
+        scale_gen2_sensors(3.0, with_cascades=False, veto_area=0.0)
+        | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
+    ),
     "Gen2-Radio": dict(
         geometry="Radio",
         config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/hex_shallow.yaml",
