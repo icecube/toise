@@ -22,7 +22,7 @@ def get_angular_resolution(
     elif psf_class is not None:
         fname = "%s_%s_kingpsf%d" % (geometry, spacing, psf_class[1])
         # return KingPointSpreadFunction(fname, psf_class=psf_class, scale=scale)
-        return SplineKingPointSpreadFunction(fname)
+        return SplineKingPointSpreadFunction(fname, scale=scale)
     else:
         fname = "11900_MUONGUN_%s_%sm_recos.fits" % (geometry, spacing)
     return PointSpreadFunction(fname, scale)
