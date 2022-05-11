@@ -16,6 +16,8 @@ from toise.figures import figure_data, figure
 from toise.cache import ecached, lru_cache
 from toise import diffuse, multillh, plotting, surface_veto, factory, plotting
 
+from matplotlib.lines import Line2D
+
 
 def make_components(aeffs, astro_class=diffuse.DiffuseAstro):
     """
@@ -437,7 +439,10 @@ def triangle(datasets):
 
     ax = ternary.flavor_triangle(grid=True)
     labels = []
+    handles = []
+    e, mu = 0.93 / 3, 1.05 / 3
     for i, meta in enumerate(datasets):
+        handles.append(Line2D([0], [0], color=f"C{i}"))
         labels.append(detector_label(meta["detectors"]))
         values = meta["data"]
         cs = ax.ab.contour(
@@ -447,9 +452,9 @@ def triangle(datasets):
             levels=[
                 68,
             ],
-            colors="C{}".format(i),
+            colors=handles[-1].get_color(),
         )
-    ax.ab.legend(ax.ab.collections[-len(labels) :], labels, bbox_to_anchor=(1.3, 1.1))
+    ax.ab.legend(handles, labels, bbox_to_anchor=(1.3, 1.1))
 
     return ax.figure
 
