@@ -269,7 +269,15 @@ def psi_binning():
 
 
 @figure_data(setup=psi_binning)
-def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.0):
+def confidence_levels(
+    exposures,
+    astro=2.3,
+    gamma=-2.5,
+    steps=100,
+    gamma_step=0.0,
+    clean: bool = False,
+    debug: bool = False,
+):
     """
     Calculate exclusion confidence levels for alternate flavor ratios, assuming
     Wilks theorem.
@@ -281,6 +289,10 @@ def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.
     """
     from scipy import stats
 
+    if clean:
+        make_profile.invalidate_cache_by_key(
+            exposures, steps=steps, nominal=dict(gamma=gamma, astro=astro)
+        )
     profile = make_profile(
         exposures, steps=steps, nominal=dict(gamma=gamma, astro=astro)
     )
@@ -289,6 +301,10 @@ def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.
     meta["nue_fraction"] = efrac.tolist()
     meta["numu_fraction"] = mufrac.tolist()
     meta["confidence_level"] = (stats.chi2.cdf(ts.T, 2) * 100).tolist()
+    if debug:
+        for k in profile.columns:
+            if k not in meta:
+                meta[k] = profile[k].tolist()
     return meta
 
 
