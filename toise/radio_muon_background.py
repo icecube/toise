@@ -104,8 +104,19 @@ def get_muon_distribution(
     logger.info(("Total muons per station:", np.sum(extended_muon_distribution)))
     return extended_muon_distribution
 
-def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
+def get_tabulated_muon_distribution(pickle_file, cr_cut=True, energy_edges=None, ct_edges=None):
     """ Get a tabulated muon distribution from a pickle file """
+    new_cos_zenith_bins = np.linspace(-1, 1, 21)
+    new_shower_energy_bins = np.logspace(15 - 9, 21 - 9, 61)
+
+    do_interpolation_E = False
+    if energy_edges is None:
+        energy_edges = new_shower_energy_bins
+        do_interpolation = True
+    do_interpolation_cz = False
+    if ct_edges is None:
+        ct_edges = new_cos_zenith_bins
+        do_interpolation_cz = True
 
     import pickle
     with open(pickle_file, "rb") as fin:
@@ -142,8 +153,35 @@ def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
         # in order to make the input energy match the one from the framework, drop the lower end of the spectrum and add zeros on top
         distribution_4pi = distribution_4pi[:,20:]
         distribution_4pi = np.append(distribution_4pi, np.zeros((np.shape(distribution_4pi)[0], 10)), axis=1)
+
+        # do interpolation to final shape
+        def rebin_cosz(contents, cz1, cz2):
+            from scipy import interpolate
+
+            binwidths = np.diff(cz1)
+            binwidths_new = np.diff(cz2)
+            normed_contents = contents
+            upper_edges = cz1[1:]
+            cumsum = np.cumsum(normed_contents)
+            interp = interpolate.interp1d(cz1, np.append(0, cumsum))
+    
+            new_contents = np.zeros_like(cz2[:-1])
+            new_edges_low, new_edges_high = cz2[:-1], cz2[1:]
+            for i, (low, high) in enumerate(zip(new_edges_low, new_edges_high)):
+                new_contents[i] = interp(high) - interp(low)
+            return new_contents
+
+        if do_interpolation_cz:
+            distribution_4pi = np.apply_along_axis(rebin_cosz, axis=0, arr=distribution_4pi, cz1=new_cos_zenith_bins, cz2=ct_edges)
+            new_cos_zenith_bins = ct_edges
+
+        if do_interpolation_E:
+            from radio_aeff_generation import _interpolate_e_cosz_table
+            table_data = ((new_shower_energy_bins, new_cos_zenith_bins), distribution_4pi)
+            (energy_edges, ct_edges), distribution_4pi = _interpolate_e_cosz_table(table_data, energy_edges, ct_edges=None)
+        
         extended_muon_distribution = distribution_4pi[..., None] * np.eye(60)
         # dimensions: E, cosz, E
         extended_muon_distribution = np.swapaxes(extended_muon_distribution, 0, 1)
 
-        return (new_shower_energy_bins, new_cos_zenith_bins, new_shower_energy_bins), extended_muon_distribution
+        return (energy_edges, ct_edges, energy_edges), extended_muon_distribution
