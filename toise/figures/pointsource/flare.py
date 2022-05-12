@@ -22,7 +22,14 @@ except ImportError:
     List = list
 
 
-@figure_data()
+def point_source_binning():
+    """set cos_zenith binning to center on the horizon"""
+    factory.set_kwargs(
+        cos_theta=np.concatenate(([-1], np.linspace(-0.95, 0.95, 20), [1])),
+    )
+
+
+@figure_data(setup=point_source_binning)
 def sensitivity(exposures, decades=1, gamma=-2, emin=0.0):
     figures = OrderedDict(
         [
@@ -35,9 +42,13 @@ def sensitivity(exposures, decades=1, gamma=-2, emin=0.0):
     assert (
         len({exposure for detector, exposure in exposures}) == 1
     ), "exposures are equal"
-    meta = {"cos_zenith": factory.default_cos_theta_bins}
+    meta = {
+        "cos_zenith": factory.aeff_factory.instance.get_kwargs(exposures[0][0])[
+            "cos_theta"
+        ]
+    }
     dlabel = "+".join([detector for detector, _ in exposures])
-    for zi in tqdm(list(range(20)), desc=dlabel):
+    for zi in tqdm(list(range(len(meta["cos_zenith"]) - 1)), desc=dlabel):
         fom = figures_of_merit.PointSource(
             {detector: exposure for detector, exposure in exposures}, zi
         )
