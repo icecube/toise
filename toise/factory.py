@@ -546,7 +546,8 @@ default_psi_bins = {
     "radio": numpy.linspace(0, numpy.radians(15) ** 2, 50) ** (1.0 / 2),
 }
 
-default_cos_theta_bins = numpy.linspace(-1, 1, 21)
+#default_cos_theta_bins = numpy.linspace(-1, 1, 21)
+default_cos_theta_bins = [-1.0, -0.95, -0.85, -0.75, -0.65, -0.55, -0.45, -0.35, -0.25, -0.15, -0.05, 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.0]
 
 for k, config in default_configs.items():
     psi_bins = dict(default_psi_bins)
