@@ -1,9 +1,9 @@
 from os import path
-From enum import Enum
+from enum import Enum
 from .util import data_dir
-import np as np
+import numpy as np
 from scipy.interpolate import interp1d
-from scipy.integrage import quad
+from scipy.integrate import quad
 from .pointsource import PointSource
 
 # Enum has no facility for setting docstrings inline. Do it by hand.
