@@ -15,6 +15,7 @@ from toise import (
 )
 from toise.figures import figure, figure_data
 from tqdm import tqdm
+from toise import radio_aeff_generation
 
 try:
     from typing import List
@@ -43,9 +44,9 @@ def sensitivity(exposures, decades=1, gamma=-2, emin=0.0):
         len({exposure for detector, exposure in exposures}) == 1
     ), "exposures are equal"
     meta = {
-        "cos_zenith": factory.aeff_factory.instance.get_kwargs(exposures[0][0])[
-            "cos_theta"
-        ]
+        "cos_zenith": factory.default_cos_theta_bins #aeff_factory.instance.get_kwargs(exposures[0][0])[
+        #    "cos_theta"
+        #]
     }
     dlabel = "+".join([detector for detector, _ in exposures])
     for zi in tqdm(list(range(len(meta["cos_zenith"]) - 1)), desc=dlabel):
@@ -138,10 +139,15 @@ def single_flare_time_to_signficance(
 
         components = dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, ps=ps)
         if muon_aeff is not None:
+            # optical
             components["muon"] = surface_veto.MuonBundleBackground(
                 muon_aeff, 1
             ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
-
+            if min(aeff.get_bin_edges("true_energy"))>1e5:
+                print("using radio muon background")
+                components["muon"] = radio_aeff_generation.MuonBackground(
+                      muon_aeff, 1
+                ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
         return components
 
     bundle = factory.component_bundle(dict(exposures), partial(make_components, zi))
