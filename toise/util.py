@@ -39,7 +39,7 @@ def refresh_data_tables(icecube_password=os.environ.get("ICECUBE_PASSWORD", None
 
 
 def center(x):
-    return 0.5 * (x[1:] + x[:-1])
+    return 0.5 * (np.array(x)[1:] + np.array(x)[:-1])
 
 
 def edge(x):

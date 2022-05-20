@@ -3,6 +3,7 @@ from functools import partial
 import numpy
 from . import factory, diffuse, surface_veto, pointsource, multillh
 from .util import constants
+from . import radio_aeff_generation
 
 # Enum has no facility for setting docstrings inline. Do it by hand.
 TOT = Enum("TOT", ["ul", "dp", "fc"])
@@ -187,8 +188,15 @@ class PointSource(object):
 
         components = dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, ps=ps)
         if muon_aeff is not None:
-            components["muon"] = surface_veto.MuonBundleBackground(
-                muon_aeff, 1
-            ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
-
+            import numpy as np
+            print("muon aeff shape", np.shape(muon_aeff.values))
+            if min(aeff.get_bin_edges("true_energy"))<1e5:
+                components["muon"] = surface_veto.MuonBundleBackground(
+                    muon_aeff, 1
+                ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
+            else:
+                print("using radio muon background")
+                components["muon"] = radio_aeff_generation.MuonBackground(
+                    muon_aeff, 1
+                ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
         return components

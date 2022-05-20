@@ -246,8 +246,8 @@ class aeff_factory(object):
                     psi_bins=psi_bins["radio"], config=opts.config_file
                 )
                 aeffs["radio_events"] = (
-                    radio.create(),
-                    radio.create_muon_background_from_tabulated(),
+                    radio.create(cos_theta=default_cos_theta_bins),
+                    radio.create_muon_background_from_tabulated(cos_theta=default_cos_theta_bins),
                 )
             else:
                 kwargs["nstations"] = opts.nstations
@@ -315,13 +315,13 @@ class component_bundle(object):
                             aeff_mu = aeff[1].truncate_energy_range(emin, emax)
                         except:
                             aeff_mu = aeff[1]
-                            self.components[key] = component_factory((aeff_c, aeff_mu))
+                            self.components[key] = component_factory((aeff_c, aeff_mu), **kwargs)
                     else:
                         self.components[key] = component_factory(
-                            aeff, emin=emin, emax=emax
+                            aeff, emin=emin, emax=emax, **kwargs
                         )
                 else:
-                    self.components[key] = component_factory(aeff)
+                    self.components[key] = component_factory(aeff, **kwargs)
                 self.detectors[key] = detector
 
     def get_component(self, key, livetimes=None):
@@ -481,7 +481,7 @@ default_configs = {
     ),
     "Gen2-Radio": dict(
         geometry="Radio",
-        config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/hex_shallow.yaml",
+        config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/baseline.yaml",
     ),
     "Fictive-Radio": dict(geometry="Radio", nstations=30),
     "Sunflower_240": dict(

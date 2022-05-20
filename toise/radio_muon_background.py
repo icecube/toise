@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import logging
 
+
 logger = logging.getLogger("toise radio muon background")
 
 
@@ -103,27 +104,32 @@ def get_muon_distribution(
     logger.info(("Total muons per station:", np.sum(extended_muon_distribution)))
     return extended_muon_distribution
 
+def get_tabulated_muon_distribution(pickle_file, cr_cut=True, energy_edges=None, ct_edges=None):
+    """ Get a tabulated muon distribution from a pickle file """
+    new_cos_zenith_bins = np.linspace(-1, 1, 21)
+    new_shower_energy_bins = np.logspace(15 - 9, 21 - 9, 61)
 
-def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
-    """Get a tabulated muon distribution from a pickle file"""
+    do_interpolation_E = True
+    if energy_edges is None:
+        energy_edges = new_shower_energy_bins
+        do_interpolation_E = False
+    do_interpolation_cz = True
+    if ct_edges is None:
+        ct_edges = new_cos_zenith_bins
+        do_interpolation_cz = False
 
     import pickle
-
     with open(pickle_file, "rb") as fin:
         shower_energy_bins, cos_zenith_bins, z_zen, z_zen_crcut = pickle.load(fin)
         # simply check if the shower_energy_bins and cos_zenith_bins match the expected shape or not.
-        expected_shower_energy_bins = np.linspace(13.0, 20.0, 71)
+        expected_shower_energy_bins = np.linspace(13., 20., 71)
         expected_cos_zenith_bins = np.linspace(1.0, 0.0, 11)
         expected_cos_zenith_bins[-1] = 1e-3
         if not np.allclose(shower_energy_bins, expected_shower_energy_bins):
-            logger.error(
-                f"energy binning not as expected. Got {shower_energy_bins}, expected {expected_shower_energy_bins}"
-            )
+            logger.error(f"energy binning not as expected. Got {shower_energy_bins}, expected {expected_shower_energy_bins}")
             return None
         if not np.allclose(cos_zenith_bins, expected_cos_zenith_bins):
-            logger.error(
-                f"cos zenith binning not as expected. Got {cos_zenith_bins}, expected {expected_cos_zenith_bins}"
-            )
+            logger.error(f"cos zenith binning not as expected. Got {cos_zenith_bins}, expected {expected_cos_zenith_bins}")
             return None
 
         energy_centers = 0.5 * (shower_energy_bins[1:] + shower_energy_bins[:-1])
@@ -132,9 +138,6 @@ def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
         n_tot = np.sum(z)
         n_crcut_tot = np.sum(z_crcut)
 
-        new_cos_zenith_bins = np.linspace(-1, 1, 21)
-        new_shower_energy_bins = np.logspace(15 - 9, 21 - 9, 61)
-
         if cr_cut is True:
             distribution = z_zen_crcut
         else:
@@ -142,19 +145,39 @@ def get_tabulated_muon_distribution(pickle_file, cr_cut=True):
 
         # atm muon distributions don't contain upgoing region
         # dimensions: cosz, E
-        upgoing = np.zeros((10, np.shape(distribution)[1]))
+        upgoing = np.zeros((10,np.shape(distribution)[1]))
         distribution_4pi = np.append(upgoing, np.flip(distribution, axis=0), axis=0)
         # in order to make the input energy match the one from the framework, drop the lower end of the spectrum and add zeros on top
-        distribution_4pi = distribution_4pi[:, 20:]
-        distribution_4pi = np.append(
-            distribution_4pi, np.zeros((np.shape(distribution_4pi)[0], 10)), axis=1
-        )
+        distribution_4pi = distribution_4pi[:,20:]
+        distribution_4pi = np.append(distribution_4pi, np.zeros((np.shape(distribution_4pi)[0], 10)), axis=1)
+
+        # do interpolation to final shape
+        def rebin_cosz(contents, cz1, cz2):
+            from scipy import interpolate
+
+            binwidths = np.diff(cz1)
+            binwidths_new = np.diff(cz2)
+            normed_contents = contents
+            upper_edges = cz1[1:]
+            cumsum = np.cumsum(normed_contents)
+            interp = interpolate.interp1d(cz1, np.append(0, cumsum))
+    
+            new_contents = np.zeros_like(cz2[:-1])
+            new_edges_low, new_edges_high = cz2[:-1], cz2[1:]
+            for i, (low, high) in enumerate(zip(new_edges_low, new_edges_high)):
+                new_contents[i] = interp(high) - interp(low)
+            return new_contents
+
+        if do_interpolation_cz:
+            distribution_4pi = np.apply_along_axis(rebin_cosz, axis=0, arr=distribution_4pi, cz1=new_cos_zenith_bins, cz2=ct_edges)
+
+        if do_interpolation_E:
+            from .radio_aeff_generation import _interpolate_e_cosz_table
+            table_data = ((new_shower_energy_bins, ct_edges), distribution_4pi)
+            (energy_edges, ct_edges), distribution_4pi = _interpolate_e_cosz_table(table_data, energy_edges, ct_edges=None)
+        
         extended_muon_distribution = distribution_4pi[..., None] * np.eye(60)
         # dimensions: E, cosz, E
         extended_muon_distribution = np.swapaxes(extended_muon_distribution, 0, 1)
 
-        return (
-            new_shower_energy_bins,
-            new_cos_zenith_bins,
-            new_shower_energy_bins,
-        ), extended_muon_distribution
+        return (energy_edges, ct_edges, energy_edges), extended_muon_distribution
