@@ -111,7 +111,7 @@ def get_surface_geometry():
 
 
 @figure
-def surface_geometry(reverse_order=True):
+def surface_geometry(reverse_order=False):
     import itertools
     import matplotlib.pyplot as plt
     import numpy as np
