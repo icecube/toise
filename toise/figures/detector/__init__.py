@@ -489,8 +489,6 @@ def radio_surface_geometry():
     for spine in axes.spines.values():
         spine.set_visible(False)
 
-    axes.yaxis.pan(-0.15)
-
     plt.tight_layout()
 
     return fig
