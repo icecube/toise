@@ -1,9 +1,11 @@
+from shutil import which
 from toise.figures import figure
 
 from toise import surfaces
 import gzip
 import numpy as np
 import itertools
+import pandas
 
 
 def get_string_heads(geometry, spacing, **kwargs):
@@ -111,7 +113,7 @@ def get_surface_geometry():
 
 
 @figure
-def surface_geometry(reverse_order=False):
+def surface_geometry(reverse_order=False, which_radio = '2022_tdr'):
     import itertools
     import matplotlib.pyplot as plt
     import numpy as np
@@ -218,7 +220,32 @@ def surface_geometry(reverse_order=False):
         order = np.hypot(*locs.T).argsort()
         return locs[order][:nstations]
 
-    radio = half_fantasy_radio_geometry(sectors["Dark Sector"])
+    def radio_array_2022_tdr():
+        file, center_x, center_y = surfaces.get_radio_geometry_file()
+        df = pandas.read_json(file) # read the JSON file
+
+        # transpose it, so that e.g. the easting positions are columns instead of rows.
+        # (background: for some reason, pandas wants to read in the json files
+        # so that e.g. station numbers are a row, with many stations as many columns.
+        # so we need to transpose them)
+        df = df.T
+
+        # then, correct the displacement of the array
+        # (background: for radio sims, the array center is at zero, zero.
+        # but for the real detector in IceCube coordinates, it is somehwere
+        # over in the dark sector. so we need to put this correction in.)
+        xs = np.asarray(df['pos_easting']) + center_x
+        ys = np.asarray(df['pos_northing']) + center_y
+
+        # and, give the user access to which stations are surface only or not
+        station_type = np.asarray(df['reference_station'])
+        hybrid_mask = (station_type==1001)
+        surfaceonly_mask = (station_type==2001)
+
+        # return as an array of pairs
+        the_coord_pairs = np.vstack((xs, ys)).T
+
+        return the_coord_pairs, hybrid_mask, surfaceonly_mask
 
     order = list(range(4))
     if reverse_order:
@@ -229,14 +256,35 @@ def surface_geometry(reverse_order=False):
     radio_ax.scatter(upgrade[:, 0], upgrade[:, 1], s=1, color="C3")
     radio_ax.scatter(pos[:86]["x"], pos[:86]["y"], s=1, color="C0", marker="H")
     radio_ax.scatter(pos[86:]["x"], pos[86:]["y"], s=1, color="C1", marker="o")
-    radio_ax.scatter(
-        radio[:, 0],
-        radio[:, 1],
-        s=5,
-        color="C4",
-        label="IceCube Gen2-Radio",
-        marker="1",
-    )
+
+    if which_radio == "fantasy":
+        radio = half_fantasy_radio_geometry(sectors["Dark Sector"])
+        radio_ax.scatter(
+            radio[:, 0],
+            radio[:, 1],
+            s=5,
+            color="C4",
+            label="IceCube Gen2-Radio",
+            marker="1",
+        )
+    elif which_radio == "2022_tdr":
+        radio, hybrid_mask, surfonly_mask = radio_array_2022_tdr()
+        # the hybrid only stations
+        radio_ax.scatter(
+            radio[:, 0][hybrid_mask],
+            radio[:, 1][hybrid_mask],
+            s=5,
+            color="C4",
+            label="IceCube Gen2-Radio",
+            marker="1",
+        )
+        radio_ax.scatter(
+            radio[:, 0][surfonly_mask],
+            radio[:, 1][surfonly_mask],
+            s=5,
+            color="plum",
+            marker="1",
+        )
 
     gen2_ax.scatter(upgrade[:, 0], upgrade[:, 1], s=1, color="C3")
     gen2_ax.scatter(pos[:86]["x"], pos[:86]["y"], s=1, color="C0", marker="H")
