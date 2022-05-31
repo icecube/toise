@@ -113,7 +113,7 @@ def get_surface_geometry():
 
 
 @figure
-def surface_geometry(reverse_order=False, which_radio = '2022_tdr'):
+def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
     import itertools
     import matplotlib.pyplot as plt
     import numpy as np
@@ -222,7 +222,7 @@ def surface_geometry(reverse_order=False, which_radio = '2022_tdr'):
 
     def radio_array_2022_tdr():
         file, center_x, center_y = surfaces.get_radio_geometry_file()
-        df = pandas.read_json(file) # read the JSON file
+        df = pandas.read_json(file)  # read the JSON file
 
         # transpose it, so that e.g. the easting positions are columns instead of rows.
         # (background: for some reason, pandas wants to read in the json files
@@ -234,13 +234,13 @@ def surface_geometry(reverse_order=False, which_radio = '2022_tdr'):
         # (background: for radio sims, the array center is at zero, zero.
         # but for the real detector in IceCube coordinates, it is somehwere
         # over in the dark sector. so we need to put this correction in.)
-        xs = np.asarray(df['pos_easting']) + center_x
-        ys = np.asarray(df['pos_northing']) + center_y
+        xs = np.asarray(df["pos_easting"]) + center_x
+        ys = np.asarray(df["pos_northing"]) + center_y
 
         # and, give the user access to which stations are surface only or not
-        station_type = np.asarray(df['reference_station'])
-        hybrid_mask = (station_type==1001)
-        surfaceonly_mask = (station_type==2001)
+        station_type = np.asarray(df["reference_station"])
+        hybrid_mask = station_type == 1001
+        surfaceonly_mask = station_type == 2001
 
         # return as an array of pairs
         the_coord_pairs = np.vstack((xs, ys)).T

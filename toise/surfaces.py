@@ -45,6 +45,7 @@ def get_geometry_file(geometry="Sunflower", spacing=200):
         raise ValueError("Unknown geometry %s" % geometry)
     return os.path.join(data_dir, "geometries", gcd)
 
+
 def get_radio_geometry_file(geometry="Gen2_baseline_array"):
 
     if geometry == "Gen2_baseline_array":
