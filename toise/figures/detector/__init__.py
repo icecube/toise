@@ -264,7 +264,7 @@ def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
             radio[:, 1],
             s=5,
             color="C4",
-            label="IceCube Gen2-Radio",
+            label="IceCube-Gen2 Radio",
             marker="1",
         )
     elif which_radio == "2022_tdr":
@@ -275,7 +275,7 @@ def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
             radio[:, 1][hybrid_mask],
             s=5,
             color="C4",
-            label="IceCube Gen2-Radio",
+            label="IceCube-Gen2 Radio",
             marker="1",
         )
         radio_ax.scatter(
@@ -294,7 +294,7 @@ def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
         pos[86:]["y"],
         s=5,
         color="C1",
-        label="IceCube Gen2-Optical",
+        label="IceCube-Gen2 Optical",
         marker="o",
     )
 
