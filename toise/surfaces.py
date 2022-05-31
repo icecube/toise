@@ -45,6 +45,19 @@ def get_geometry_file(geometry="Sunflower", spacing=200):
         raise ValueError("Unknown geometry %s" % geometry)
     return os.path.join(data_dir, "geometries", gcd)
 
+def get_radio_geometry_file(geometry="Gen2_baseline_array"):
+
+    if geometry == "Gen2_baseline_array":
+        path = os.path.join(data_dir, "geometries", "{}.json".format(geometry))
+        # the center of the arrays in the json files are at 0,0
+        # but they really need to be displaced into the IceCube coordinate system
+        center_x = -11760.249614931281
+        center_y = 3354.665759087001
+    else:
+        raise ValueError("Uknown radio geometry {}".format(geometry))
+
+    return path, center_x, center_y
+
 
 def get_fiducial_surface(geometry="Sunflower", spacing=200, padding=60):
     if geometry == "Fictive":
