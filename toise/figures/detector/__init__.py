@@ -1,4 +1,5 @@
 from shutil import which
+
 from toise.figures import figure
 
 from toise import surfaces
@@ -321,6 +322,7 @@ def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
     )
     upgrade_ax.set_ylim(bottom=-115)
 
+    # add the labels above each panel (e.g. the "IceCube Upgrade" label)
     for ax in axes:
         ax.set_aspect("equal", "datalim")
         for label in ax.yaxis.get_ticklabels():
@@ -339,10 +341,30 @@ def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
             prop={"size": 9},
         )
 
+    # add scale bars to each panel
     add_scalebar(radio_ax, 5000, "5 km")
     add_scalebar(gen2_ax, 1000, "1 km")
     add_scalebar(icecube_ax, 250, "250 m")
     add_scalebar(upgrade_ax, 25, "25 m")
+
+    # zoom out some to make room for the scale bars
+    # different tweaks for radio than for optical
+    for ax in [radio_ax]:
+        ylims = ax.get_ylim()
+        ax.set_ylim([ylims[0] * 1.10, ylims[1] * 1.10])
+        xlims = ax.get_xlim()
+        ax.set_xlim([xlims[0] * 1.10, xlims[1] * 1.10])
+
+    for ax in [gen2_ax]:
+        ylims = ax.get_ylim()
+        scaly = 1.15
+        ax.set_ylim([ylims[0] * scaly, ylims[1] * scaly])
+        xlims = ax.get_xlim()
+        ax.set_xlim([xlims[0] * scaly, xlims[1] * scaly])
+        ylims = ax.get_ylim()
+
+        scale_size = (ylims[1] - ylims[0]) / 20
+        ax.set_ylim(ylims[0] - scale_size, ylims[1] - scale_size)
 
     for ax in axes:
         ax.xaxis.set_visible(False)
