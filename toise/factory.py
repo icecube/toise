@@ -286,6 +286,14 @@ class aeff_factory(object):
             opts, kwargs = self._recipes[name]
             self._aeffs[name] = self._create(opts, **kwargs)
         return self._aeffs[name]
+    
+    def get_kwargs(self, name):
+        opts, kwargs = self._recipes[name]
+        return kwargs
+    
+    def get_opts(self, name):
+        opts, kwargs = self._recipes[name]
+        return opts
 
     @classmethod
     def get(cls):
