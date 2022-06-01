@@ -98,6 +98,55 @@ class GZK(object):
         # return dict(gzk=gzk, uhe=uhe)
 
 
+class UHEFlux(object):
+    """
+    Sensitivity to an isotropic, 1:1:1 flux, ignoring background from known
+    IceCube diffuse flux
+    """
+
+    def __init__(self, exposures):
+        self.bundle = factory.component_bundle(exposures, self.make_components)
+
+    def benchmark(self, fom, **kwargs):
+        components = self.bundle.get_components()
+        components["uhe_gamma"] = multillh.NuisanceParam(-2, 0.5, min=-2.7, max=-1.7)
+
+        uhe = components.pop("uhe")
+        if "uhe_gamma" not in kwargs:
+            kwargs["uhe_gamma"] = -2.0
+        if fom == DIFF.ul:
+            return pointsource.differential_upper_limit(
+                uhe, components, tolerance=1e-4, **kwargs
+            )
+        elif fom == DIFF.dp:
+            return pointsource.differential_discovery_potential(
+                uhe, components, tolerance=1e-4, **kwargs
+            )
+        elif fom == DIFF.fc:
+            return pointsource.differential_fc_upper_limit(uhe, components, **kwargs)
+        else:
+            raise RuntimeError("No such fom")
+
+    @staticmethod
+    def make_components(aeffs):
+        aeff, muon_aeff = aeffs
+        energy_threshold = numpy.inf
+        atmo = diffuse.AtmosphericNu.conventional(
+            aeff, 1.0, hard_veto_threshold=energy_threshold
+        )
+        atmo.uncertainty = 0.1
+        prompt = diffuse.AtmosphericNu.prompt(
+            aeff, 1.0, hard_veto_threshold=energy_threshold
+        )
+        prompt.min = 0.5
+        prompt.max = 3
+        uhe = diffuse.DiffuseAstro(aeff, 1.0, gamma_name="uhe_gamma")
+        components = dict(atmo=atmo, prompt=prompt, uhe=uhe)
+        if muon_aeff is not None:
+            components["muon"] = surface_veto.MuonBundleBackground(muon_aeff, 1)
+        return components
+
+
 class PointSource(object):
     def __init__(self, exposures, zi):
         self.bundle = factory.component_bundle(
