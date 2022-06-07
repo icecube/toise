@@ -308,13 +308,15 @@ class LLHEval(object):
 
         if len(discrete_params) == 0:
             if freeparams:
-                bestfit = scipy.optimize.fmin_l_bfgs_b(
-                    minllh, seeds, bounds=bounds, approx_grad=True, **minimizer_params
+                bestfit = scipy.optimize.minimize(
+                    minllh,
+                    seeds,
+                    bounds=bounds,
+                    **minimizer_params,
                 )
             else:
-                bestfit = (dict(fixedparams), None)
-            # print fixedparams['ice_model'], bestfit[1], bestfit[0]
-            fixedparams.update(dict(zip(freeparams, bestfit[0])))
+                bestfit = {"x": dict(fixedparams)}
+            fixedparams.update(dict(zip(freeparams, bestfit["x"])))
             return fixedparams
         else:
             bestllh = numpy.inf
@@ -325,17 +327,18 @@ class LLHEval(object):
                 for k, p in zip(discrete_params, points):
                     fixedparams[k] = p
                 if freeparams:
-                    bestfit = scipy.optimize.fmin_l_bfgs_b(
-                        minllh, seeds, bounds=bounds, approx_grad=True
+                    bestfit = scipy.optimize.minimize(
+                        minllh,
+                        seeds,
+                        bounds=bounds,
+                        **minimizer_params,
                     )
-                    # print fixedparams['ice_model'], bestfit[1], bestllh, bestfit[0]
                 else:
-                    bestfit = dict(freeparams), -self.llh(**fixedparams)
-                if bestfit[1] < bestllh:
+                    bestfit = {"x": dict(freeparams), "fun": -self.llh(**fixedparams)}
+                if bestfit["fun"] < bestllh:
                     bestparams = dict(fixedparams)
-                    bestparams.update(dict(zip(freeparams, bestfit[0])))
-                    bestllh = bestfit[1]
-            # print '-->', bestparams['ice_model'], bestllh
+                    bestparams.update(dict(zip(freeparams, bestfit["x"])))
+                    bestllh = bestfit["fun"]
             return bestparams
 
     def profile1d(self, param, values, minimizer_params=dict(), **fixedparams):

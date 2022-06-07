@@ -16,6 +16,8 @@ from toise.figures import figure_data, figure
 from toise.cache import ecached, lru_cache
 from toise import diffuse, multillh, plotting, surface_veto, factory, plotting
 
+from matplotlib.lines import Line2D
+
 
 def make_components(aeffs, astro_class=diffuse.DiffuseAstro):
     """
@@ -164,7 +166,7 @@ def make_profile(
     nominal=dict(),
     suffix="",
     steps=100,
-    minimizer_params=dict(epsilon=1e-2),
+    minimizer_params=dict(tol=None, method="Nelder-Mead"),
     gamma_step=None,
 ):
     if suffix:
@@ -175,7 +177,9 @@ def make_profile(
     fixed = dict(atmo=1, prompt=1, muon=1)
     if "emu_crit" in nominal:
         fixed["emu_crit"] = nominal["emu_crit"]
-    bestfit = fit_llh(llh, **fixed)
+    if gamma_step is None:
+        fixed["gamma"] = llh.components["gamma"].seed
+    bestfit = llh.fit(minimizer_params=minimizer_params, **fixed)
     params = []
     scan = ["mu_fraction" + suffix, "e_tau_ratio" + suffix]
     free = ["astro" + suffix]
@@ -267,7 +271,15 @@ def psi_binning():
 
 
 @figure_data(setup=psi_binning)
-def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.0):
+def confidence_levels(
+    exposures,
+    astro=2.3,
+    gamma=-2.5,
+    steps=100,
+    gamma_step=0.0,
+    clean: bool = False,
+    debug: bool = False,
+):
     """
     Calculate exclusion confidence levels for alternate flavor ratios, assuming
     Wilks theorem.
@@ -279,6 +291,10 @@ def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.
     """
     from scipy import stats
 
+    if clean:
+        make_profile.invalidate_cache_by_key(
+            exposures, steps=steps, nominal=dict(gamma=gamma, astro=astro)
+        )
     profile = make_profile(
         exposures, steps=steps, nominal=dict(gamma=gamma, astro=astro)
     )
@@ -287,6 +303,10 @@ def confidence_levels(exposures, astro=2.3, gamma=-2.5, steps=100, gamma_step=0.
     meta["nue_fraction"] = efrac.tolist()
     meta["numu_fraction"] = mufrac.tolist()
     meta["confidence_level"] = (stats.chi2.cdf(ts.T, 2) * 100).tolist()
+    if debug:
+        for k in profile.columns:
+            if k not in meta:
+                meta[k] = profile[k].tolist()
     return meta
 
 
@@ -419,7 +439,10 @@ def triangle(datasets):
 
     ax = ternary.flavor_triangle(grid=True)
     labels = []
+    handles = []
+    e, mu = 0.93 / 3, 1.05 / 3
     for i, meta in enumerate(datasets):
+        handles.append(Line2D([0], [0], color=f"C{i}"))
         labels.append(detector_label(meta["detectors"]))
         values = meta["data"]
         cs = ax.ab.contour(
@@ -429,9 +452,9 @@ def triangle(datasets):
             levels=[
                 68,
             ],
-            colors="C{}".format(i),
+            colors=handles[-1].get_color(),
         )
-    ax.ab.legend(ax.ab.collections[-len(labels) :], labels, bbox_to_anchor=(1.3, 1.1))
+    ax.ab.legend(handles, labels, bbox_to_anchor=(1.3, 1.1))
 
     return ax.figure
 

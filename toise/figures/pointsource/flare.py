@@ -44,9 +44,9 @@ def sensitivity(exposures, decades=1, gamma=-2, emin=0.0):
         len({exposure for detector, exposure in exposures}) == 1
     ), "exposures are equal"
     meta = {
-        "cos_zenith": factory.default_cos_theta_bins #aeff_factory.instance.get_kwargs(exposures[0][0])[
-        #    "cos_theta"
-        #]
+        "cos_zenith": factory.aeff_factory.instance.get_kwargs(exposures[0][0])[
+            "cos_theta"
+        ]
     }
     dlabel = "+".join([detector for detector, _ in exposures])
     for zi in tqdm(list(range(len(meta["cos_zenith"]) - 1)), desc=dlabel):
