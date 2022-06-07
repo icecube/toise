@@ -161,6 +161,7 @@ def _load_radio_veff_json(
         bin_edges_energy_gev.size - 1, bin_edges_costheta.size - 1
     )
 
+
 def _interpolate_e_cosz_table(table_data, energy_edges, ct_edges=None):
     """interpolates a 2d table to the requested energy / cos theta binning
 
@@ -188,7 +189,13 @@ def _interpolate_e_cosz_table(table_data, energy_edges, ct_edges=None):
             interpolation_result = interpolator(x)
             return interpolation_result
 
-    print("interpolation function", np.shape(ct_edges), np.shape(energy_edges), np.shape(table_data[0]), np.shape(table_data[1]))
+    print(
+        "interpolation function",
+        np.shape(ct_edges),
+        np.shape(energy_edges),
+        np.shape(table_data[0]),
+        np.shape(table_data[1]),
+    )
 
     # interpolate in log-log space, where the curve is ~smooth and slowly varying
     veff = 10 ** (
@@ -217,6 +224,7 @@ def _interpolate_e_cosz_table(table_data, energy_edges, ct_edges=None):
 
         return (energy_edges, ct_edges), interp(center_ct)
 
+
 def _interpolate_radio_veff(
     energy_edges, ct_edges=None, filename="json.file", trigger=None
 ):
@@ -233,7 +241,7 @@ def _interpolate_radio_veff(
     edges, veff = _load_radio_veff_json(filename, trigger)
     logger.debug(f"Veff shape before interpolation: {np.shape(veff)}")
 
-    table_data =  _load_radio_veff_json(filename, trigger)
+    table_data = _load_radio_veff_json(filename, trigger)
     return _interpolate_e_cosz_table(table_data, energy_edges, ct_edges)
 
 
@@ -250,6 +258,14 @@ class radio_aeff:
         self.logger = logger
         self.logger.info(self.configuration)
         self.set_psi_bins(psi_bins=psi_bins)
+
+    def get_file(self, path):
+        if os.path.isfile(path):
+            return path
+        else:
+            return os.path.realpath(
+                os.path.join(os.path.dirname(self.configfile), path)
+            )
 
     def switch_energy_resolution(self, on=True):
         """(De)activate energy smearing"""
@@ -370,7 +386,10 @@ class radio_aeff:
         if "cr_cut" in configuration["muon_background"]:
             cr_cut = configuration["muon_background"]["cr_cut"]
         (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(
-            configuration["muon_background"]["table"], cr_cut, ct_edges=cos_theta)
+            self.get_file(configuration["muon_background"]["table"]),
+            cr_cut,
+            ct_edges=cos_theta,
+        )
         aeff = muon_distro * veff_scale
         edges = (
             e_cr_shower,
@@ -464,11 +483,12 @@ class radio_aeff:
                 return L_int
 
             matrix_data = np.load(
-                configuration["transfer_matrix"]["table"], allow_pickle=True
+                self.get_file(configuration["transfer_matrix"]["table"]),
+                allow_pickle=True,
             )
             if (
                 (not np.allclose(neutrino_energy, matrix_data["bin_edges"][0] * 1e-9))
-                #or (not np.allclose(cos_theta, matrix_data["bin_edges"][1]))
+                # or (not np.allclose(cos_theta, matrix_data["bin_edges"][1]))
                 or (
                     not np.allclose(neutrino_energy, matrix_data["bin_edges"][2] * 1e-9)
                 )
@@ -490,7 +510,9 @@ class radio_aeff:
                 for fi, flavor in enumerate(["e", "e", "mu", "mu", "tau", "tau"]):
                     data = matrix_data[f"transfer_matrix_{flavor}"]
                     print(np.shape(data))
-                    data = np.concatenate((data, data[:,-1,:][:,np.newaxis,:]), axis=1) #quickfix for 21 cosz bins
+                    data = np.concatenate(
+                        (data, data[:, -1, :][:, np.newaxis, :]), axis=1
+                    )  # quickfix for 21 cosz bins
                     print(np.shape(data))
                     prod_dens = 1.0 / neutrino_interaction_length_ice(
                         fi, neutrino_energy
@@ -527,19 +549,19 @@ class radio_aeff:
         edges_e, veff_e = _interpolate_radio_veff(
             e_showering,
             cos_theta,
-            filename=veff_filename["e"],
+            filename=self.get_file(veff_filename["e"]),
             trigger=veff_filename["trigger_name"],
         )
         edges_mu, veff_mu = _interpolate_radio_veff(
             e_showering,
             cos_theta,
-            filename=veff_filename["mu"],
+            filename=self.get_file(veff_filename["mu"]),
             trigger=veff_filename["trigger_name"],
         )
         edges_tau, veff_tau = _interpolate_radio_veff(
             e_showering,
             cos_theta,
-            filename=veff_filename["tau"],
+            filename=self.get_file(veff_filename["tau"]),
             trigger=veff_filename["trigger_name"],
         )
 

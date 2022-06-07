@@ -247,7 +247,9 @@ class aeff_factory(object):
                 )
                 aeffs["radio_events"] = (
                     radio.create(cos_theta=default_cos_theta_bins),
-                    radio.create_muon_background_from_tabulated(cos_theta=default_cos_theta_bins),
+                    radio.create_muon_background_from_tabulated(
+                        cos_theta=default_cos_theta_bins
+                    ),
                 )
             else:
                 kwargs["nstations"] = opts.nstations
@@ -315,7 +317,9 @@ class component_bundle(object):
                             aeff_mu = aeff[1].truncate_energy_range(emin, emax)
                         except:
                             aeff_mu = aeff[1]
-                            self.components[key] = component_factory((aeff_c, aeff_mu), **kwargs)
+                            self.components[key] = component_factory(
+                                (aeff_c, aeff_mu), **kwargs
+                            )
                     else:
                         self.components[key] = component_factory(
                             aeff, emin=emin, emax=emax, **kwargs
@@ -424,7 +428,9 @@ def add_aeffs(name, aeffs):
 set_kwargs = aeff_factory.get().set_kwargs
 
 
-def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True, veto_area=5.8):
+def scale_gen2_sensors(
+    scale=1.0, ssmpe=True, mdom=True, with_cascades=True, veto_area=5.8
+):
     """
     Approximate a Gen2 instrumented with sensors `scale` times the photon
     effective area of a PDOM
@@ -481,7 +487,7 @@ default_configs = {
     ),
     "Gen2-Radio": dict(
         geometry="Radio",
-        config_file="/Users/shallmann/Desktop/gen2_toise_sensitivities/baseline.yaml",
+        config_file="data/gen2-radio/baseline.yaml",
     ),
     "Fictive-Radio": dict(geometry="Radio", nstations=30),
     "Sunflower_240": dict(
@@ -546,8 +552,31 @@ default_psi_bins = {
     "radio": numpy.linspace(0, numpy.radians(15) ** 2, 50) ** (1.0 / 2),
 }
 
-#default_cos_theta_bins = numpy.linspace(-1, 1, 21)
-default_cos_theta_bins = [-1.0, -0.95, -0.85, -0.75, -0.65, -0.55, -0.45, -0.35, -0.25, -0.15, -0.05, 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.0]
+# default_cos_theta_bins = numpy.linspace(-1, 1, 21)
+default_cos_theta_bins = [
+    -1.0,
+    -0.95,
+    -0.85,
+    -0.75,
+    -0.65,
+    -0.55,
+    -0.45,
+    -0.35,
+    -0.25,
+    -0.15,
+    -0.05,
+    0.05,
+    0.15,
+    0.25,
+    0.35,
+    0.45,
+    0.55,
+    0.65,
+    0.75,
+    0.85,
+    0.95,
+    1.0,
+]
 
 for k, config in default_configs.items():
     psi_bins = dict(default_psi_bins)
