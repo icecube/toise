@@ -144,7 +144,10 @@ class UHEFlux(object):
         uhe = diffuse.DiffuseAstro(aeff, 1.0, gamma_name="uhe_gamma")
         components = dict(atmo=atmo, prompt=prompt, uhe=uhe)
         if muon_aeff is not None:
-            components["muon"] = surface_veto.MuonBundleBackground(muon_aeff, 1)
+            if min(aeff.get_bin_edges("true_energy"))<1e5:
+                components["muon"] = surface_veto.MuonBundleBackground(muon_aeff, 1)
+            else:
+                components["muon"] = radio_aeff_generation.MuonBackground(muon_aeff, 1)
         return components
 
 
