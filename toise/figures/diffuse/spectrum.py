@@ -132,7 +132,6 @@ def unfold_llh(chunk_llh):
     import toolz
 
     fixed = dict(gamma=-2, prompt=1, atmo=1, muon=1)
-#    fit = chunk_llh.fit(minimizer_params=dict(options=dict(epsilon=1e-2)), **fixed)
     fit = chunk_llh.fit(minimizer_params=dict(epsilon=1e-2), **fixed)
     is_astro = partial(filter, lambda s: s.startswith("astro"))
     keys = toolz.pipe(list(chunk_llh.components.keys()), is_astro, sorted)[4:]
@@ -347,12 +346,15 @@ def get_ic_contour(source="lars"):
 def plot_ic_data(ax,source,**kwargs):
     if source == '10y_diffuse':
         dat = np.loadtxt(StringIO("""
+        5874.68 3.09105e-08     2875.48     9361.91      0      0
         44356   2.21612e-08     29730.9 58847.9 7.86045e-09     7.95203e-09     
         276700  1.21079e-08     173496  442646  2.96006e-09     3.05292e-09     
-        1.82456e+06     3.33051e-09     1.10522e+06     3.15858e+06     1.73494e-09     2.20532e-09     
+        1.82456e+06     3.33051e-09     1.10522e+06     3.15858e+06     1.73494e-09     2.20532e-09    
+        1.94433e+07     4.04861e-09     1.44499e+07     3.02453e+07     0       0
         """)).transpose()
     if source == 'glashow_nature':
-        dat = np.array([[6.30957e+06],[5.67596e-09],[916725],[1.07256e+06],[3.2638e-09],[2.81791e-08]])
+        dat = np.array([[4.62979e+06,6.30957e+06,8.56512e+06],[1.14994e-07,5.67596e-09,7.29325e-07],[620830,916725,1.19692e+06],[787417,1.07256e+06,1.39135e+06],[0,3.2638e-09,0],[0,2.81791e-08,0]])
+        for i in [1,4,5]: dat[i] = dat[i]/3. 
     if source == '6y_cascades':
         dat = np.loadtxt(StringIO("""
         6800.99 3.16228e-08     1804.9  3269.35 2.10701e-08     2.24166e-08     
@@ -369,10 +371,10 @@ def plot_ic_data(ax,source,**kwargs):
         3.16782e+07     1.35741e-08     1.01339e+07     1.49006e+07     0       0       
         6.80099e+07     2.62236e-08     2.17564e+07     3.19901e+07     0       0 
         """)).transpose()
-        dat=dat[:,:-4]
+#        dat=dat[:,:-4]
     is_limit= ((dat[4]==0) & (dat[5]==0))
     dat[4]=np.where(is_limit,0.3*dat[1],dat[4])    
-    ax.errorbar(dat[0],3*dat[1],xerr=dat[2:4],yerr=3*dat[4:],uplims=is_limit,linestyle='',marker='.',**kwargs) 
+    ax.errorbar(dat[0],3*dat[1],xerr=dat[2:4],yerr=3*dat[4:],uplims=is_limit,linestyle='',**kwargs) 
     return ax
 
 
@@ -649,7 +651,7 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
     from matplotlib.patches import Patch
     from matplotlib.container import ErrorbarContainer
 
-    _default_plot_elements=['cr','10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity']
+    _default_plot_elements=['cr','10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity','model_flux']
     if plot_elements is None: plot_elements=_default_plot_elements
     group_label_ic, group_label_gen2=False,False
 
@@ -662,13 +664,6 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
     args = datasets[0]["args"]
 
     # plot underlying fluxes
-    if 'model_flux' in plot_elements:
-        x = np.logspace(4, 10, 51)
-        pl = x**2 * args["astro"] * powerlaw(x, args["gamma"], args["emax"])
-        assert args["gzk"] == "vanvliet"
-        gzk = args["gzk_norm"] * diffuse.VanVlietGZKFlux()(x) * x**2
-        ax.plot(x, 3 * pl, ls=":", color="grey")
-        ax.plot(x, 3 * gzk, ls=":", color="grey")
  
     if 'lars_butterfly' in plot_elements:
         x = np.logspace(np.log10(25e3), np.log10(2.8e6), 101)
@@ -686,15 +681,15 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
         group_label_ic=True
     
     if '10y_diffuse' in plot_elements:
-        plot_ic_data(ax,'10y_diffuse',color="#566573",lw=1,alpha=0.8)
+        plot_ic_data(ax,'10y_diffuse',color="#566573",lw=1,alpha=0.8,marker='o',markersize=3)
         group_label_ic=True
 
     if '6y_cascade' in plot_elements:
-        plot_ic_data(ax,'6y_cascades',color="grey",lw=1,alpha=0.8)
+        plot_ic_data(ax,'6y_cascades',color="grey",lw=1,alpha=0.8,marker='s',markersize=3)
         group_label_ic=True
 
     if 'glashow' in plot_elements:
-        plot_ic_data(ax,'glashow_nature',color="#768593",lw=1,alpha=0.8)
+        plot_ic_data(ax,'glashow_nature',color="#768593",lw=1,alpha=0.8,marker='P',markersize=3)
         group_label_ic=True
     
     if 'ehe' in plot_elements:
@@ -705,6 +700,11 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
     if group_label_ic:
         poly_handle.append(Patch(alpha=0.5,edgecolor="#566573",facecolor="lightgrey"))
         poly_label.append("IceCube")
+
+    if 'model_flux' in plot_elements:
+        x = np.logspace(3.85, 7.15, 51)
+        pl = x**2 * args["astro"] * powerlaw(x, args["gamma"], args["emax"])
+        ax.plot(x, 3 * pl, ls=":", lw=1, color='darkblue',zorder=200,label='astrophysical flux model')
    
     if 'gen2_unfolding' in plot_elements:
         plot_kwargs = dict(linestyle="None", marker="o", markersize=0,color='#1f77b4')
@@ -740,13 +740,17 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
         energies,flux,ns,nb = sensitivity
         flux=np.array(flux)*unit
         fluxerr=0.3*flux
-        index_start= (np.asarray(energies)<3e7).sum()
+        index_start= (np.asarray(energies)<1e7).sum()
         index_low=   (np.asarray(energies)<1e4).sum()
         energies_s,flux_s,fluxerr_s = [x[index_start:-1] for x in [energies,flux,fluxerr]]
         energies_l,flux_l,fluxerr_l = [x[index_low:index_start+1] for x in [energies,flux,fluxerr]]
         ax.errorbar(energies_s,flux_s,xerr=None,yerr=fluxerr_s,uplims=np.ones_like(flux_s),color='#1f77b4')
-        ax.plot(energies_l,flux_l,ls=":",color='#1f77b4')
         group_label_gen2=True
+
+    if 'gen2_sensitivity_extension' in plot_elements:
+        ax.plot(energies_l,flux_l,ls="--",color='#1f77b4')
+        group_label_gen2=True
+
 
     if group_label_gen2:        
         poly_handle.append(Patch(edgecolor=None,alpha=0.9,facecolor='#1f77b4',linewidth=0))
@@ -796,7 +800,7 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
 
 @figure
 def unfolded_flux_plus_sensitivity(datasets, sensitivity, label="Gen2-InIce+Radio",plot_elements=None):
-    _default_plot_elements=['10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity']
+    _default_plot_elements=['10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity','model_flux']
     if plot_elements is None: plot_elements=_default_plot_elements
     return unfolded_flux_plus_sensitivity_mm(datasets,sensitivity,label,plot_elements)
 
