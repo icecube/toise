@@ -144,7 +144,7 @@ class UHEFlux(object):
         uhe = diffuse.DiffuseAstro(aeff, 1.0, gamma_name="uhe_gamma")
         components = dict(atmo=atmo, prompt=prompt, uhe=uhe)
         if muon_aeff is not None:
-            if min(aeff.get_bin_edges("true_energy"))<1e5:
+            if min(aeff.get_bin_edges("true_energy")) < 1e5:
                 components["muon"] = surface_veto.MuonBundleBackground(muon_aeff, 1)
             else:
                 components["muon"] = radio_aeff_generation.MuonBackground(muon_aeff, 1)
@@ -241,14 +241,19 @@ class PointSource(object):
         components = dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, ps=ps)
         if muon_aeff is not None:
             import numpy as np
+
             print("muon aeff shape", np.shape(muon_aeff.values))
-            if min(aeff.get_bin_edges("true_energy"))<1e5:
+            if min(aeff.get_bin_edges("true_energy")) < 1e5:
                 components["muon"] = surface_veto.MuonBundleBackground(
                     muon_aeff, 1
-                ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
+                ).point_source_background(
+                    zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1]
+                )
             else:
                 print("using radio muon background")
                 components["muon"] = radio_aeff_generation.MuonBackground(
                     muon_aeff, 1
-                ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
+                ).point_source_background(
+                    zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1]
+                )
         return components
