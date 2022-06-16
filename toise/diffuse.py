@@ -11,7 +11,7 @@ import numexpr
 import pickle as pickle
 import logging
 from functools import partial
-
+from enum import Enum
 import nuflux
 
 from .util import *
@@ -22,6 +22,28 @@ try:
 except ImportError:
     from backports.functools_lru_cache import lru_cache
 
+# Enums for diffuse flux models, extracted datapoints provided by Bustamante & Valera
+DIFFUSE = Enum("DIFFUSE", ["fang_murase", 
+                           "fang_pulsar",
+                           "heinze_zmax_1",
+                           "muzio_2019",
+                           "muzio_2021",
+                           "padovani_2015",
+                           "rodrigues_bench_cosmo",
+                           "rodrigues_bench_source",
+                           "rodrigues_hlbllacs_cosmo",
+                           "van_vliet_ta"])
+
+DIFFUSE.fang_murase.filename              = "diffuse/fang_murase.txt"
+DIFFUSE.fang_pulsar.filename              = "diffuse/fang_pulsar.txt"
+DIFFUSE.heinze_zmax_1.filename            = "diffuse/heinze_zmax_1.txt"
+DIFFUSE.muzio_2019.filename               = "diffuse/muzio_2019.txt"
+DIFFUSE.muzio_2021.filename               = "diffuse/muzio_2021.txt"
+DIFFUSE.padovani_2015.filename            = "diffuse/padovani_2015.txt"
+DIFFUSE.rodrigues_bench_cosmo.filename    = "diffuse/rodrigues_bench_cosmo.txt"
+DIFFUSE.rodrigues_bench_source.filename   = "diffuse/rodrigues_bench_source.txt"
+DIFFUSE.rodrigues_hlbllacs_cosmo.filename = "diffuse/rodrigues_hlbllacs_cosmo.txt"
+DIFFUSE.van_vliet_ta.filename             = "diffuse/van_vliet_ta.txt"
 
 class NullComponent(object):
     """
@@ -859,6 +881,53 @@ class ReasonableGZKFlux(object):
         return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
 
 
+class DiffuseFlux(object):
+    """ A tabulated flux. Can be either 2 columns or 7 columns, first is energy, others are either summed flux of flux per flavor """
+
+    def __init__(self, flux_model):
+        from scipy import interpolate
+
+        # check if string, else see if it is a defined flux
+        if isinstance(flux_model, DIFFUSE):
+            diff_data = numpy.loadtxt(data_dir + "/models/" + flux_model.filename)
+        elif isinstance(flux_model, str):
+            # custom flux model provided via text file, #TODO add some logging printout
+            diff_data = numpy.loadtxt(flux_model)
+        E = diff_data[:,0]
+        Weight = diff_data[:,1:]
+        logE = np.log10(E)
+        logWeight = np.log10(Weight)  # flux is expected for all-flavour
+        # TODO make this work for per flavor flux
+        self._interpolant = interpolate.interp1d(
+            logE, logWeight + 8, bounds_error=False, fill_value=-numpy.inf
+        ) 
+
+    def __call__(self, e_center):
+        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2        
+
+class AGNJetMaxFlux(object):
+    """
+    Active Galactic Nuclei Jets as the Origin of Ultrahigh-Energy Cosmic Rays and Perspectives for the Detection of Astrophysical Source Neutrinos at EeV Energies
+    Xavier Rodrigues, Jonas Heinze, Andrea Palladino, Arjen van Vliet, and Walter Winter
+    Phys. Rev. Lett. 126, 191101, Figure 2, top right   
+    """
+
+    def __init__(self):
+        from scipy import interpolate
+
+        data = numpy.loadtxt(data_dir + "/models/AGN_jet_max_allowed_Rodrigues_et_al_PRL_126_191101.csv", delimiter=",")
+        E = data[:,0]
+        Weight = data[:,1]
+        logE = np.log10(E)
+        logWeight = np.log10(Weight)  # flux is expected for all-flavour
+
+        self._interpolant = interpolate.interp1d(
+            logE, logWeight + 8, bounds_error=False, fill_value=-numpy.inf
+        )
+
+    def __call__(self, e_center):
+        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
+
 def atmos_flux(enu, model):
     """Returns the atmospheric diff flux at enu, averaged
     over zenith for all flavors
@@ -938,6 +1007,11 @@ class ArbitraryFlux(DiffuseAstro):
             / (6 * self._integral_flux(self._aeff))
         )
 
+class DiffuseModel(ArbitraryFlux):
+    def __init__(self, model, *args, **kwargs):
+        super(DiffuseModel, self).__init__(*args, **kwargs)
+        self._flux_func = DiffuseFlux(model)
+    #TODO redefine spectral weight to per-flavor flux
 
 class AhlersGZK(ArbitraryFlux):
     """
@@ -969,6 +1043,16 @@ class ReasonableGZK(ArbitraryFlux):
         super(ReasonableGZK, self).__init__(*args, **kwargs)
         self._flux_func = ReasonableGZKFlux()
 
+class AGNJetMax(ArbitraryFlux):
+    """
+    Active Galactic Nuclei Jets as the Origin of Ultrahigh-Energy Cosmic Rays and Perspectives for the Detection of Astrophysical Source Neutrinos at EeV Energies
+    Xavier Rodrigues, Jonas Heinze, Andrea Palladino, Arjen van Vliet, and Walter Winter
+    Phys. Rev. Lett. 126, 191101, Figure 2, top right   
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(AGNJetMax, self).__init__(*args, **kwargs)
+        self._flux_func = AGNJetMaxFlux()
 
 def transform_map(skymap):
     """
