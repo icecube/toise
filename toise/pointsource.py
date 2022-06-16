@@ -656,7 +656,9 @@ def differential_upper_limit(
     sensitivities = []
     ns = []
     nb = []
-    for energy, pschunk in point_source.differential_chunks(decades=decades,emin=emin,emax=emax):
+    for energy, pschunk in point_source.differential_chunks(
+        decades=decades, emin=emin, emax=emax
+    ):
         energies.append(energy)
         norm, _ns, _nb = upper_limit(
             pschunk, diffuse_components, cl, baseline, tolerance, **fixed
@@ -668,11 +670,20 @@ def differential_upper_limit(
 
 
 def differential_fc_upper_limit(
-    point_source, diffuse_components, ecutoff=0, cl=0.9, decades=0.5,emin=-numpy.inf, emax=numpy.inf, **fixed
+    point_source,
+    diffuse_components,
+    ecutoff=0,
+    cl=0.9,
+    decades=0.5,
+    emin=-numpy.inf,
+    emax=numpy.inf,
+    **fixed
 ):
     energies = []
     sensitivities = []
-    for energy, pschunk in point_source.differential_chunks(decades=decades,emin=emin,emax=emax):
+    for energy, pschunk in point_source.differential_chunks(
+        decades=decades, emin=emin, emax=emax
+    ):
         energies.append(energy)
         sensitivities.append(
             fc_upper_limit(pschunk, diffuse_components, ecutoff, cl, **fixed)

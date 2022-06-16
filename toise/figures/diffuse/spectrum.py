@@ -305,7 +305,9 @@ def get_ic_contour(source="lars"):
             )
         )
     elif source == "6y_cascades":
-        dat = np.loadtxt(StringIO("""
+        dat = np.loadtxt(
+            StringIO(
+                """
         16295.4 5.31484e-08 
         71709.4 2.35803e-08 
         102127  1.99827e-08  
@@ -315,10 +317,14 @@ def get_ic_contour(source="lars"):
         78008   1.39249e-08  
         16023.3 2.95521e-08 
         16295.4 5.31484e-08 
-        """))
-     
+        """
+            )
+        )
+
     elif source == "10y_diffuse":
-        dat = np.loadtxt(StringIO("""
+        dat = np.loadtxt(
+            StringIO(
+                """
         14715.6 4.40177e-08            
         100072  1.83298e-08       
         220273  1.32939e-08       
@@ -334,9 +340,12 @@ def get_ic_contour(source="lars"):
         33405.1 1.32939e-08       
         14715.6 1.63567e-08       
         14715.6 4.40177e-08  
-        """))
-    
-    else: raise RuntimeError("Unknown IceCube result.")
+        """
+            )
+        )
+
+    else:
+        raise RuntimeError("Unknown IceCube result.")
 
     # factor of 3 for all-flavor
     dat[:, 1] *= 3
@@ -378,40 +387,47 @@ def plot_ic_data(ax,source,**kwargs):
     return ax
 
 
-def plot_ic_limit(ax,source,**kwargs):
-    if source == 'ehe_limit':
+def plot_ic_limit(ax, source, **kwargs):
+    if source == "ehe_limit":
         # IceCube
         # log (E^2 * Phi [GeV cm^02 s^-1 sr^-1]) : log (E [Gev])
         # Phys Rev D 98 062003 (2018)
         # Numbers private correspondence Shigeru Yoshida
-        ice_cube_limit = np.array(([
-        #    (6.199999125, -7.698484687),
-        #    (6.299999496, -8.162876678),
-        #    (6.400000617, -8.11395291),
-        #    (6.500000321, -8.063634144),
-        #    (6.599999814, -8.004841781),
-        #    (6.699999798, -7.944960162),
-        #    (6.799999763, -7.924197388),
-            (6.899999872, -7.899315263),
-            (7.299999496, -7.730561153),
-            (7.699999798, -7.670680637),
-            (8.100001583, -7.683379711),
-            (8.500000321, -7.748746801),
-            (8.899999872, -7.703060304),
-            (9.299999496, -7.512907553),
-            (9.699999798, -7.370926525),
-            (10.10000158, -7.134626026),
-            (10.50000032, -6.926516638),
-            (10.89999987, -6.576523031)
-        ]))
+        ice_cube_limit = np.array(
+            (
+                [
+                    #    (6.199999125, -7.698484687),
+                    #    (6.299999496, -8.162876678),
+                    #    (6.400000617, -8.11395291),
+                    #    (6.500000321, -8.063634144),
+                    #    (6.599999814, -8.004841781),
+                    #    (6.699999798, -7.944960162),
+                    #    (6.799999763, -7.924197388),
+                    (6.899999872, -7.899315263),
+                    (7.299999496, -7.730561153),
+                    (7.699999798, -7.670680637),
+                    (8.100001583, -7.683379711),
+                    (8.500000321, -7.748746801),
+                    (8.899999872, -7.703060304),
+                    (9.299999496, -7.512907553),
+                    (9.699999798, -7.370926525),
+                    (10.10000158, -7.134626026),
+                    (10.50000032, -6.926516638),
+                    (10.89999987, -6.576523031),
+                ]
+            )
+        )
 
-        ice_cube_limit[:, 0] = 10 ** ice_cube_limit[:, 0] 
-        ice_cube_limit[:, 1] = 10 ** ice_cube_limit[:, 1] 
-    ax.errorbar(ice_cube_limit[:, 0],ice_cube_limit[:, 1],
-                xerr=None,yerr=ice_cube_limit[:, 1]*0.3,
-                uplims=np.ones_like(ice_cube_limit[:, 1]),**kwargs)
-
-
+        ice_cube_limit[:, 0] = 10 ** ice_cube_limit[:, 0]
+        ice_cube_limit[:, 1] = 10 ** ice_cube_limit[:, 1]
+    ax.errorbar(
+        ice_cube_limit[:, 0],
+        ice_cube_limit[:, 1],
+        xerr=None,
+        yerr=ice_cube_limit[:, 1] * 0.3,
+        uplims=np.ones_like(ice_cube_limit[:, 1]),
+        **kwargs
+    )
 
 
 def ic_butterfly(energy, source="lars"):
@@ -643,22 +659,35 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
 
     plt.tight_layout(0.1)
     return ax.figure
-    
-    
+
+
 @figure
-def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+Radio",plot_elements=None):
+def unfolded_flux_plus_sensitivity_mm(
+    datasets, sensitivity, label="Gen2-InIce+Radio", plot_elements=None
+):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
     from matplotlib.container import ErrorbarContainer
 
-    _default_plot_elements=['cr','10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity','model_flux']
-    if plot_elements is None: plot_elements=_default_plot_elements
-    group_label_ic, group_label_gen2=False,False
+    _default_plot_elements = [
+        "cr",
+        "10y_diffuse",
+        "6y_cascade",
+        "glashow",
+        "ehe",
+        "gen2_unfolding",
+        "gen2_sensitivity",
+        "model_flux"
+    ]
+    if plot_elements is None:
+        plot_elements = _default_plot_elements
+    group_label_ic, group_label_gen2 = False, False
 
-    fig = plt.figure(figsize=(7, 3.5),dpi=300)
-    ax  = plt.gca()
+    fig = plt.figure(figsize=(7, 3.5), dpi=300)
+    ax = plt.gca()
 
-    if 'cr' in plot_elements: plot_crs(ax)
+    if "cr" in plot_elements:
+        plot_crs(ax)
 
     assert datasets[0]["source"] == "toise.figures.diffuse.spectrum.unfold"
     args = datasets[0]["args"]
@@ -667,16 +696,28 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
  
     if 'lars_butterfly' in plot_elements:
         x = np.logspace(np.log10(25e3), np.log10(2.8e6), 101)
-        fill = ax.fill_between(x, *ic_butterfly(x, "lars"),facecolor="lightgrey", edgecolor="None")
-        group_label_ic=True
-    
-    if '10y_diffuse_butterfly' in plot_elements:
-        poly1=plt.Polygon(np.array(get_ic_contour('10y_diffuse')),edgecolor="#566573",alpha=0.5,fill=False)
-        ax.add_patch(poly1)
-        group_label_ic=True
+        fill = ax.fill_between(
+            x, *ic_butterfly(x, "lars"), facecolor="lightgrey", edgecolor="None"
+        )
+        group_label_ic = True
 
-    if '6y_cascade_butterfly' in plot_elements:
-        poly2=plt.Polygon(np.array(get_ic_contour('6y_cascades')),edgecolor=None,alpha=0.5,color="lightgrey")
+    if "10y_diffuse_butterfly" in plot_elements:
+        poly1 = plt.Polygon(
+            np.array(get_ic_contour("10y_diffuse")),
+            edgecolor="#566573",
+            alpha=0.5,
+            fill=False,
+        )
+        ax.add_patch(poly1)
+        group_label_ic = True
+
+    if "6y_cascade_butterfly" in plot_elements:
+        poly2 = plt.Polygon(
+            np.array(get_ic_contour("6y_cascades")),
+            edgecolor=None,
+            alpha=0.5,
+            color="lightgrey",
+        )
         ax.add_patch(poly2)
         group_label_ic=True
     
@@ -697,8 +738,9 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
         group_label_ic=True
     
     poly_handle,poly_label = [],[] 
+
     if group_label_ic:
-        poly_handle.append(Patch(alpha=0.5,edgecolor="#566573",facecolor="lightgrey"))
+        poly_handle.append(Patch(alpha=0.5, edgecolor="#566573", facecolor="lightgrey"))
         poly_label.append("IceCube")
 
     if 'model_flux' in plot_elements:
@@ -718,13 +760,15 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
             yvalues *= unit
 
             years = next(
-                years for detector, years in dataset["detectors"] if detector != "IceCube"
+                years
+                for detector, years in dataset["detectors"]
+                if detector != "IceCube"
             )
 
             edges = np.concatenate((xlimits[:, 0], [xlimits[-1, 1]]))
             xvalues = 0.5 * (edges[1:] + edges[:-1])
-            index_start = (np.asarray(xvalues)<1e4).sum()-1
-            index_stop = (np.asarray(xvalues)<1e7).sum()
+            index_start = (np.asarray(xvalues) < 1e4).sum() - 1
+            index_stop = (np.asarray(xvalues) < 1e7).sum()
             x, y = xvalues[index_start:index_stop], yvalues[index_start:index_stop]
             yerr = (abs(ylimits - yvalues[:, None]).T)
             yerr_s =np.array([yerr[0,index_start:index_stop],yerr[1,index_start:index_stop]])
@@ -765,16 +809,16 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
     )
 
     handles, labels = ax.get_legend_handles_labels()
-    handles+= poly_handle
+    handles += poly_handle
     labels += poly_label
-    order,label_idx=[],len(labels)-1
-    if group_label_gen2: 
+    order, label_idx = [], len(labels) - 1
+    if group_label_gen2:
         order.append(label_idx)
-        label_idx-=1
-    if group_label_ic: 
+        label_idx -= 1
+    if group_label_ic:
         order.append(label_idx)
-        label_idx-=1
-    order+=range(0,label_idx+1)
+        label_idx -= 1
+    order += range(0, label_idx + 1)
     osorted = lambda items, order: [x for _, x in sorted(zip(order, items))]
     ax.legend(
         [handles[i] for i in order],
@@ -786,12 +830,12 @@ def unfolded_flux_plus_sensitivity_mm(datasets, sensitivity, label="Gen2-InIce+R
     )
     ax.yaxis.set_tick_params(which="both")
     ax.yaxis.set_ticks_position("both")
-    if 'cr' in plot_elements: 
+    if "cr" in plot_elements:
         ax.set_xlim(5e-2, 3e11)
         ax.xaxis.set_ticks(np.logspace(-1, 11, 13))
-    else: 
-        ax.set_xlim(3e3,3e11)
-        ax.set_ylim(3e-11,3e-6)
+    else:
+        ax.set_xlim(3e3, 3e11)
+        ax.set_ylim(3e-11, 3e-6)
         ax.xaxis.set_ticks(np.logspace(4, 11, 8))
 
     plt.tight_layout()

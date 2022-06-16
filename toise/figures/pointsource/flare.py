@@ -143,11 +143,13 @@ def single_flare_time_to_signficance(
             components["muon"] = surface_veto.MuonBundleBackground(
                 muon_aeff, 1
             ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
-            if min(aeff.get_bin_edges("true_energy"))>1e5:
+            if min(aeff.get_bin_edges("true_energy")) > 1e5:
                 print("using radio muon background")
                 components["muon"] = radio_aeff_generation.MuonBackground(
-                      muon_aeff, 1
-                ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
+                    muon_aeff, 1
+                ).point_source_background(
+                    zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1]
+                )
         return components
 
     bundle = factory.component_bundle(dict(exposures), partial(make_components, zi))
