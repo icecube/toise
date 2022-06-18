@@ -35,11 +35,11 @@ TRANSIENT_MODEL.BNS_merger_1month.filename = "models/transient/FangMetz_1e5.5_1e
 TRANSIENT_MODEL.BNS_merger_1year.filename = "models/transient/FangMetz_1e6.5_1e7.5_sec.csv"
 
 
-class TransientPointsourceFluence(object):
+class TransientPointsourceModelFluence(object):
     def __init__(self, pointsource_model, distance_mpc=None):
 
         self.pointsource_model = pointsource_model
-        #TODO use units Mpc for distance
+        #use units Mpc for distance
         Mpc = 1
         if self.pointsource_model == TRANSIENT_MODEL.GRB_afterglow:
             self.transient_duration = 24 * 3600 # 1 day, conservatively long, cf. https://doi.org/10.1103/PhysRevD.76.123001; https://doi.org/10.1086/432567
@@ -70,6 +70,7 @@ class TransientPointsourceFluence(object):
         filename=path.join(data_dir, pointsource_model.filename)
         data = np.loadtxt(filename, delimiter=",")
 
+        #TODO could do the same as for diffuse model fluxes, in case we expect per-flavor fluences to be available for some models in the future
         self.E = data[:,0]
         self.fluence = data[:,1]
 
@@ -90,7 +91,7 @@ class TransientPointsourceFluence(object):
         fluence = 10**self.interp(np.log10(E))/ E**2 / 3 / 2  * self.distance_factor * self.get_duration_years()
         return fluence
 
-class TransientPointSource(PointSource):
+class TransientPointSourceModel(PointSource):
     r"""
     A transient point source of neutrinos.
 
