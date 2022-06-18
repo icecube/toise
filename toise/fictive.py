@@ -3,13 +3,14 @@ Idealized detectors used to estimate sensitivities in the WIS whitepaper
 """
 
 from toolz import memoize
+import numpy as np
 from numpy import vectorize
-from . import surfaces, energy_resolution, effective_areas
+from . import surfaces, energy_resolution, effective_areas, pointsource, diffuse
 
 
 def make_cylinder(volume=1.0, aspect=1.0):
-    r = numpy.cbrt(2 * volume * aspect / numpy.pi**2)
-    h = numpy.pi * r / 2 / aspect
+    r = np.cbrt(2 * volume * aspect / np.pi**2)
+    h = np.pi * r / 2 / aspect
     return surfaces.Cylinder(h * 1e3, r * 1e3)
 
 
@@ -22,12 +23,12 @@ class FictiveEnergyResolution(energy_resolution.EnergySmearingMatrix):
 
 
 class GaussianPointSpreadFunction(object):
-    def __init__(self, median_opening_angle=numpy.radians(0.5)):
-        self._sigma = median_opening_angle / numpy.sqrt(2 * numpy.log(2))
+    def __init__(self, median_opening_angle=np.radians(0.5)):
+        self._sigma = median_opening_angle / np.sqrt(2 * np.log(2))
 
     def __call__(self, psi, energy, cos_theta):
-        psi, loge, ct = numpy.broadcast_arrays(psi / self._sigma, energy, cos_theta)
-        return 1.0 - numpy.exp(-(psi**2) / 2.0)
+        psi, loge, ct = np.broadcast_arrays(psi / self._sigma, energy, cos_theta)
+        return 1.0 - np.exp(-(psi**2) / 2.0)
 
 
 @memoize
@@ -35,7 +36,7 @@ def base_aeff():
     """
     Create a horizontal neutrino effective area for a 1 km^2 detector
     """
-    cos_theta = linspace(-1, 1, 40)[19:21]
+    cos_theta = np.linspace(-1, 1, 40)[19:21]
     (
         e_nu,
         cos_theta,
@@ -44,9 +45,9 @@ def base_aeff():
 
     # Step 5: apply smearing for energy resolution
     response = FictiveEnergyResolution().get_response_matrix(e_mu, e_mu)
-    efficiency = numpy.apply_along_axis(numpy.inner, 3, efficiency, response)
+    efficiency = np.apply_along_axis(np.inner, 3, efficiency, response)
 
-    total_aeff = numpy.zeros((6,) + efficiency.shape[1:])
+    total_aeff = np.zeros((6,) + efficiency.shape[1:])
     total_aeff[2:4, ...] = efficiency * 1e6  # side-on geometry area: 1 km2
 
     edges = (e_nu, cos_theta, e_mu)
@@ -69,17 +70,17 @@ def get_aeff(angular_resolution=0.5, energy_threshold=1e3):
 
     idx = e_mu.searchsorted(energy_threshold)
 
-    psf = GaussianPointSpreadFunction(numpy.radians(angular_resolution))
-    psi_bins = numpy.concatenate(
+    psf = GaussianPointSpreadFunction(np.radians(angular_resolution))
+    psi_bins = np.concatenate(
         (
-            sqrt(linspace(0, numpy.radians(angular_resolution * 4) ** 2, 101)),
-            [numpy.inf],
+            np.sqrt(np.linspace(0, np.radians(angular_resolution * 4) ** 2, 101)),
+            [np.inf],
         )
     )
 
     # Step 4: apply smearing for angular resolution
     cdf = psf(psi_bins[:-1], 0, 0)
-    smear = numpy.concatenate((diff(cdf), [1.0 - cdf[-1]]))
+    smear = np.concatenate((np.diff(cdf), [1.0 - cdf[-1]]))
 
     expand = [None] * 4 + [slice(None)]
 

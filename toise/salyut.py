@@ -2,7 +2,7 @@
 Hobo unbinned point source analysis
 """
 
-import numpy
+import numpy as np
 import scipy.optimize
 import scipy.stats
 import scipy.interpolate
@@ -25,14 +25,14 @@ class PSLikelihood(object):
         self.signal_energy_pdf = signal_energy_pdf
         self.background_energy_pdf = background_energy_pdf
 
-        self._band_solid_angle = 2 * numpy.pi
+        self._band_solid_angle = 2 * np.pi
 
         self.with_energy = False
 
     def signal(self, psi, sigma, E, cos_theta):
-        sigma = numpy.radians(30.0)
+        sigma = np.radians(30.0)
         s2 = sigma**2
-        pdf = numpy.exp(-(psi**2) / (2 * s2)) / (2 * numpy.pi * s2)
+        pdf = np.exp(-(psi**2) / (2 * s2)) / (2 * np.pi * s2)
         if self.with_energy:
             pdf *= self.signal_energy_pdf(E, cos_theta)
         return pdf
@@ -46,7 +46,7 @@ class PSLikelihood(object):
     def llh(self, ns):
         S = self.signal(self.psi, self.sigma, self.E, self.cos_theta)
         B = self.background(self.E, self.cos_theta)
-        return numpy.log((ns / self.n_total) * S + (1.0 - ns / self.n_total) * B).sum()
+        return np.log((ns / self.n_total) * S + (1.0 - ns / self.n_total) * B).sum()
 
     def fit(self):
         def minllh(x):
@@ -62,16 +62,16 @@ class PSLikelihood(object):
 class EnergyPDF(object):
     def __init__(self, E, cos_theta, weights):
         def padded_center(edges):
-            widths = numpy.diff(edges)
-            widths = numpy.concatenate((widths, [widths[-1]]))
-            return numpy.concatenate(([edges[0] - widths[0] / 2], edges + widths / 2.0))
+            widths = np.diff(edges)
+            widths = np.concatenate((widths, [widths[-1]]))
+            return np.concatenate(([edges[0] - widths[0] / 2], edges + widths / 2.0))
 
-        bins = (numpy.logspace(1, 11, 101), numpy.linspace(-1, 0.1, 21))
-        h = numpy.histogramdd((E, cos_theta), bins=bins, weights=weights)[0]
+        bins = (np.logspace(1, 11, 101), np.linspace(-1, 0.1, 21))
+        h = np.histogramdd((E, cos_theta), bins=bins, weights=weights)[0]
         h /= h.sum(axis=0, keepdims=True)
-        h /= numpy.diff(bins[0])[:, None]
-        centers = list(map(padded_center, [numpy.log10(bins[0]), bins[1]]))
-        y = numpy.empty(tuple(n + 2 for n in h.shape))
+        h /= np.diff(bins[0])[:, None]
+        centers = list(map(padded_center, [np.log10(bins[0]), bins[1]]))
+        y = np.empty(tuple(n + 2 for n in h.shape))
         y[(slice(1, -1),) * h.ndim] = h
 
         def hyperslab(idx, dim, null=slice(1, -1)):
@@ -84,23 +84,23 @@ class EnergyPDF(object):
             y[hyperslab(-1, i, slice(1, -1))] = h[hyperslab(-1, i, slice(None))]
 
         self._interpolant = scipy.interpolate.RegularGridInterpolator(
-            centers, y, bounds_error=True, fill_value=-numpy.inf
+            centers, y, bounds_error=True, fill_value=-np.inf
         )
 
     def __call__(self, E, cos_theta):
-        return self._interpolant((numpy.log10(E), cos_theta), "nearest")
+        return self._interpolant((np.log10(E), cos_theta), "nearest")
 
 
 def hsin(theta):
     """haversine"""
-    return (1.0 - numpy.cos(theta)) / 2.0
+    return (1.0 - np.cos(theta)) / 2.0
 
 
 def opening_angle(z1, z2, a1, a2):
     """
     Calculate the opening angle between two directions specified by zenith and azimuth
     """
-    return hsin(a2 - a1) + numpy.cos(a1) * numpy.cos(a2) * hsin(z2 - z1)
+    return hsin(a2 - a1) + np.cos(a1) * np.cos(a2) * hsin(z2 - z1)
 
 
 def astroflux(pt, e, cos_theta):
@@ -117,7 +117,7 @@ def pull_correction(logE):
     x = logE
 
     a, b, c = -3.840927835538128, 0.8524834665561651, -0.7992029125357616
-    pull = numpy.exp(numpy.maximum(c, a + b * x))
+    pull = np.exp(np.maximum(c, a + b * x))
 
     return pull
 
@@ -127,7 +127,7 @@ def create_energy_pdfs(query):
     atmo_weights = query.getWeights()
     astro_weights = query.getWeights(model=astroflux)
 
-    E, cos_theta = query["energy"], numpy.cos(query["zenith"])
+    E, cos_theta = query["energy"], np.cos(query["zenith"])
 
     return [EnergyPDF(E, cos_theta, w) for w in (atmo_weights, astro_weights)]
 
@@ -139,20 +139,20 @@ def skylab_background(query, livetime=1):
     """
     atmo_weights = query.getWeights() + query.getWeights(model=astroflux)
 
-    nb = int(numpy.random.poisson(atmo_weights.sum() * livetime * 3600 * 24 * 365))
+    nb = int(np.random.poisson(atmo_weights.sum() * livetime * 3600 * 24 * 365))
 
-    dtype = numpy.dtype([(name, float) for name in ("ra", "sinDec", "sigma", "logE")])
-    sample = numpy.empty(nb, dtype=dtype)
+    dtype = np.dtype([(name, float) for name in ("ra", "sinDec", "sigma", "logE")])
+    sample = np.empty(nb, dtype=dtype)
 
-    atmo_idx = numpy.random.choice(
-        numpy.arange(atmo_weights.size),
+    atmo_idx = np.random.choice(
+        np.arange(atmo_weights.size),
         size=nb,
         p=atmo_weights / atmo_weights.sum(),
         replace=True,
     )
     subquery = query[atmo_idx]
 
-    sample["ra"] = numpy.random.uniform(0, 2 * numpy.pi, size=nb)
+    sample["ra"] = np.random.uniform(0, 2 * np.pi, size=nb)
     sample["logE"] = subquery["logE"]
     sample["sinDec"] = subquery["sinDec"]
     sample["sigma"] = subquery["sigma"] * pull_correction(subquery["logE"])
@@ -172,7 +172,7 @@ def skylab_mc(query):
     """
     Prepare MC sample for Skylab
     """
-    dtype = numpy.dtype(
+    dtype = np.dtype(
         [
             (name, float)
             for name in (
@@ -188,7 +188,7 @@ def skylab_mc(query):
             )
         ]
     )
-    mc = numpy.empty(query.size, dtype=dtype)
+    mc = np.empty(query.size, dtype=dtype)
     mc["ra"] = query["raDiff"]
     mc["logE"] = query["logE"]
     mc["sinDec"] = query["sinDec"]
@@ -208,15 +208,15 @@ def sample_events(query, ns=0, sindec=0, livetime=1):
     atmo_weights = query.getWeights()
     astro_weights = query.getWeights(model=astroflux)
 
-    nb = int(numpy.random.poisson(atmo_weights.sum() * livetime * 3600 * 24 * 365))
+    nb = int(np.random.poisson(atmo_weights.sum() * livetime * 3600 * 24 * 365))
 
-    dtype = numpy.dtype(
+    dtype = np.dtype(
         [(name, float) for name in ("psi", "sigma", "energy", "cos_theta")]
     )
-    sample = numpy.empty(nb + ns, dtype=dtype)
+    sample = np.empty(nb + ns, dtype=dtype)
 
-    atmo_idx = numpy.random.choice(
-        numpy.arange(atmo_weights.size),
+    atmo_idx = np.random.choice(
+        np.arange(atmo_weights.size),
         size=nb,
         p=atmo_weights / atmo_weights.sum(),
         replace=True,
@@ -224,24 +224,24 @@ def sample_events(query, ns=0, sindec=0, livetime=1):
     subquery = query[atmo_idx]
     sample["energy"][:nb] = subquery["energy"]
     sample["sigma"][:nb] = subquery["psi"]
-    sample["cos_theta"][:nb] = numpy.cos(subquery["zenith"])
+    sample["cos_theta"][:nb] = np.cos(subquery["zenith"])
 
-    source_zenith = numpy.arccos(-sindec)
+    source_zenith = np.arccos(-sindec)
     # calculate the angular distance to the hypothetical source direction,
     # scrambling in azimuth
     sample["psi"][:nb] = opening_angle(
         source_zenith,
         query["zenith"][atmo_idx],
         0.0,
-        numpy.random.uniform(0, 2 * numpy.pi, size=nb),
+        np.random.uniform(0, 2 * np.pi, size=nb),
     )
 
     print((sample["psi"][:nb]))
 
     # fill in some signal events near the desired declination
-    mask = abs(numpy.cos(source_zenith) - query["neutrino_ct"]) < 0.05
-    astro_idx = numpy.random.choice(
-        numpy.arange(mask.sum()),
+    mask = abs(np.cos(source_zenith) - query["neutrino_ct"]) < 0.05
+    astro_idx = np.random.choice(
+        np.arange(mask.sum()),
         size=ns,
         p=astro_weights[mask] / astro_weights[mask].sum(),
         replace=True,
@@ -250,7 +250,7 @@ def sample_events(query, ns=0, sindec=0, livetime=1):
     subquery = query[mask][astro_idx]
     sample["energy"][-ns:] = subquery["energy"]
     sample["psi"][-ns:] = subquery["psi"]
-    sample["cos_theta"][-ns:] = numpy.cos(subquery["zenith"])
+    sample["cos_theta"][-ns:] = np.cos(subquery["zenith"])
 
     print((sample["psi"][-ns:]))
 

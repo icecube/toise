@@ -1,7 +1,7 @@
 # Adapted from [multillh](http://code.icecube.wisc.edu/svn/sandbox/nwhitehorn/multillh)
 
 import logging
-import numpy
+import numpy as np
 import scipy.optimize
 
 
@@ -98,10 +98,10 @@ class Combination(object):
                     "label": label,
                     "livetime": livetime,
                     "emin": max(
-                        component.energy_range[0], kwargs.get("emin", -numpy.inf)
+                        component.energy_range[0], kwargs.get("emin", -np.inf)
                     ),
                     "emax": min(
-                        component.energy_range[1], kwargs.get("emax", numpy.inf)
+                        component.energy_range[1], kwargs.get("emax", np.inf)
                     ),
                     "chunks": component.differential_chunks(
                         *args, exclusive=True, **kwargs
@@ -142,7 +142,7 @@ class Combination(object):
                 all_done = True
             else:
                 combo = Combination(components)
-                combo.energy_range = eranges[numpy.argmax(ecenters)]
+                combo.energy_range = eranges[np.argmax(ecenters)]
                 combo.energy_center = max(ecenters)
                 yield max(ecenters), combo
 
@@ -156,10 +156,10 @@ class LLHEval(object):
         """
         Initialize fit with data. This should be a dictionary from
         keys -- of any type -- shared with the fit components to
-        numpy arrays of arbitrary dimensionality containing histograms.
+        np arrays of arbitrary dimensionality containing histograms.
 
         If the keyword argument unbinned is set to True, data should
-        instead be a dictionary mapping keys to a python list of numpy
+        instead be a dictionary mapping keys to a python list of np
         arrays, each describing the probability momemt function for one
         event, binned the same way as the simulated distributions.
         """
@@ -188,7 +188,7 @@ class LLHEval(object):
 
     def expectations(self, **kwargs):
         """
-        Returns dictionary of numpy arrays in the same format as the
+        Returns dictionary of np arrays in the same format as the
         input data given the parameter values specified in keyword
         arguments
         """
@@ -221,18 +221,18 @@ class LLHEval(object):
                 llh += self.components[param].prior(kwargs[param], **kwargs)
 
         for prop in lamb:
-            with numpy.errstate(divide="ignore"):
-                log_lambda = numpy.log(lamb[prop])
-                log_data = numpy.log(self.data[prop])
-            log_lambda[numpy.isinf(log_lambda)] = 0
-            log_data[numpy.isinf(log_data)] = 0
+            with np.errstate(divide="ignore"):
+                log_lambda = np.log(lamb[prop])
+                log_data = np.log(self.data[prop])
+            log_lambda[np.isinf(log_lambda)] = 0
+            log_data[np.isinf(log_data)] = 0
             if self.unbinned:
-                norm = numpy.sum(lamb[prop])
+                norm = np.sum(lamb[prop])
                 for event in self.data[prop]:
-                    llh += numpy.sum(event * lamb[prop]) / norm
+                    llh += np.sum(event * lamb[prop]) / norm
                 llh -= norm
             else:
-                llh += numpy.sum(self.data[prop] * (log_lambda - log_data)) - numpy.sum(
+                llh += np.sum(self.data[prop] * (log_lambda - log_data)) - np.sum(
                     lamb[prop] - self.data[prop]
                 )
 
@@ -246,8 +246,8 @@ class LLHEval(object):
         lamb = self.expectations(**kwargs)
         llh = dict()
         for prop in lamb:
-            log_lambda = numpy.log(lamb[prop])
-            log_lambda[numpy.isinf(log_lambda)] = 0
+            log_lambda = np.log(lamb[prop])
+            log_lambda[np.isinf(log_lambda)] = 0
             llh[prop] = self.data[prop] * log_lambda - lamb[prop]
         return llh
 
@@ -263,10 +263,10 @@ class LLHEval(object):
         llh = 0
         dof = 0
         for prop in self.data:
-            log_lambda = numpy.log(self.data[prop])
-            log_lambda[numpy.isinf(log_lambda)] = 0
-            llh += numpy.sum(self.data[prop] * log_lambda - self.data[prop])
-            dof += numpy.sum(self.data[prop] != 0)
+            log_lambda = np.log(self.data[prop])
+            log_lambda[np.isinf(log_lambda)] = 0
+            llh += np.sum(self.data[prop] * log_lambda - self.data[prop])
+            dof += np.sum(self.data[prop] != 0)
         return (llh, dof + 1)
 
     def fit(self, minimizer_params=dict(), **fixedparams):
@@ -319,7 +319,7 @@ class LLHEval(object):
             fixedparams.update(dict(zip(freeparams, bestfit["x"])))
             return fixedparams
         else:
-            bestllh = numpy.inf
+            bestllh = np.inf
             bestparams = dict(fixedparams)
             for points in itertools.product(
                 *tuple(fixedparams[k] for k in discrete_params)
@@ -343,7 +343,7 @@ class LLHEval(object):
 
     def profile1d(self, param, values, minimizer_params=dict(), **fixedparams):
         """
-        Return a named numpy array with best-fit nuisance values and
+        Return a named np array with best-fit nuisance values and
         likelihood values for the values of param passed. Additional
         keywords are interpreted as fixed values of nuisance parameters.
         """
@@ -362,7 +362,7 @@ class LLHEval(object):
         for i in range(len(dtypes)):
             if isinstance(llhpoints[-1][i], str):
                 dtypes[i] = "|S32"
-        return numpy.array(llhpoints, dtype=list(zip(dkeys, dtypes)))
+        return np.array(llhpoints, dtype=list(zip(dkeys, dtypes)))
 
     def profile2d(self, param1, values1, param2, values2, **fixedparams):
         """
@@ -380,7 +380,7 @@ class LLHEval(object):
                     fit = self.fit(**params)
                 mlh = self.llh(**fit)
                 llhpoints.append(list(fit.values()) + [mlh])
-        return numpy.asarray(llhpoints).view(
+        return np.asarray(llhpoints).view(
             dtype=list(
                 zip(list(fit.keys()) + ["LLH"], [float] * (len(list(fit.keys())) + 1))
             )
@@ -400,7 +400,7 @@ def _pseudo_llh(components, poisson, **nominal):
     if poisson:
         pseudodata = dict()
         for tag in expectations:
-            pseudodata[tag] = numpy.random.poisson(expectations[tag])
+            pseudodata[tag] = np.random.poisson(expectations[tag])
     else:
         pseudodata = expectations
     allh.data = pseudodata

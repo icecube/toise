@@ -7,7 +7,7 @@ parser.add_argument("gcd_file")
 parser.add_argument("text_file")
 args = parser.parse_args()
 
-import numpy
+import numpy as np
 from icecube import icetray, dataclasses, dataio
 
 from icecube import icetray, dataio, dataclasses
@@ -23,4 +23,4 @@ for key, omgeo in fr["I3Geometry"].omgeo:
     pos = omgeo.position
     geo.append([key.string, key.om, pos.x, pos.y, pos.z])
 
-numpy.savetxt(args.text_file, geo, fmt="%d %d %.2f %.2f %.2f")
+np.savetxt(args.text_file, geo, fmt="%d %d %.2f %.2f %.2f")
