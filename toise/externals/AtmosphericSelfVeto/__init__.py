@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 from . import selfveto
 from ...util import PDGCode, data_dir
@@ -34,10 +34,10 @@ class AnalyticPassingFraction(object):
             nue = numu
 
         self._eval = dict()
-        self._eval[PDGCode.NuMu] = numpy.vectorize(
+        self._eval[PDGCode.NuMu] = np.vectorize(
             lambda enu, ct, depth: numu.evaluate_simple([enu, ct, depth])
         )
-        self._eval[PDGCode.NuE] = numpy.vectorize(
+        self._eval[PDGCode.NuE] = np.vectorize(
             lambda enu, ct, depth: nue.evaluate_simple([enu, ct, depth])
         )
 
@@ -46,20 +46,20 @@ class AnalyticPassingFraction(object):
             """
             Pad knots out for full support at the boundaries
             """
-            pre = knots[0] - (knots[1] - knots[0]) * numpy.arange(order, 0, -1)
-            post = knots[-1] + (knots[-1] - knots[-2]) * numpy.arange(1, order + 1)
-            return numpy.concatenate((pre, knots, post))
+            pre = knots[0] - (knots[1] - knots[0]) * np.arange(order, 0, -1)
+            post = knots[-1] + (knots[-1] - knots[-2]) * np.arange(1, order + 1)
+            return np.concatenate((pre, knots, post))
 
         def edges(centers):
-            dx = numpy.diff(centers)[0] / 2.0
-            return numpy.concatenate((centers - dx, [centers[-1] + dx]))
+            dx = np.diff(centers)[0] / 2.0
+            return np.concatenate((centers - dx, [centers[-1] + dx]))
 
-        log_enu, ct = numpy.linspace(1, 9, 51), numpy.linspace(self.ct_min, 1, 21)
-        depth = numpy.linspace(1e3, 3e3, 11)
+        log_enu, ct = np.linspace(1, 9, 51), np.linspace(self.ct_min, 1, 21)
+        depth = np.linspace(1e3, 3e3, 11)
         depth_g = depth[None, None, :]
-        log_enu_g, ct_g = list(map(numpy.transpose, numpy.meshgrid(log_enu, ct)))
+        log_enu_g, ct_g = list(map(np.transpose, np.meshgrid(log_enu, ct)))
 
-        pr = numpy.zeros(ct_g.shape + (depth.size,))
+        pr = np.zeros(ct_g.shape + (depth.size,))
         for i, d in enumerate(depth):
             slant = selfveto.overburden(ct_g, d)
             emu = selfveto.minimum_muon_energy(slant, veto_threshold)
@@ -79,7 +79,7 @@ class AnalyticPassingFraction(object):
         pr, centers, knots, order, penalty, penorder = self._eval_grid(
             kind, veto_threshold
         )
-        z, w = photospline.ndsparse.from_data(pr, numpy.ones(pr.shape))
+        z, w = photospline.ndsparse.from_data(pr, np.ones(pr.shape))
         spline = photospline.glam_fit(z, w, centers, knots, order, penalty, penorder)
         return spline
 
@@ -107,32 +107,32 @@ class AnalyticPassingFraction(object):
                        directly. Otherwise, use the much faster B-spline
                        representation.
         """
-        if numpy.isscalar(ct) and not ct > self.ct_min:
-            return numpy.array(1.0)
+        if np.isscalar(ct) and not ct > self.ct_min:
+            return np.array(1.0)
         emu = selfveto.minimum_muon_energy(
             selfveto.overburden(ct, depth), self.veto_threshold
         )
 
         # Verify that we're using a sane encoding scheme
         assert abs(PDGCode.NuMuBar) == PDGCode.NuMu
-        particleType = abs(numpy.asarray(particleType))
+        particleType = abs(np.asarray(particleType))
         if spline:
-            pr = numpy.where(
+            pr = np.where(
                 particleType == PDGCode.NuMu,
-                self._eval[PDGCode.NuMu](numpy.log10(enu), ct, depth),
-                numpy.where(
+                self._eval[PDGCode.NuMu](np.log10(enu), ct, depth),
+                np.where(
                     particleType == PDGCode.NuE,
-                    self._eval[PDGCode.NuE](numpy.log10(enu), ct, depth),
+                    self._eval[PDGCode.NuE](np.log10(enu), ct, depth),
                     1,
                 ),
             )
         else:
-            enu, ct, depth = numpy.broadcast_arrays(enu, ct, depth)
+            enu, ct, depth = np.broadcast_arrays(enu, ct, depth)
             if self.kind == "conventional":
-                pr = numpy.where(
+                pr = np.where(
                     particleType == PDGCode.NuMu,
                     selfveto.uncorrelated_passing_rate(enu, emu, ct, kind="numu"),
-                    numpy.where(
+                    np.where(
                         particleType == PDGCode.NuE,
                         selfveto.uncorrelated_passing_rate(enu, emu, ct, kind="nue"),
                         1,
@@ -148,10 +148,10 @@ class AnalyticPassingFraction(object):
         # decays of pions and kaons, but is at least a conservative estimate
         # for 3-body decays of D mesons.
         direct = selfveto.correlated_passing_rate(enu, emu, ct)
-        pr *= numpy.where(particleType == PDGCode.NuMu, direct, 1)
+        pr *= np.where(particleType == PDGCode.NuMu, direct, 1)
 
-        return numpy.where(
+        return np.where(
             ct > self.ct_min,
-            numpy.where(pr <= 1, numpy.where(pr >= self.floor, pr, self.floor), 1),
+            np.where(pr <= 1, np.where(pr >= self.floor, pr, self.floor), 1),
             1,
         )

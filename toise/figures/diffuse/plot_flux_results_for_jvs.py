@@ -1,4 +1,4 @@
-import numpy as n
+import numpy as np
 import pylab as p
 
 
@@ -25,8 +25,8 @@ def create_figure(format=None):
 
 def get_auger():
     # Values from EPJC 2021 https://arxiv.org/pdf/2109.13400.pdf
-    e = n.logspace(8.05, 11.15, 32)
-    f = 10 ** n.array(
+    e = np.logspace(8.05, 11.15, 32)
+    f = 10 ** np.array(
         [
             -5.5966,
             -5.6949,
@@ -62,7 +62,7 @@ def get_auger():
             -9.7364,
         ]
     )
-    fd = 10 ** n.array(
+    fd = 10 ** np.array(
         [
             -8.2227,
             -8.1988,
@@ -98,7 +98,7 @@ def get_auger():
             -10.1196,
         ]
     )
-    fu = 10 ** n.array(
+    fu = 10 ** np.array(
         [
             -8.2227,
             -8.1988,
@@ -134,7 +134,7 @@ def get_auger():
             -9.9684,
         ]
     )
-    ul = n.zeros_like(e, dtype=int)
+    ul = np.zeros_like(e, dtype=int)
     return dict(x=e, y=f, yerr=[fd, fu], uplims=ul)
 
 
@@ -155,8 +155,8 @@ def plot_auger(ax, lh, ll, label=None, **kwargs):
 
 def get_ta():
     # Values from ICRC2019https://doi.org/10.22323/1.358.0298
-    e = n.logspace(18.25, 20.25, 21)
-    f = n.array(
+    e = np.logspace(18.25, 20.25, 21)
+    f = np.array(
         [
             1.087e-07,
             7.959e-08,
@@ -182,7 +182,7 @@ def get_ta():
         ]
     )
 
-    fd = n.array(
+    fd = np.array(
         [
             1.961e-09,
             1.253e-09,
@@ -208,7 +208,7 @@ def get_ta():
         ]
     )
 
-    fu = n.array(
+    fu = np.array(
         [
             1.961e-09,
             1.203e-09,
@@ -233,7 +233,7 @@ def get_ta():
             5.499e-10,
         ]
     )
-    ul = n.zeros_like(e)
+    ul = np.zeros_like(e)
     e *= 1e-9
     return dict(x=e, y=f, yerr=[fd, fu], uplims=ul)
 
@@ -253,11 +253,11 @@ def plot_ta(ax, lh, ll, label=None, **kwargs):
 
 
 def get_fermi_igrb_2014():
-    ebins = n.logspace(-1, 2.9125, 27)
-    e = 10 ** (0.5 * (n.log10(ebins[1:]) + n.log10(ebins[:-1])))
+    ebins = np.logspace(-1, 2.9125, 27)
+    e = 10 ** (0.5 * (np.log10(ebins[1:]) + np.log10(ebins[:-1])))
     e_down = e - ebins[:-1]
     e_up = ebins[1:] - e
-    flux = n.array(
+    flux = np.array(
         [
             9.4852e-7,
             8.3118e-7,
@@ -287,7 +287,7 @@ def get_fermi_igrb_2014():
             4.7647e-9,
         ]
     )
-    flux_up = n.array(
+    flux_up = np.array(
         [
             1.1324e-6,
             1.0393e-6,
@@ -317,7 +317,7 @@ def get_fermi_igrb_2014():
             4.7647e-9,
         ]
     )
-    flux_down = n.array(
+    flux_down = np.array(
         [
             7.5851e-7,
             6.1847e-7,
@@ -347,17 +347,17 @@ def get_fermi_igrb_2014():
             0.5 * 4.7647e-9,
         ]
     )
-    lims = n.zeros_like(flux)
+    lims = np.zeros_like(flux)
     lims[-1] = 1
     return dict(x=e, y=flux, yerr=[flux - flux_down, flux_up - flux], uplims=lims)
 
 
 def plot_fermi_igrb_2014(ax, lh, ll, label=r"$Fermi\,IGRB$", **kwargs):
-    ebins = n.logspace(-1, 2.9125, 27)
-    e = 10 ** (0.5 * (n.log10(ebins[1:]) + n.log10(ebins[:-1])))
+    ebins = np.logspace(-1, 2.9125, 27)
+    e = 10 ** (0.5 * (np.log10(ebins[1:]) + np.log10(ebins[:-1])))
     e_down = e - ebins[:-1]
     e_up = ebins[1:] - e
-    flux = n.array(
+    flux = np.array(
         [
             9.4852e-7,
             8.3118e-7,
@@ -387,7 +387,7 @@ def plot_fermi_igrb_2014(ax, lh, ll, label=r"$Fermi\,IGRB$", **kwargs):
             4.7647e-9,
         ]
     )
-    flux_up = n.array(
+    flux_up = np.array(
         [
             1.1324e-6,
             1.0393e-6,
@@ -417,7 +417,7 @@ def plot_fermi_igrb_2014(ax, lh, ll, label=r"$Fermi\,IGRB$", **kwargs):
             4.7647e-9,
         ]
     )
-    flux_down = n.array(
+    flux_down = np.array(
         [
             7.5851e-7,
             6.1847e-7,
@@ -447,7 +447,7 @@ def plot_fermi_igrb_2014(ax, lh, ll, label=r"$Fermi\,IGRB$", **kwargs):
             0.5 * 4.7647e-9,
         ]
     )
-    lims = n.zeros_like(flux)
+    lims = np.zeros_like(flux)
     lims[-1] = 1
 
     plot_kwargs = dict(color="k", marker="o", markersize=4, linestyle="None", capsize=2)
@@ -475,7 +475,7 @@ def plot_unfolding(
     plot_kwargs.update(kwargs)
     if rescale:
         best, low, high = 1e-8 * best, 1e-8 * low, 1e-8 * high
-    ul = n.zeros_like(e, dtype="int")
+    ul = np.zeros_like(e, dtype="int")
     if plotlimits:
         m = best < 1e-10
         best[m] = high[m]
@@ -498,8 +498,8 @@ def set_limits(ax, erange, yrange, ax2=None):
     ax.set_xlim(erange)
     ax.set_ylim(yrange)
     if ax2 is not None:
-        ax2.set_xlim(n.log10(erange[0]), n.log10(erange[1]))
-        ax2.set_ylim(n.log10(yrange[0]), n.log10(yrange[1]))
+        ax2.set_xlim(np.log10(erange[0]), np.log10(erange[1]))
+        ax2.set_ylim(np.log10(yrange[0]), np.log10(yrange[1]))
 
 
 if __name__ == "__main__":
@@ -512,7 +512,7 @@ if __name__ == "__main__":
     p.matplotlib.rcParams["font.sans-serif"] = "computer modern"
     p.matplotlib.rcParams["text.latex.preamble"] = [r"\usepackage{upgreek}"]
 
-    ic_flux = n.loadtxt("icecube_flux.txt")
+    ic_flux = np.loadtxt("icecube_flux.txt")
 
     f, ax = create_figure(loc=[0.15, 0.14, 0.84, 0.83])
     lh, ll = [], []

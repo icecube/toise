@@ -1,7 +1,7 @@
 from scipy import interpolate
 import pickle
 import os
-import numpy
+import numpy as np
 from scipy.special import erf
 
 from .util import data_dir
@@ -12,7 +12,7 @@ def get_energy_resolution(geometry="Sunflower", spacing=200, channel="muon"):
         return FictiveCascadeEnergyResolution()
     elif channel == "radio":
         return FictiveCascadeEnergyResolution(
-            lower_limit=numpy.log10(1 + 0.2), crossover_energy=1e8
+            lower_limit=np.log10(1 + 0.2), crossover_energy=1e8
         )
     if geometry == "Fictive":
         return FictiveMuonEnergyResolution()
@@ -32,7 +32,7 @@ class EnergySmearingMatrix(object):
         self,
         bias=None,
         sigma=None,
-        loge_range=(-numpy.inf, numpy.inf),
+        loge_range=(-np.inf, np.inf),
         overdispersion=1.0,
     ):
         """
@@ -60,19 +60,19 @@ class EnergySmearingMatrix(object):
         :param true_energy: edges of true muon energy bins
         :param reco_energy: edges of reconstructed muon energy bins
         """
-        loge_true = numpy.log10(true_energy)
-        loge_center = numpy.clip(
+        loge_true = np.log10(true_energy)
+        loge_center = np.clip(
             0.5 * (loge_true[:-1] + loge_true[1:]), *self._loge_range
         )
-        loge_width = numpy.diff(loge_true)
-        loge_lo = numpy.log10(reco_energy[:-1])
-        loge_hi = numpy.log10(reco_energy[1:])
+        loge_width = np.diff(loge_true)
+        loge_lo = np.log10(reco_energy[:-1])
+        loge_hi = np.log10(reco_energy[1:])
         # evaluate at the right edge for maximum smearing on a falling spectrum
         loge_center = loge_hi
-        mu, hi = numpy.meshgrid(
+        mu, hi = np.meshgrid(
             self.bias(loge_center) + loge_width, loge_hi, indexing="ij"
         )
-        sigma, lo = numpy.meshgrid(self.sigma(loge_center), loge_lo, indexing="ij")
+        sigma, lo = np.meshgrid(self.sigma(loge_center), loge_lo, indexing="ij")
 
         return ((erf((hi - mu) / sigma) - erf((lo - mu) / sigma)) / 2.0).T
 
@@ -89,7 +89,7 @@ class MuonEnergyResolution(EnergySmearingMatrix):
         """
         if not fname.startswith("/"):
             fname = os.path.join(data_dir, "energy_reconstruction", fname)
-        f = numpy.load(fname)
+        f = np.load(fname)
         loge_range = (f["loge"].min(), f["loge"].max())
         bias = interpolate.UnivariateSpline(f["loge"], f["mean"], s=f["smoothing"])
         sigma = interpolate.UnivariateSpline(
@@ -102,20 +102,20 @@ class MuonEnergyResolution(EnergySmearingMatrix):
 
 class FictiveMuonEnergyResolution(EnergySmearingMatrix):
     def bias(self, loge):
-        return numpy.log10(10 ** (loge / 1.13) + 500)
+        return np.log10(10 ** (loge / 1.13) + 500)
 
     def sigma(self, loge):
-        return 0.22 + 0.23 * (1 - numpy.exp(-(10**loge) / 5e6))
+        return 0.22 + 0.23 * (1 - np.exp(-(10**loge) / 5e6))
 
 
 class FictiveCascadeEnergyResolution(EnergySmearingMatrix):
-    def __init__(self, lower_limit=numpy.log10(1.1), crossover_energy=1e6):
+    def __init__(self, lower_limit=np.log10(1.1), crossover_energy=1e6):
         super(FictiveCascadeEnergyResolution, self).__init__()
         self._b = lower_limit
-        self._a = self._b * numpy.sqrt(crossover_energy)
+        self._a = self._b * np.sqrt(crossover_energy)
 
     def bias(self, loge):
         return loge
 
     def sigma(self, loge):
-        return self._b + self._a / numpy.sqrt(10**loge)
+        return self._b + self._a / np.sqrt(10**loge)

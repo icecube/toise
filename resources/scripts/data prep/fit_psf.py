@@ -5,7 +5,8 @@ from icecube.photospline import spglam as glam
 from icecube.photospline.utils import pad_knots
 from icecube.photospline import splinefitstable
 from collections import defaultdict
-import numpy, os
+import numpy as np
+import os
 
 
 def create_psf(
@@ -31,9 +32,9 @@ def create_psf(
             "alpha",
         ),
         bins=(
-            numpy.linspace(3, 8, 51),
-            numpy.linspace(-1, 1, 21),
-            numpy.linspace(0, 25, int(25e2)),
+            np.linspace(3, 8, 51),
+            np.linspace(-1, 1, 21),
+            np.linspace(0, 25, int(25e2)),
         ),
     )
     del q
@@ -66,13 +67,13 @@ def fit_psf(h, smooth=1e-6):
     power = [1.0, 1.0, 2.0]
     nknots = [25, 25, 25]
     knots = [
-        pad_knots(numpy.linspace(e[0] ** (1.0 / p), e[-1] ** (1.0 / p), n) ** p, o)
+        pad_knots(np.linspace(e[0] ** (1.0 / p), e[-1] ** (1.0 / p), n) ** p, o)
         for n, o, p, e in zip(nknots, order, power, h.binedges)
     ]
 
     z = h.bincontent.cumsum(axis=2)
     w = 1.0 / h.squaredweights.cumsum(axis=2)
-    w[~numpy.isfinite(w)] = 0.0
+    w[~np.isfinite(w)] = 0.0
 
     del h
 
@@ -94,7 +95,7 @@ def plot_psf(h, spline, cos_theta=0):
     dashi.visual()
 
     ax = plt.gca()
-    for logE in numpy.arange(4, 8):
+    for logE in np.arange(4, 8):
 
         ei = h._h_binedges[0].searchsorted(logE) - 1
         zi = h._h_binedges[1].searchsorted(cos_theta) - 1

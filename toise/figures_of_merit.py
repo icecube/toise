@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import partial
-import numpy
+import numpy as np
 from . import factory, diffuse, surface_veto, pointsource, multillh
 from .util import constants
 
@@ -80,7 +80,7 @@ class GZK(object):
     @staticmethod
     def make_components(aeffs):
         aeff, muon_aeff = aeffs
-        energy_threshold = numpy.inf
+        energy_threshold = np.inf
         atmo = diffuse.AtmosphericNu.conventional(
             aeff, 1.0, hard_veto_threshold=energy_threshold
         )

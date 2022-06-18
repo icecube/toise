@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import numpy
+import numpy as np
 
 
 def plot_energy_resolution(h2, axis_range=(2.5, 7)):
@@ -97,15 +97,15 @@ def save_energy_resolution_profile(h2, fname, smoothing=1e-2):
 
     # extrapolate bias linearly, standard deviation with a constant
     extend = sp.x[-1] - sp.x[0] + sp.x[1:]
-    x = numpy.concatenate((sp.x, extend))
+    x = np.concatenate((sp.x, extend))
     fit = dashi.fitting.leastsq(sp.x[-10:], sp.y[-10:], dashi.fitting.poly(1))
     yextend = extend * fit.params["p1"] + fit.params["p0"]
-    mean = numpy.concatenate((sp.y, yextend))
-    std = numpy.concatenate(
-        (sp.yerr, numpy.ones(sp.yerr.size - 1) * (sp.yerr[-10:].mean()))
+    mean = np.concatenate((sp.y, yextend))
+    std = np.concatenate(
+        (sp.yerr, np.ones(sp.yerr.size - 1) * (sp.yerr[-10:].mean()))
     )
 
-    numpy.savez(fname, loge=x, mean=mean, std=std, smoothing=smoothing)
+    np.savez(fname, loge=x, mean=mean, std=std, smoothing=smoothing)
 
 
 if __name__ == "__main__":

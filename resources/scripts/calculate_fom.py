@@ -49,7 +49,7 @@ if opts.geometry == "IceCube":
     opts.spacing = 125.0
 
 import sys, os
-import numpy
+import numpy as np
 
 
 from toise import (
@@ -85,9 +85,9 @@ def survey_distance(phi, L0=1e45):
     """
     phi = phi * (intflux(1e5) - intflux(1e-1))  # integrate from 100 GeV to 100 PeV
     phi *= 1e3 / grb.units.GeV  # TeV / cm^2 s -> erg / cm^2 s
-    dl = numpy.sqrt(L0 / (4 * numpy.pi * phi))
+    dl = np.sqrt(L0 / (4 * np.pi * phi))
     dl *= grb.units.cm / 1e3  # cm -> Gpc
-    return numpy.where(numpy.isfinite(phi), dl, 0)
+    return np.where(np.isfinite(phi), dl, 0)
 
 
 def survey_volume(sindec, phi, L0=1e45):
@@ -98,7 +98,7 @@ def survey_volume(sindec, phi, L0=1e45):
     :returns: the volume in Gpc^3 in which standard candles of luminosity L0 would be detectable
     """
     dl = survey_distance(phi, L0)
-    return ((sindec.max() - sindec.min()) * 2 * numpy.pi / 3.0) * ((dl ** 3).mean())
+    return ((sindec.max() - sindec.min()) * 2 * np.pi / 3.0) * ((dl ** 3).mean())
 
 
 def print_result(value, **kwargs):
@@ -173,7 +173,7 @@ if opts.figure_of_merit == "survey_volume":
 
     dp = []
 
-    sindec = numpy.linspace(-1, 1, 21)
+    sindec = np.linspace(-1, 1, 21)
     for zi in range(20):
         bundle = factory.component_bundle(
             {"IceCube": 0.0, "Gen2": opts.livetime}, partial(make_components, zi=zi)
@@ -197,12 +197,12 @@ if opts.figure_of_merit == "survey_volume":
         # print dp[-1]
         # s = ps.expectations(**fixed)['tracks'].sum(axis=0)
         # b = bkg.expectations['tracks'].sum(axis=0)
-        # if (~numpy.isnan(s/b)).any():
+        # if (~np.isnan(s/b)).any():
         # 	pass
         # 	# print s.cumsum()/s.sum()
         # 	# print s/b
         # # bkgs.append(bkg.expectations['tracks'][:,:20].sum())
-    dp = numpy.array(dp)[::-1]
+    dp = np.array(dp)[::-1]
     print(dp)
 
     volume = survey_volume(sindec, dp)
@@ -212,7 +212,7 @@ if opts.figure_of_merit == "survey_volume":
 elif opts.figure_of_merit == "ps_time_evolution":
 
     livetime = opts.livetimes[0]
-    cos_theta = numpy.linspace(-1, 1, 21)
+    cos_theta = np.linspace(-1, 1, 21)
     aeff = factory.create_aeff(opts, cos_theta=cos_theta)
     energy_threshold = effective_areas.StepFunction(opts.veto_threshold, 90)
     atmo = diffuse.AtmosphericNu.conventional(
@@ -241,8 +241,8 @@ elif opts.figure_of_merit == "ps_time_evolution":
         else:
             return component
 
-    livetimes = numpy.linspace(*opts.livetimes)
-    dps = numpy.zeros(livetimes.size)
+    livetimes = np.linspace(*opts.livetimes)
+    dps = np.zeros(livetimes.size)
     for i in tqdm(list(range(livetimes.size))):
         lt = livetimes[i]
         dps[i] = 1e-12 * pointsource.discovery_potential(
@@ -252,7 +252,7 @@ elif opts.figure_of_merit == "ps_time_evolution":
         )
 
     if opts.outfile is not None:
-        numpy.savez(
+        np.savez(
             opts.outfile,
             livetime=livetimes,
             discovery_potential=dps,
@@ -269,7 +269,7 @@ elif opts.figure_of_merit == "differential_discovery_potential":
     if opts.outfile is None:
         parser.error("You must supply an output file name")
 
-    aeff = factory.create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 20))
+    aeff = factory.create_aeff(opts, cos_theta=np.linspace(-1, 1, 20))
     energy_threshold = effective_areas.StepFunction(opts.veto_threshold, 90)
     atmo = diffuse.AtmosphericNu.conventional(
         aeff, opts.livetime, hard_veto_threshold=energy_threshold
@@ -283,7 +283,7 @@ elif opts.figure_of_merit == "differential_discovery_potential":
 
     values = dict()
 
-    sindec = center(numpy.linspace(-1, 1, 20)[::-1])
+    sindec = center(np.linspace(-1, 1, 20)[::-1])
     for zi in range(0, 19, 1):
         ps = pointsource.SteadyPointSource(aeff, opts.livetime, zenith_bin=zi)
         atmo_bkg = atmo.point_source_background(zenith_index=zi)
@@ -313,7 +313,7 @@ elif opts.figure_of_merit == "differential_discovery_potential":
         pickle.dump(values, f, 2)
 
 elif opts.figure_of_merit == "grb":
-    aeff = factory.create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+    aeff = factory.create_aeff(opts, cos_theta=np.linspace(-1, 1, 21))
     energy_threshold = effective_areas.StepFunction(opts.veto_threshold, 90)
     atmo = diffuse.AtmosphericNu.conventional(
         aeff, opts.livetime, hard_veto_threshold=energy_threshold
@@ -325,9 +325,9 @@ elif opts.figure_of_merit == "grb":
     astro.seed = 2
     gamma = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
 
-    z = 2 * numpy.ones(opts.livetime * 170 * 2)
-    t90 = numpy.ones(z.size) * 45.1
-    Eiso = 10 ** (53.5) * numpy.ones(z.size)
+    z = 2 * np.ones(opts.livetime * 170 * 2)
+    t90 = np.ones(z.size) * 45.1
+    Eiso = 10 ** (53.5) * np.ones(z.size)
 
     pop = grb.GRBPopulation(aeff, z, Eiso)
     atmo_bkg = atmo.point_source_background(
@@ -369,20 +369,20 @@ elif opts.figure_of_merit == "gzk":
         gzk = diffuse.AhlersGZK(aeff, 1.0)
         return dict(atmo=atmo, prompt=prompt, astro=astro, gzk=gzk)
 
-    bundle = aeff_bundle(components, cos_theta=numpy.linspace(-1, 1, 21))
+    bundle = aeff_bundle(components, cos_theta=np.linspace(-1, 1, 21))
     components = bundle.get_components()
     components["gamma"] = multillh.NuisanceParam(-2.3, 0.5, min=-2.7, max=-1.7)
     gzk = components.pop("gzk")
     aeff = list(bundle.aeffs.values())[0]
 
-    pev = numpy.where(aeff.bin_edges[2][1:] > 5e7)[0][0]
+    pev = np.where(aeff.bin_edges[2][1:] > 5e7)[0][0]
 
     def pev_events(observables):
         return sum((v.sum(axis=0)[pev:].sum() for v in observables.values()))
 
     ns = pev_events(gzk.expectations())
     nb = pev_events(components["astro"].expectations(gamma=-2.3))
-    baseline = 5 * numpy.sqrt(nb) / ns
+    baseline = 5 * np.sqrt(nb) / ns
 
     scale = pointsource.discovery_potential(
         gzk, components, baseline=baseline, tolerance=1e-4, gamma=-2.3
@@ -401,7 +401,7 @@ elif opts.figure_of_merit == "differential_diffuse":
     if opts.outfile is None:
         parser.error("You must supply an output file name")
 
-    aeff = factory.create_aeff(opts, cos_theta=numpy.linspace(-1, 1, 21))
+    aeff = factory.create_aeff(opts, cos_theta=np.linspace(-1, 1, 21))
     energy_threshold = effective_areas.StepFunction(opts.veto_threshold, 90)
     atmo = diffuse.AtmosphericNu.conventional(
         aeff, opts.livetime, hard_veto_threshold=energy_threshold
@@ -433,9 +433,9 @@ elif opts.figure_of_merit == "differential_diffuse":
             )
         )
 
-    numpy.savetxt(
+    np.savetxt(
         opts.outfile,
-        numpy.vstack((energies, dps)).T,
+        np.vstack((energies, dps)).T,
         header="# energy\tdiscovery flux [GeV cm-2 sr^-1 s^-1]",
     )
 
@@ -462,7 +462,7 @@ elif opts.figure_of_merit == "diffuse_index":
             )
             astro_lo.seed = 2.0
             astro = diffuse.DiffuseAstro(
-                aeff.restrict_energy_range(opts.energy_threshold, numpy.inf), 1
+                aeff.restrict_energy_range(opts.energy_threshold, np.inf), 1
             )
             astro.seed = 2.0
             return dict(atmo=atmo, prompt=prompt, astro_lo=astro_lo, astro=astro)
@@ -471,7 +471,7 @@ elif opts.figure_of_merit == "diffuse_index":
             astro.seed = 2.0
             return dict(atmo=atmo, prompt=prompt, astro=astro)
 
-    bundle = aeff_bundle(components, cos_theta=numpy.linspace(-1, 1, 20))
+    bundle = aeff_bundle(components, cos_theta=np.linspace(-1, 1, 20))
     components = bundle.get_components()
     components["gamma"] = multillh.NuisanceParam(-2.3)
     if two_component:
@@ -507,7 +507,7 @@ elif opts.figure_of_merit == "diffuse_index":
         if plotit:
             import pylab
 
-            g = numpy.linspace(g0 - 0.5, g0 + 0.5, 21)
+            g = np.linspace(g0 - 0.5, g0 + 0.5, 21)
             pylab.plot(g, [ts_diff(g_) for g_ in g])
             color = pylab.gca().lines[-1].get_color()
 
@@ -568,7 +568,7 @@ elif opts.figure_of_merit == "galactic_diffuse":
     )
     ns = exes["galactic"]["tracks"].sum()
 
-    print_result(numpy.sqrt(fit_ts), nb=nb, ns=ns)
+    print_result(np.sqrt(fit_ts), nb=nb, ns=ns)
 
 else:
     parser.error("Unknown figure of merit '%s'" % (opts.figure_of_merit))
