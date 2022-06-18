@@ -7,7 +7,7 @@ from scipy.integrate import quad
 from .pointsource import PointSource
 
 # Enum has no facility for setting docstrings inline. Do it by hand.
-TRANSIENT_MODEL = Enum("TRANSIENT_MODEL", ["GRB_afterglow",
+TRANSIENT_MODELS = Enum("TRANSIENT_MODELS", ["GRB_afterglow",
                                "high_state_TDE",
                                "blazar_flares",
                                "sGRB_NSmerger",
@@ -15,24 +15,24 @@ TRANSIENT_MODEL = Enum("TRANSIENT_MODEL", ["GRB_afterglow",
                                "BNS_merger_3days",
                                "BNS_merger_1month",
                                "BNS_merger_1year"])
-TRANSIENT_MODEL.__doc__ = r"Transient source fluences"
-TRANSIENT_MODEL.GRB_afterglow.__doc__ = r"GRB afterglow"
-TRANSIENT_MODEL.high_state_TDE.__doc__ = r"high state TDE"
-TRANSIENT_MODEL.blazar_flares.__doc__ = r"10x6 month blazar flares"
-TRANSIENT_MODEL.sGRB_NSmerger.__doc__ = r"short GRB from BNS merger"
-TRANSIENT_MODEL.BNS_merger_8hours.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e3.5-1e4.5 s after merger"
-TRANSIENT_MODEL.BNS_merger_3days.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e4.5-1e5.5 s after merger"
-TRANSIENT_MODEL.BNS_merger_1month.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e5.5-1e6.5 s after merger"
-TRANSIENT_MODEL.BNS_merger_1year.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e6.5-1e7.5 s after merger"
+TRANSIENT_MODELS.__doc__ = r"Transient source fluences"
+TRANSIENT_MODELS.GRB_afterglow.__doc__ = r"GRB afterglow"
+TRANSIENT_MODELS.high_state_TDE.__doc__ = r"high state TDE"
+TRANSIENT_MODELS.blazar_flares.__doc__ = r"10x6 month blazar flares"
+TRANSIENT_MODELS.sGRB_NSmerger.__doc__ = r"short GRB from BNS merger"
+TRANSIENT_MODELS.BNS_merger_8hours.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e3.5-1e4.5 s after merger"
+TRANSIENT_MODELS.BNS_merger_3days.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e4.5-1e5.5 s after merger"
+TRANSIENT_MODELS.BNS_merger_1month.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e5.5-1e6.5 s after merger"
+TRANSIENT_MODELS.BNS_merger_1year.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e6.5-1e7.5 s after merger"
 
-TRANSIENT_MODEL.GRB_afterglow.filename = "models/transient/GRB_afterglow.csv"
-TRANSIENT_MODEL.high_state_TDE.filename = "models/transient/highTDE_fluence.csv"
-TRANSIENT_MODEL.blazar_flares.filename = "models/transient/10x6_month_blazar_flare.csv"
-TRANSIENT_MODEL.sGRB_NSmerger.filename = "models/transient/sGRB-NSmerger.csv"
-TRANSIENT_MODEL.BNS_merger_8hours.filename = "models/transient/FangMetz_1e3.5_1e4.5_sec.csv" 
-TRANSIENT_MODEL.BNS_merger_3days.filename = "models/transient/FangMetz_1e4.5_1e5.5_sec.csv"
-TRANSIENT_MODEL.BNS_merger_1month.filename = "models/transient/FangMetz_1e5.5_1e6.5_sec.csv"
-TRANSIENT_MODEL.BNS_merger_1year.filename = "models/transient/FangMetz_1e6.5_1e7.5_sec.csv"
+TRANSIENT_MODELS.GRB_afterglow.filename = "models/transient/GRB_afterglow.csv"
+TRANSIENT_MODELS.high_state_TDE.filename = "models/transient/highTDE_fluence.csv"
+TRANSIENT_MODELS.blazar_flares.filename = "models/transient/10x6_month_blazar_flare.csv"
+TRANSIENT_MODELS.sGRB_NSmerger.filename = "models/transient/sGRB-NSmerger.csv"
+TRANSIENT_MODELS.BNS_merger_8hours.filename = "models/transient/FangMetz_1e3.5_1e4.5_sec.csv" 
+TRANSIENT_MODELS.BNS_merger_3days.filename = "models/transient/FangMetz_1e4.5_1e5.5_sec.csv"
+TRANSIENT_MODELS.BNS_merger_1month.filename = "models/transient/FangMetz_1e5.5_1e6.5_sec.csv"
+TRANSIENT_MODELS.BNS_merger_1year.filename = "models/transient/FangMetz_1e6.5_1e7.5_sec.csv"
 
 
 class TransientPointsourceModelFluence(object):
@@ -41,28 +41,28 @@ class TransientPointsourceModelFluence(object):
         self.pointsource_model = pointsource_model
         #use units Mpc for distance
         Mpc = 1
-        if self.pointsource_model == TRANSIENT_MODEL.GRB_afterglow:
+        if self.pointsource_model == TRANSIENT_MODELS.GRB_afterglow:
             self.transient_duration = 24 * 3600 # 1 day, conservatively long, cf. https://doi.org/10.1103/PhysRevD.76.123001; https://doi.org/10.1086/432567
             self.transient_distance = 40 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODEL.high_state_TDE:
+        elif self.pointsource_model == TRANSIENT_MODELS.high_state_TDE:
             self.transient_duration = 1e5
             self.transient_distance = 150 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODEL.sGRB_NSmerger:
+        elif self.pointsource_model == TRANSIENT_MODELS.sGRB_NSmerger:
             self.transient_duration = 2 # 2sec
             self.transient_distance = 40 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODEL.blazar_flares:
+        elif self.pointsource_model == TRANSIENT_MODELS.blazar_flares:
             self.transient_duration = 60 * 2.628e+6 # 10 x 6 months in sec
             self.transient_distance = 2e3 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODEL.BNS_merger_8hours:
+        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_8hours:
             self.transient_duration = 10**4.5 - 10**3.5
             self.transient_distance = 10 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODEL.BNS_merger_3days:
+        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_3days:
             self.transient_duration = 10**5.5 - 10**4.5
             self.transient_distance = 10 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODEL.BNS_merger_1month:
+        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_1month:
             self.transient_duration = 10**6.5 - 10**5.5
             self.transient_distance = 10 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODEL.BNS_merger_1year:
+        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_1year:
             self.transient_duration = 10**7.5 - 10**6.5
             self.transient_distance = 10 * Mpc
         else:
