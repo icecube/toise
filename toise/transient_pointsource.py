@@ -1,8 +1,8 @@
 from os import path
 from enum import Enum
-from .util import data_dir, constants
+from .util import data_dir, constants, PDGCode
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy import interpolate
 from scipy.integrate import quad
 from .pointsource import PointSource
 
@@ -29,69 +29,89 @@ TRANSIENT_MODELS.GRB_afterglow.filename = "models/transient/GRB_afterglow.csv"
 TRANSIENT_MODELS.high_state_TDE.filename = "models/transient/highTDE_fluence.csv"
 TRANSIENT_MODELS.blazar_flares.filename = "models/transient/10x6_month_blazar_flare.csv"
 TRANSIENT_MODELS.sGRB_NSmerger.filename = "models/transient/sGRB-NSmerger.csv"
-TRANSIENT_MODELS.BNS_merger_8hours.filename = "models/transient/FangMetz_1e3.5_1e4.5_sec.csv" 
+TRANSIENT_MODELS.BNS_merger_8hours.filename = "models/transient/FangMetz_1e3.5_1e4.5_sec.csv"
 TRANSIENT_MODELS.BNS_merger_3days.filename = "models/transient/FangMetz_1e4.5_1e5.5_sec.csv"
 TRANSIENT_MODELS.BNS_merger_1month.filename = "models/transient/FangMetz_1e5.5_1e6.5_sec.csv"
 TRANSIENT_MODELS.BNS_merger_1year.filename = "models/transient/FangMetz_1e6.5_1e7.5_sec.csv"
 
+TRANSIENT_MODELS.GRB_afterglow.duration_sec = 24 * 3600 # 1 day, conservatively long, cf. https://doi.org/10.1103/PhysRevD.76.123001; https://doi.org/10.1086/432567
+TRANSIENT_MODELS.high_state_TDE.duration_sec = 1e5
+TRANSIENT_MODELS.blazar_flares.duration_sec = 10 * 6 * 2.628e+6 # 10 x 6 months in sec
+TRANSIENT_MODELS.sGRB_NSmerger.duration_sec = 2 # 2sec
+TRANSIENT_MODELS.BNS_merger_8hours.duration_sec = 10**4.5 - 10**3.5
+TRANSIENT_MODELS.BNS_merger_3days.duration_sec = 10**5.5 - 10**4.5
+TRANSIENT_MODELS.BNS_merger_1month.duration_sec = 10**6.5 - 10**5.5
+TRANSIENT_MODELS.BNS_merger_1year.duration_sec = 10**7.5 - 10**6.5
 
-class TransientPointsourceModelFluence(object):
+TRANSIENT_MODELS.GRB_afterglow.distance = 40 * constants.Mpc
+TRANSIENT_MODELS.high_state_TDE.distance = 150 * constants.Mpc
+TRANSIENT_MODELS.blazar_flares.distance = 2e3 * constants.Mpc
+TRANSIENT_MODELS.sGRB_NSmerger.distance = 40 * constants.Mpc
+TRANSIENT_MODELS.BNS_merger_8hours.distance = 10 * constants.Mpc
+TRANSIENT_MODELS.BNS_merger_3days.distance = 10 * constants.Mpc
+TRANSIENT_MODELS.BNS_merger_1month.distance = 10 * constants.Mpc
+TRANSIENT_MODELS.BNS_merger_1year.distance = 10 * constants.Mpc
+
+class TransientModelFluence(object):
     def __init__(self, pointsource_model, distance_mpc=None):
+        if not isinstance(pointsource_model, TRANSIENT_MODELS):
+            raise RuntimeError(f"No such transient model defined: {pointsource_model}")
 
         self.pointsource_model = pointsource_model
-        #use units Mpc for distance
-        Mpc = 1
-        if self.pointsource_model == TRANSIENT_MODELS.GRB_afterglow:
-            self.transient_duration = 24 * 3600 # 1 day, conservatively long, cf. https://doi.org/10.1103/PhysRevD.76.123001; https://doi.org/10.1086/432567
-            self.transient_distance = 40 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODELS.high_state_TDE:
-            self.transient_duration = 1e5
-            self.transient_distance = 150 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODELS.sGRB_NSmerger:
-            self.transient_duration = 2 # 2sec
-            self.transient_distance = 40 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODELS.blazar_flares:
-            self.transient_duration = 60 * 2.628e+6 # 10 x 6 months in sec
-            self.transient_distance = 2e3 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_8hours:
-            self.transient_duration = 10**4.5 - 10**3.5
-            self.transient_distance = 10 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_3days:
-            self.transient_duration = 10**5.5 - 10**4.5
-            self.transient_distance = 10 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_1month:
-            self.transient_duration = 10**6.5 - 10**5.5
-            self.transient_distance = 10 * Mpc
-        elif self.pointsource_model == TRANSIENT_MODELS.BNS_merger_1year:
-            self.transient_duration = 10**7.5 - 10**6.5
-            self.transient_distance = 10 * Mpc
-        else:
-            raise RuntimeError(f"No such pointsource model: {self.pointsource_model}")
+        self.transient_duration = pointsource_model.duration_sec
+        self.transient_distance = pointsource_model.distance
+
+        # load the model
         filename=path.join(data_dir, pointsource_model.filename)
         data = np.loadtxt(filename, delimiter=",")
 
-        #TODO could do the same as for diffuse model fluxes, in case we expect per-flavor fluences to be available for some models in the future
         self.E = data[:,0]
-        self.fluence = data[:,1]
+        self.fluence = data[:,1:]
 
-        self.interp = interp1d(np.log10(self.E), np.log10(self.fluence), bounds_error=False, fill_value="extrapolate")
+        logE = np.log10(self.E)
+        logFluence = np.log10(self.fluence)
+
+        # interpolant for all-flavor
+        self._interpolant = interpolate.interp1d(
+            logE, np.log10(np.sum(self.fluence, axis=1)) + 8, bounds_error=False, fill_value=-np.inf
+        )
+
+        # interpolants per flavor (if given)
+        self._has_per_flavor_fluence = False
+        flavorcodes = [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar]
+        if np.shape(logFluence)[1] == 6: # per flavor weight is given
+            self._has_per_flavor_fluence = True
+            self._interpolant_per_flavor = {flav: interpolate.interp1d(
+                logE, logFluence[:,i] + 8, bounds_error=False, fill_value=-np.inf
+            ) for i, flav in enumerate(flavorcodes)}
 
         # scaling for distance is just a distance squared scaling for surface area on the ball from source
         if distance_mpc is None:
             self.distance_factor = 1
         else:
-            self.distance_factor = self.transient_distance**2/distance_mpc**2
+            self.distance_factor = self.transient_distance**2/(distance_mpc*constants.Mpc)**2
 
     def get_duration_years(self):
         return self.transient_duration / constants.annum
 
-    def __call__(self, E, *args, **kwargs):
-        # factor of 3 for flavor, 2 for neutrino/antineutrino
-        # 10**-12 standard units for toise
-        fluence = 10**self.interp(np.log10(E))/ E**2 / 3 / 2  * self.distance_factor * self.get_duration_years()
-        return fluence
+    def has_per_flavor_fluence(self):
+        """flag if provided flux file was all-flavor or per-flavor"""
+        return self._has_per_flavor_fluence
 
-class TransientPointSourceModel(PointSource):
+    def __call__(self, e_center, flavor=None, *args, **kwargs):
+        assert (flavor is None or flavor in [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar])
+        if flavor is None:
+            # return all flavor fluence
+            interpolant = self._interpolant
+        else:
+            interpolant = self._interpolant_per_flavor[flavor]
+
+        fluence = 10 ** (interpolant(np.log10(e_center)) - 8) / e_center**2
+        scaled_fluence = fluence  * self.distance_factor * self.get_duration_years()
+        return scaled_fluence
+
+
+class TransientModel(PointSource):
     r"""
     A transient point source of neutrinos.
 
@@ -114,7 +134,7 @@ class TransientPointSourceModel(PointSource):
 
         #check if requested livetime is larger than transient timescale
         observation_time_scaling = 1
-        fluence_curve = TransientPointsourceFluence(pointsource_model, distance_mpc)
+        fluence_curve = TransientModelFluence(pointsource_model, distance_mpc)
         if livetime > fluence_curve.get_duration_years():
             print(f"WARNING: requested longer livetime ({livetime}) than PS duration ({fluence_curve.get_duration_years()})")
         elif livetime < fluence_curve.get_duration_years():
@@ -124,9 +144,20 @@ class TransientPointSourceModel(PointSource):
         energy = effective_area.bin_edges[0]
 
         # integrate over fluence curve
-        fluence = np.asarray(
-              [quad(fluence_curve, energy[i], energy[i + 1])[0] for i, e in enumerate(energy[:-1])]
-        )
+        if fluence_curve.has_per_flavor_fluence():
+            fluence = np.asarray(
+                [[
+                    quad(fluence_curve, energy[i], energy[i + 1], j)[0]
+                    for i, e in enumerate(energy[:-1])
+                ] for j in [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar]]
+            )
+        else:
+            fluence = np.asarray(
+                [
+                    quad(fluence_curve, energy[i], energy[i + 1])[0]
+                    for i, e in enumerate(energy[:-1])
+                ]
+            )/6.
 
         # zero out fluence outside energy range
         fluence[(energy[:-1] > emax) | (energy[1:] < emin)] = 0
@@ -138,4 +169,5 @@ class TransientPointSourceModel(PointSource):
         self._livetime = livetime
 
     def spectral_weight(self, e_center, **kwargs):
+        #we don't have a power law here... so return just ones
         return np.ones_like(e_center)

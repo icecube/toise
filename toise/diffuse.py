@@ -897,8 +897,12 @@ class DiffuseModelFlux(object):
         if isinstance(flux_model, DIFFUSE_MODELS):
             diff_data = np.loadtxt(data_dir + "/models/" + flux_model.filename, delimiter=",")
         elif isinstance(flux_model, str):
-            #custom flux model provided via text file, #TODO add some logging printout
-            diff_data = np.loadtxt(flux_model)
+            if not os.path.isfile(flux_model):
+                raise RuntimeError(f"Trying to read diffuse flux from text file, {flux_model} not found.")
+            #custom flux model provided via text file
+            diff_data = np.loadtxt(flux_model, delimiter=",")
+        else:
+            raise RuntimeError(f"No such diffuse model defined: {flux_model}")
         E = diff_data[:,0]
         Weight = diff_data[:,1:]
         logE = np.log10(E)
@@ -906,26 +910,27 @@ class DiffuseModelFlux(object):
 
         # interpolant for all-flavor
         self._interpolant = interpolate.interp1d(
-            logE, np.sum(logWeight, axis=1) + 8, bounds_error=False, fill_value=-np.inf
+            logE, np.log10(np.sum(Weight, axis=1)) + 8, bounds_error=False, fill_value=-np.inf
         )
 
         # interpolants per flavor (if given)
         self._has_per_flavor_flux = False
+        flavorcodes = [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar]
         if np.shape(logWeight)[1] == 6: # per flavor weight is given
             self._has_per_flavor_flux = True
-            self._interpolant_per_flavor = [interpolate.interp1d(
+            self._interpolant_per_flavor = {flav: interpolate.interp1d(
                 logE, logWeight[:,i] + 8, bounds_error=False, fill_value=-np.inf
-            ) for i in range(6)]
+            ) for i, flav in enumerate(flavorcodes)}
 
     def has_per_flavor_flux(self):
         """flag if provided flux file was all-flavor or per-flavor"""
         return self._has_per_flavor_flux
 
     def __call__(self, e_center, flavor=None):
+        assert (flavor is None or flavor in [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar])
         if flavor is None:
             # return all flavor flux
             return 10 ** (self._interpolant(np.log10(e_center)) - 8) / e_center**2
-
         # return per-flavor flux
         return 10 ** (self._interpolant_per_flavor[flavor](np.log10(e_center)) - 8) / e_center**2
 
@@ -1025,7 +1030,7 @@ class DiffuseModel(ArbitraryFlux):
                 [[
                     quad(self._flux_func, enu[i], enu[i + 1], j)[0]
                     for i, e in enumerate(enu[:-1])
-                ] for j in range(6)]
+                ] for j in [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar]]
             )
         else:
             integrated = np.asarray(
