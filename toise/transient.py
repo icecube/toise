@@ -15,11 +15,13 @@ TRANSIENT_MODELS = Enum("TRANSIENT_MODELS", ["GRB_afterglow",
                                "BNS_merger_3days",
                                "BNS_merger_1month",
                                "BNS_merger_1year"])
+# transient models digitized by M. Cataldo, taken from https://doi.org/10.48550/arXiv.1810.09994, Fig. 8
 TRANSIENT_MODELS.__doc__ = r"Transient source fluences"
 TRANSIENT_MODELS.GRB_afterglow.__doc__ = r"GRB afterglow"
 TRANSIENT_MODELS.high_state_TDE.__doc__ = r"high state TDE"
 TRANSIENT_MODELS.blazar_flares.__doc__ = r"10x6 month blazar flares"
 TRANSIENT_MODELS.sGRB_NSmerger.__doc__ = r"short GRB from BNS merger"
+# transient models taken from ApJ 849 153, https://doi.org/10.3847/1538-4357/aa8b6a, Fig.4
 TRANSIENT_MODELS.BNS_merger_8hours.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e3.5-1e4.5 s after merger"
 TRANSIENT_MODELS.BNS_merger_3days.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e4.5-1e5.5 s after merger"
 TRANSIENT_MODELS.BNS_merger_1month.__doc__ = r"Fang&Metzger fluence for binary neutron star merger 1e5.5-1e6.5 s after merger"
