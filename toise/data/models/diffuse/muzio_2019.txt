@@ -1,3 +1,4 @@
+# Muzio et al., maximum extra p component (cosmogenic + source), Phys. Rev. D 100, 103008 (2019)
 # Energy [GeV], E**2 Flux [GeV cm^-2] (nue anue numu anumu nutau anutau)
 1.01625e+03, 8.62261e-15, 8.62261e-15, 1.03876e-14, 1.03876e-14, 9.89575e-15, 9.89575e-15
 1.04954e+03, 9.22458e-15, 9.22458e-15, 1.11128e-14, 1.11128e-14, 1.05866e-14, 1.05866e-14

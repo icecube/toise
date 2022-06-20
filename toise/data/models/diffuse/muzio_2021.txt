@@ -1,3 +1,4 @@
+# Muzio et al., cosmic ray-gas interactions (cosmogenic + source), Phys. Rev. D 105, 023022 (2022)
 # Energy [GeV], E**2 Flux [GeV cm^-2] (nue anue numu anumu nutau anutau)
 1.01625e+03, 1.88292e-13, 2.00010e-13, 1.74114e-13, 1.78735e-13, 1.71846e-13, 1.75787e-13
 1.04954e+03, 1.91937e-13, 2.05660e-13, 1.77319e-13, 1.82988e-13, 1.74993e-13, 1.79888e-13

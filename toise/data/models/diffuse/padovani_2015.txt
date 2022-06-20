@@ -1,3 +1,4 @@
+# Padovani et al. BL Lacs (source), Mon. Not. Roy. Astron. Soc. 452, 1877 (2015)
 # Energy [GeV], E**2 Flux [GeV cm^-2] (nue anue numu anumu nutau anutau)
 1.01625e+03, 1.33159e-13, 1.33159e-13, 1.60417e-13, 1.60417e-13, 1.52820e-13, 1.52820e-13
 1.04954e+03, 1.42542e-13, 1.42542e-13, 1.71720e-13, 1.71720e-13, 1.63589e-13, 1.63589e-13

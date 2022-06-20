@@ -1,3 +1,4 @@
+# Bergman & van Vliet, fit to TA UHECRs (cosmogenic), cf. arXiv:2004.09841, Fig. 3
 # Energy [GeV], E**2 Flux [GeV cm^-2] (nue anue numu anumu nutau anutau)
 1.01625e+03, 3.77046e-13, 0.00000e+00, 6.58497e-13, 0.00000e+00, 6.30445e-13, 0.00000e+00
 1.04954e+03, 3.76903e-13, 0.00000e+00, 6.58246e-13, 0.00000e+00, 6.30205e-13, 0.00000e+00

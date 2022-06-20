@@ -1,3 +1,4 @@
+# Fang et al., newborn pulsars (source), Phys. Rev. D 90, 103005 (2014)
 # Energy [GeV], E**2 Flux [GeV cm^-2] (nue anue numu anumu nutau anutau)
 1.01625e+03, 6.50808e-12, 6.50808e-12, 7.84027e-12, 7.84027e-12, 7.46900e-12, 7.46900e-12
 1.04954e+03, 6.64003e-12, 6.64003e-12, 7.99923e-12, 7.99923e-12, 7.62043e-12, 7.62043e-12

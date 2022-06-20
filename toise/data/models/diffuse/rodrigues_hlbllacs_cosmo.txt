@@ -1,3 +1,4 @@
+# Rodrigues et al., HL BL Lacs (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)
 # Energy [GeV], E**2 Flux [GeV cm^-2] (nue anue numu anumu nutau anutau)
 1.01625e+03, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00
 1.04954e+03, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00

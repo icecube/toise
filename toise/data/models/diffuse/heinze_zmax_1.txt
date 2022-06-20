@@ -1,3 +1,4 @@
+# Heinze et al., fit to Auger UHECRs (cosmogenic), Astrophys. J. 873, 88 (2019)
 # Energy [GeV], E**2 Flux [GeV cm^-2] (nue anue numu anumu nutau anutau)
 1.01625e+03, 0.00000e+00, 2.59373e-18, 0.00000e+00, 9.44209e-19, 0.00000e+00, 1.39520e-18
 1.04954e+03, 0.00000e+00, 2.44763e-18, 0.00000e+00, 8.92852e-19, 0.00000e+00, 1.31802e-18
