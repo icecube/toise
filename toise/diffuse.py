@@ -32,7 +32,9 @@ DIFFUSE_MODELS = Enum("DIFFUSE_MODELS", ["fang_murase",
                            "rodrigues_bench_cosmo",
                            "rodrigues_bench_source",
                            "rodrigues_hlbllacs_cosmo",
-                           "van_vliet_ta", "AGNJetMax"])
+                           "van_vliet_ta",
+                           #"AGNJetMax"
+                           ])
 
 DIFFUSE_MODELS.fang_murase.filename              = "diffuse/fang_murase.txt"
 DIFFUSE_MODELS.fang_pulsar.filename              = "diffuse/fang_pulsar.txt"
@@ -44,12 +46,20 @@ DIFFUSE_MODELS.rodrigues_bench_cosmo.filename    = "diffuse/rodrigues_bench_cosm
 DIFFUSE_MODELS.rodrigues_bench_source.filename   = "diffuse/rodrigues_bench_source.txt"
 DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.filename = "diffuse/rodrigues_hlbllacs_cosmo.txt"
 DIFFUSE_MODELS.van_vliet_ta.filename             = "diffuse/van_vliet_ta.txt"
-DIFFUSE_MODELS.AGNJetMax.filename                = "diffuse/AGN_jet_max_allowed_Rodrigues_et_al_PRL_126_191101.csv"
+#DIFFUSE_MODELS.AGNJetMax.filename                = "diffuse/AGN_jet_max_allowed_Rodrigues_et_al_PRL_126_191101.csv"
 
-
-DIFFUSE_MODELS.AGNJetMax.__doc__ = """Active Galactic Nuclei Jets as the Origin of Ultrahigh-Energy Cosmic Rays and Perspectives for the Detection of Astrophysical Source Neutrinos at EeV Energies
-                                      Xavier Rodrigues, Jonas Heinze, Andrea Palladino, Arjen van Vliet, and Walter Winter
-                                      Phys. Rev. Lett. 126, 191101, Figure 2, top right"""
+# diffuse digitized models provided by V. Valera & M. Bustamante, cf. https://arxiv.org/abs/2204.04237
+DIFFUSE_MODELS.fang_murase.__doc__              = "Fang & Murase, cosmic-ray reservoirs (cosmogenic + source), Nature Phys. 14, 396 (2018)"
+DIFFUSE_MODELS.fang_pulsar.__doc__              = "Fang et al., newborn pulsars (source), Phys. Rev. D 90, 103005 (2014)"
+DIFFUSE_MODELS.heinze_zmax_1.__doc__            = "Heinze et al., fit to Auger UHECRs (cosmogenic), Astrophys. J. 873, 88 (2019)"
+DIFFUSE_MODELS.muzio_2019.__doc__               = "Muzio et al., maximum extra p component (cosmogenic + source), Phys. Rev. D 100, 103008 (2019)"
+DIFFUSE_MODELS.muzio_2021.__doc__               = "Muzio et al., cosmic ray-gas interactions (cosmogenic + source), Phys. Rev. D 105, 023022 (2022)"
+DIFFUSE_MODELS.padovani_2015.__doc__            = "Padovani et al. BL Lacs (source), Mon. Not. Roy. Astron. Soc. 452, 1877 (2015)"
+DIFFUSE_MODELS.rodrigues_bench_cosmo.__doc__    = "Rodrigues et al., all AGN (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
+DIFFUSE_MODELS.rodrigues_bench_source.__doc__   = "Rodrigues et al., all AGN (source), Phys. Rev. Lett. 126, 191101 (2021)"
+DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.__doc__ = "Rodrigues et al., HL BL Lacs (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
+DIFFUSE_MODELS.van_vliet_ta.__doc__             = "Bergman & van Vliet, fit to TA UHECRs (cosmogenic), cf. arXiv:2004.09841, Fig. 3"
+#DIFFUSE_MODELS.AGNJetMax.__doc__                = "AGN Jets, maximum allowed source, Rodrigues et al., Phys. Rev. Lett. 126, 191101 (2021)"
 
 class NullComponent(object):
     """
