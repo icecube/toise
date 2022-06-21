@@ -49,10 +49,12 @@ def edge(x):
 
 
 class constants:
+    second = 1.
     day = 24 * 3600.0
     annum = 365 * day
     cm = 1e2
     cm2 = 1e4
+    Mpc = 1e6 #use pc as default units
 
 
 class baseEnum(int):

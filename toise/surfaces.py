@@ -49,7 +49,7 @@ def get_geometry_file(geometry="Sunflower", spacing=200):
 def get_radio_geometry_file(geometry="Gen2_baseline_array"):
 
     if geometry == "Gen2_baseline_array":
-        path = os.path.join(data_dir, "geometries", "{}.json".format(geometry))
+        path = os.path.join(data_dir, "geometries", "{}.json.bz2".format(geometry))
         # the center of the arrays in the json files are at 0,0
         # but they really need to be displaced into the IceCube coordinate system
         center_x = -11760.249614931281
