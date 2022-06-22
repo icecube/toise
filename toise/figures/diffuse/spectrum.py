@@ -150,19 +150,36 @@ def unfold_llh(chunk_llh):
 
 
 @ecached(
-    __name__ + ".unfolding.{exposures}.{astro}.{gamma}.emax{emax}.{gzk}x{gzk_norm}",
+    __name__ + ".unfolding.{exposures}.{astro}.{gamma}.emax{emax}.{gzk}x{gzk_norm}.{astro_model}",
     timeout=2 * 24 * 3600,
 )
-def unfold_bundle(exposures, astro, gamma, gzk="vanvliet", gzk_norm=1, emax=1e9):
+def unfold_bundle(exposures, astro, gamma, gzk="vanvliet", gzk_norm=1, astro_model="powerlaw",emax=1e9):
     bundle = factory.component_bundle(dict(exposures), make_components)
+    
     assert gzk == "vanvliet"
-
-    def seed_flux(energy):
+    
+    def powerlaw_flux(energy):
         # NB: ArbitraryFlux assumes all-flavor flux, and divides by 6 to get per-particle
         return 3 * (
             astro * powerlaw(energy, gamma, emax)
-            + gzk_norm * diffuse.VanVlietGZKFlux()(energy)
+            +  gzk_norm * diffuse.VanVlietGZKFlux()(energy)
         )
+       
+    def dip_spectrum(energy):
+        # NB: this is the model with a dip at few hundred GeV fom the 6yr cascade paper (https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.125.121104)
+        return 3 * ( 
+            4.3e-18 * ((energy/1.e5)**-2)*np.exp(-energy/10**5.1)
+            + 1.3e-21 * ((energy/1.e6)**-1.25)*np.exp(-(energy/(10**7.3))**0.5)
+            +  gzk_norm * diffuse.VanVlietGZKFlux()(energy)
+        )
+
+    function_map={
+        'powerlaw': powerlaw_flux,
+        'cascade_paper_dip_spectrum': dip_spectrum
+    }
+
+    assert(astro_model in list(function_map.keys()))
+    seed_flux=function_map[astro_model]
 
     result = unfold_llh(asimov_llh(bundle, seed_flux))
     for k, v in diffuse.DiffuseAstro.__dict__.items():
@@ -184,8 +201,9 @@ def unfold(
     gamma=-2.5,
     gzk="vanvliet",
     gzk_norm=1.0,
+    astro_model='powerlaw',
     emax=1e9,
-    clean=False,
+    clean=False
 ):
     """
     Calculate exclusion confidence levels for alternate flavor ratios, assuming
@@ -198,10 +216,10 @@ def unfold(
     """
     if clean:
         unfold_bundle.invalidate_cache_by_key(
-            exposures, astro, gamma, gzk, gzk_norm, emax
+            exposures, astro, gamma, gzk, gzk_norm, astro_model, emax
         )
     xlimits, ycenters, ylimits = unfold_bundle(
-        exposures, astro, gamma, gzk, gzk_norm, emax
+        exposures, astro, gamma, gzk, gzk_norm, astro_model, emax
     )
 
     return {
@@ -663,7 +681,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
 
 @figure
 def unfolded_flux_plus_sensitivity_mm(
-    datasets, sensitivity, label="Gen2-InIce+Radio", plot_elements=None
+    datasets, sensitivity, label="Gen2-InIce+Radio", plot_elements=None, ax=None
 ):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
@@ -677,14 +695,17 @@ def unfolded_flux_plus_sensitivity_mm(
         "ehe",
         "gen2_unfolding",
         "gen2_sensitivity",
-        "model_flux"
+        "model_flux_powerlaw"
     ]
     if plot_elements is None:
         plot_elements = _default_plot_elements
     group_label_ic, group_label_gen2 = False, False
 
-    fig = plt.figure(figsize=(7, 3.5), dpi=300)
-    ax = plt.gca()
+    if ax is None:
+        fig = plt.figure(figsize=(6.2, 3.5), dpi=300)
+        ax = plt.gca()
+    else:
+        plt.sca(ax)
 
     if "cr" in plot_elements:
         plot_crs(ax)
@@ -743,10 +764,16 @@ def unfolded_flux_plus_sensitivity_mm(
         poly_handle.append(Patch(alpha=0.5, edgecolor="#566573", facecolor="lightgrey"))
         poly_label.append("IceCube")
 
-    if 'model_flux' in plot_elements:
+    if 'model_flux_powerlaw' in plot_elements:
         x = np.logspace(3.85, 7.15, 51)
         pl = x**2 * args["astro"] * powerlaw(x, args["gamma"], args["emax"])
-        ax.plot(x, 3 * pl, ls=":", lw=1, color='darkblue',zorder=200,label='astrophysical flux model')
+        ax.plot(x, 3 * pl, ls=":", lw=1, color='darkblue',zorder=200,label='Astrophysical flux model\n(power law, index = -2.5)')
+
+    if 'model_flux_dip_spectrum' in plot_elements:
+        x = np.logspace(3.85, 7.15, 51)
+        dip = x**2 * ( 4.3e-18 * ((x/1.e5)**-2)*np.exp(-x/10**5.1)
+            + 1.3e-21 * ((x/1.e6)**-1.25)*np.exp(-(x/(10**7.3))**0.5) )
+        ax.plot(x, 3 * dip, ls=":", lw=1, color='darkblue',zorder=200,label='Astrophysical flux model\n(Aartsen et al., PRL 2020, model E)')
    
     if 'gen2_unfolding' in plot_elements:
         plot_kwargs = dict(linestyle="None", marker="o", markersize=0,color='#1f77b4')
@@ -802,7 +829,7 @@ def unfolded_flux_plus_sensitivity_mm(
 
     ax.set_xscale("log")
     ax.set_yscale("log", nonpositive="clip")
-    ax.set_ylim(3e-11, 5e-5)
+    ax.set_ylim(5e-11, 1e-4)
     ax.set_xlabel(r"$E\,\,[\mathrm{GeV}]$")
     ax.set_ylabel(
         r"$E^{2}\times\Phi\,\,[\mathrm{GeV}\,\mathrm{s}^{-1}\,\mathrm{sr}^{-1}\,\mathrm{cm}^{-2}]$"
@@ -834,8 +861,8 @@ def unfolded_flux_plus_sensitivity_mm(
         ax.set_xlim(5e-2, 3e11)
         ax.xaxis.set_ticks(np.logspace(-1, 11, 13))
     else:
-        ax.set_xlim(3e3, 3e11)
-        ax.set_ylim(3e-11, 3e-6)
+        ax.set_xlim(3e3, 1e11)
+        ax.set_ylim(5e-11, 3e-6)
         ax.xaxis.set_ticks(np.logspace(4, 11, 8))
 
     plt.tight_layout()
@@ -843,8 +870,8 @@ def unfolded_flux_plus_sensitivity_mm(
 
 
 @figure
-def unfolded_flux_plus_sensitivity(datasets, sensitivity, label="Gen2-InIce+Radio",plot_elements=None):
-    _default_plot_elements=['10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity','model_flux']
+def unfolded_flux_plus_sensitivity(datasets, sensitivity, label="Gen2-InIce+Radio",plot_elements=None,ax=None):
+    _default_plot_elements=['10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity','model_flux_powerlaw']
     if plot_elements is None: plot_elements=_default_plot_elements
-    return unfolded_flux_plus_sensitivity_mm(datasets,sensitivity,label,plot_elements)
+    return unfolded_flux_plus_sensitivity_mm(datasets,sensitivity,label,plot_elements,ax)
 
