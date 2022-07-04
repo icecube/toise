@@ -258,7 +258,7 @@ def flux_error(datasets):
     return ax.figure
 
 
-def get_ic_contour(source="lars"):
+def get_ic_contour(source="lars",all_flavor=True):
     # 99% confidence interval
     if source == "lars":
         return np.loadtxt(
@@ -366,18 +366,20 @@ def get_ic_contour(source="lars"):
         raise RuntimeError("Unknown IceCube result.")
 
     # factor of 3 for all-flavor
-    dat[:, 1] *= 3
+    if all_flavor: dat[:, 1] *= 3
     return dat
 
 
-def plot_ic_data(ax,source,**kwargs):
+def plot_ic_data(ax,source,all_flavor=True,**kwargs):
+    if all_flavor: flavf=3.
+    else: flavf=1.
     if source == '10y_diffuse':
         dat = np.loadtxt(StringIO("""
-        5874.68 3.09105e-08     2875.48     9361.91      0      0
+#        5874.68 3.09105e-08     2875.48     9361.91      0      0
         44356   2.21612e-08     29730.9 58847.9 7.86045e-09     7.95203e-09     
         276700  1.21079e-08     173496  442646  2.96006e-09     3.05292e-09     
         1.82456e+06     3.33051e-09     1.10522e+06     3.15858e+06     1.73494e-09     2.20532e-09    
-        1.94433e+07     4.04861e-09     1.44499e+07     3.02453e+07     0       0
+#        1.94433e+07     4.04861e-09     1.44499e+07     3.02453e+07     0       0
         """)).transpose()
     if source == 'glashow_nature':
         dat = np.array([[4.62979e+06,6.30957e+06,8.56512e+06],[1.14994e-07,5.67596e-09,7.29325e-07],[620830,916725,1.19692e+06],[787417,1.07256e+06,1.39135e+06],[0,3.2638e-09,0],[0,2.81791e-08,0]])
@@ -401,11 +403,11 @@ def plot_ic_data(ax,source,**kwargs):
 #        dat=dat[:,:-4]
     is_limit= ((dat[4]==0) & (dat[5]==0))
     dat[4]=np.where(is_limit,0.3*dat[1],dat[4])    
-    ax.errorbar(dat[0],3*dat[1],xerr=dat[2:4],yerr=3*dat[4:],uplims=is_limit,linestyle='',**kwargs) 
+    ax.errorbar(dat[0],flavf*dat[1],xerr=dat[2:4],yerr=flavf*dat[4:],uplims=is_limit,linestyle='',capsize=0,**kwargs) 
     return ax
 
 
-def plot_ic_limit(ax, source, **kwargs):
+def plot_ic_limit(ax, source, all_flavor=True,**kwargs):
     if source == "ehe_limit":
         # IceCube
         # log (E^2 * Phi [GeV cm^02 s^-1 sr^-1]) : log (E [Gev])
@@ -438,6 +440,7 @@ def plot_ic_limit(ax, source, **kwargs):
 
         ice_cube_limit[:, 0] = 10 ** ice_cube_limit[:, 0]
         ice_cube_limit[:, 1] = 10 ** ice_cube_limit[:, 1]
+        if not all_flavor: ice_cube_limit[:,1] /= 3.
     ax.errorbar(
         ice_cube_limit[:, 0],
         ice_cube_limit[:, 1],
@@ -534,7 +537,7 @@ def unfolded_flux(datasets, label="Gen2-InIce+Radio"):
         label="IceCube (tracks only, ApJ 2016)"
     )
 
-    ax.loglog(nonposy="clip")
+    ax.loglog(nonpositive="clip")
     ax.set_xlim((1e4, 2e9))
     ax.set_ylim((2e-9, 1e-6))
     ax.set_xlabel("Neutrino energy (GeV)")
@@ -552,7 +555,7 @@ def unfolded_flux(datasets, label="Gen2-InIce+Radio"):
         frameon=False,
     )
 
-    plt.tight_layout(0.1)
+    plt.tight_layout()
     return ax.figure
 
 
@@ -589,7 +592,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     import matplotlib.pyplot as plt
     from matplotlib.container import ErrorbarContainer
 
-    fig = plt.figure(figsize=(7, 3.5))
+    fig = plt.figure(figsize=(7, 3.5),dpi=300)
     ax = plt.gca()
 
     plot_crs(ax)
@@ -650,7 +653,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     )
 
     ax.set_xscale("log")
-    ax.set_yscale("log", nonposy="clip")
+    ax.set_yscale("log", nonpositive="clip")
     ax.set_ylim(5e-11, 5e-5)
     ax.set_xlabel(r"$E\,\,[\mathrm{GeV}]$")
     ax.set_ylabel(
@@ -675,13 +678,13 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     #     ax.xaxis.set_major_formatter(plt.NullFormatter())
     #     ax.set_xlabel('')
 
-    plt.tight_layout(0.1)
+    plt.tight_layout()
     return ax.figure
 
 
 @figure
 def unfolded_flux_plus_sensitivity_mm(
-    datasets, sensitivity, label="Gen2-InIce+Radio", plot_elements=None, ax=None
+    datasets, sensitivity, label="Gen2-InIce+Radio", plot_elements=None, all_flavor=True, ax=None
 ):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
@@ -701,6 +704,8 @@ def unfolded_flux_plus_sensitivity_mm(
         plot_elements = _default_plot_elements
     group_label_ic, group_label_gen2 = False, False
 
+    if all_flavor: flavor_factor=3
+    else: flavor_factor=1
     if ax is None:
         fig = plt.figure(figsize=(6.2, 3.5), dpi=300)
         ax = plt.gca()
@@ -723,43 +728,54 @@ def unfolded_flux_plus_sensitivity_mm(
         group_label_ic = True
 
     if "10y_diffuse_butterfly" in plot_elements:
+        if 'ic+label+color' in plot_elements: legend_entry,plot_color,group_label_ic = 'IceCube tracks (power-law model)','darkblue',False
+        else: legend_entry,plot_color,group_label_ic = None,"#566573",True
+        if '10y_diffuse' in plot_elements: legend_entry=None
         poly1 = plt.Polygon(
-            np.array(get_ic_contour("10y_diffuse")),
-            edgecolor="#566573",
-            alpha=0.5,
+            np.array(get_ic_contour("10y_diffuse",all_flavor=all_flavor)),
+            edgecolor=plot_color,
+            alpha=1.0,
             fill=False,
+            label=legend_entry,
         )
         ax.add_patch(poly1)
-        group_label_ic = True
 
     if "6y_cascade_butterfly" in plot_elements:
+        if 'ic+label+color' in plot_elements: legend_entry,plot_color,group_label_ic = 'IceCube showers (power-law model)','#1f77b4',False
+        else: legend_entry,plot_color,group_label_ic = None,"lightgrey",True
+        if '6y_cascade' in plot_elements:legend_entry=None
         poly2 = plt.Polygon(
-            np.array(get_ic_contour("6y_cascades")),
+            np.array(get_ic_contour("6y_cascades",all_flavor=all_flavor)),
             edgecolor=None,
             alpha=0.5,
-            color="lightgrey",
+            color=plot_color,
+            label=legend_entry,
         )
-        ax.add_patch(poly2)
-        group_label_ic=True
+        ax.add_patch(poly2,)
     
     if '10y_diffuse' in plot_elements:
-        plot_ic_data(ax,'10y_diffuse',color="#566573",lw=1,alpha=0.8,marker='o',markersize=3)
-        group_label_ic=True
+        if 'ic+label+color' in plot_elements: legend_entry,plot_color,group_label_ic = 'IceCube tracks, Aartsen et al., ApJ, 2022','darkblue',False
+        else: legend_entry,plot_color,group_label_ic = None,"#566573",True
+        plot_ic_data(ax,'10y_diffuse',color=plot_color,lw=1,alpha=0.8,marker='o',markersize=4,label=legend_entry,all_flavor=all_flavor)
 
     if '6y_cascade' in plot_elements:
-        plot_ic_data(ax,'6y_cascades',color="grey",lw=1,alpha=0.8,marker='s',markersize=3)
-        group_label_ic=True
-
+        if 'ic+label+color' in plot_elements: legend_entry,plot_color,group_label_ic = 'IceCube showers, Aartsen et al., PRL, 2020','#1f77b4',False
+        else: legend_entry,plot_color,group_label_ic = None,"grey",True
+        plot_ic_data(ax,'6y_cascades',color=plot_color,lw=1,alpha=0.8,marker='s',markersize=4,label=legend_entry,all_flavor=all_flavor)
+  
     if 'glashow' in plot_elements:
-        plot_ic_data(ax,'glashow_nature',color="#768593",lw=1,alpha=0.8,marker='P',markersize=3)
-        group_label_ic=True
+        if 'ic+label+color' in plot_elements: legend_entry,plot_color,group_label_ic = 'IceCube Glashow, Aartsen et al., Nature, 2021','#3f97F4',False
+        else: legend_entry,plot_color,group_label_ic = None,"#768593",True
+        plot_ic_data(ax,'glashow_nature',color=plot_color,lw=1,alpha=0.8,marker='P',markersize=4,label=legend_entry,all_flavor=all_flavor)
     
     if 'ehe' in plot_elements:
-        plot_ic_limit(ax,'ehe_limit',color="grey",lw=1,alpha=0.5) 
-        group_label_ic=True
+        if 'ic+label+color' in plot_elements: legend_entry,plot_color,group_label_ic = 'IceCube EHE, Aartsen et al., PRD, 2018','#1f77b4',False
+        else: legend_entry,plot_color,group_label_ic = None,"grey",True
+        plot_ic_limit(ax,'ehe_limit',color=plot_color,lw=1,alpha=0.5,label=legend_entry,all_flavor=all_flavor) 
     
     poly_handle,poly_label = [],[] 
 
+    print(group_label_ic)
     if group_label_ic:
         poly_handle.append(Patch(alpha=0.5, edgecolor="#566573", facecolor="lightgrey"))
         poly_label.append("IceCube")
@@ -767,13 +783,13 @@ def unfolded_flux_plus_sensitivity_mm(
     if 'model_flux_powerlaw' in plot_elements:
         x = np.logspace(3.85, 7.15, 51)
         pl = x**2 * args["astro"] * powerlaw(x, args["gamma"], args["emax"])
-        ax.plot(x, 3 * pl, ls=":", lw=1, color='darkblue',zorder=200,label='Astrophysical flux model\n(power law, index = -2.5)')
+        ax.plot(x, flavor_factor * pl, ls=":", lw=1, color='darkblue',zorder=200,label='Astrophysical flux model\n(power law, index = -2.5)')
 
     if 'model_flux_dip_spectrum' in plot_elements:
         x = np.logspace(3.85, 7.15, 51)
         dip = x**2 * ( 4.3e-18 * ((x/1.e5)**-2)*np.exp(-x/10**5.1)
             + 1.3e-21 * ((x/1.e6)**-1.25)*np.exp(-(x/(10**7.3))**0.5) )
-        ax.plot(x, 3 * dip, ls=":", lw=1, color='darkblue',zorder=200,label='Astrophysical flux model\n(Aartsen et al., PRL 2020, model E)')
+        ax.plot(x, flavor_factor * dip, ls=":", lw=1, color='darkblue',zorder=200,label='Astrophysical flux model\n(Aartsen et al., PRL 2020, model E)')
    
     if 'gen2_unfolding' in plot_elements:
         plot_kwargs = dict(linestyle="None", marker="o", markersize=0,color='#1f77b4')
@@ -782,7 +798,7 @@ def unfolded_flux_plus_sensitivity_mm(
             ylimits = np.array(dataset["data"]["ylimits"])
             yvalues = np.array(dataset["data"]["ycenters"])
             # factor 3 for all-flavor convention!
-            unit = 3e-8
+            unit = flavor_factor* 1e-8
             ylimits *= unit
             yvalues *= unit
 
@@ -829,7 +845,6 @@ def unfolded_flux_plus_sensitivity_mm(
 
     ax.set_xscale("log")
     ax.set_yscale("log", nonpositive="clip")
-    ax.set_ylim(5e-11, 1e-4)
     ax.set_xlabel(r"$E\,\,[\mathrm{GeV}]$")
     ax.set_ylabel(
         r"$E^{2}\times\Phi\,\,[\mathrm{GeV}\,\mathrm{s}^{-1}\,\mathrm{sr}^{-1}\,\mathrm{cm}^{-2}]$"
@@ -847,31 +862,36 @@ def unfolded_flux_plus_sensitivity_mm(
         label_idx -= 1
     order += range(0, label_idx + 1)
     osorted = lambda items, order: [x for _, x in sorted(zip(order, items))]
+    if "ic+label+color" in plot_elements and 'cr' not in plot_elements: legend_ncol=1
+    else: legend_ncol=2
     ax.legend(
         [handles[i] for i in order],
         [labels[i] for i in order],
         loc="upper center",
-        ncol=2,
+        ncol=legend_ncol,
         frameon=False,
-        fontsize="small",
+        fontsize='small',
     )
     ax.yaxis.set_tick_params(which="both")
     ax.yaxis.set_ticks_position("both")
     if "cr" in plot_elements:
         ax.set_xlim(5e-2, 3e11)
+        if all_flavor: ax.set_ylim(5e-11, 1e-4)
+        else: ax.set_ylim(1e-11, 3e-5)
         ax.xaxis.set_ticks(np.logspace(-1, 11, 13))
     else:
         ax.set_xlim(3e3, 1e11)
-        ax.set_ylim(5e-11, 3e-6)
-        ax.xaxis.set_ticks(np.logspace(4, 11, 8))
+        if all_flavor: ax.set_ylim(1e-10, 1e-5)
+        else: ax.set_ylim(3e-11, 3e-6)
+        ax.xaxis.set_ticks(np.logspace(3, 11, 9))
 
     plt.tight_layout()
     return ax.figure
 
 
 @figure
-def unfolded_flux_plus_sensitivity(datasets, sensitivity, label="Gen2-InIce+Radio",plot_elements=None,ax=None):
+def unfolded_flux_plus_sensitivity(datasets, sensitivity, label="Gen2-InIce+Radio",plot_elements=None,all_flavor=True,ax=None):
     _default_plot_elements=['10y_diffuse','6y_cascade','glashow','ehe','gen2_unfolding','gen2_sensitivity','model_flux_powerlaw']
     if plot_elements is None: plot_elements=_default_plot_elements
-    return unfolded_flux_plus_sensitivity_mm(datasets,sensitivity,label,plot_elements,ax)
+    return unfolded_flux_plus_sensitivity_mm(datasets,sensitivity,label,plot_elements,all_flavor,ax)
 
