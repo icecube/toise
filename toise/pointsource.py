@@ -122,7 +122,6 @@ class PointSource(object):
         # we're on the correct side
         lo = ebins.searchsorted(emin - 1e-4)
         hi = min((ebins.searchsorted(emax - 1e-4) + 1, loge.size))
-
         if exclusive:
             bins = list(range(lo, hi - 1, bin_range))
         else:
@@ -608,6 +607,8 @@ def differential_discovery_potential(
     baseline=None,
     tolerance=1e-2,
     decades=0.5,
+    emin=-numpy.inf,
+    emax=numpy.inf,
     **fixed
 ):
     """
@@ -622,7 +623,7 @@ def differential_discovery_potential(
     sensitivities = []
     ns = []
     nb = []
-    for energy, pschunk in point_source.differential_chunks(decades=decades):
+    for energy, pschunk in point_source.differential_chunks(decades=decades, emin=emin, emax=emax):
         energies.append(energy)
         norm, _ns, _nb = discovery_potential(
             pschunk, diffuse_components, sigma, baseline, tolerance, **fixed

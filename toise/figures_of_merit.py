@@ -157,7 +157,7 @@ class PointSource(object):
             exposures, partial(self.make_components, zi)
         )
 
-    def benchmark(self, fom, gamma=-2.0, diff_gamma=-2.3, **kwargs):
+    def benchmark(self, fom, gamma=-2.0, diff_gamma=-2.5, **kwargs):
         components = self.bundle.get_components()
         ps = components.pop("ps")
 
@@ -166,8 +166,8 @@ class PointSource(object):
         if len(kwargs) != 0:
             raise ValueError("Can't take kwargs")
         if emin is not None:
-            if fom not in (TOT.dp, TOT.ul, TOT.fc):
-                raise ValueError("emin argument not supported for FoM {}".format(fom))
+    #        if fom not in (TOT.dp, TOT.ul, TOT.fc):
+    #            raise ValueError("emin argument not supported for FoM {}".format(fom))
             ecenter, ps = next(ps.differential_chunks(emin=emin, decades=1000))
         # assume all backgrounds known perfectly
         kwargs = {k: v.seed for k, v in components.items()}
@@ -208,6 +208,7 @@ class PointSource(object):
                 ps_gamma=gamma,
                 tolerance=1e-4,
                 decades=decades,
+                emin=emin,
                 **kwargs
             )
         elif fom == DIFF.dp:
@@ -218,6 +219,7 @@ class PointSource(object):
                 ps_gamma=-2,
                 tolerance=1e-4,
                 decades=decades,
+                emin=emin,
                 **kwargs
             )
         else:

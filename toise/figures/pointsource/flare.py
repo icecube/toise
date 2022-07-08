@@ -55,8 +55,8 @@ def sensitivity(exposures, decades=1, gamma=-2, emin=0.0):
         )
         for flabel, q in figures.items():
             kwargs = {"gamma": gamma, "decades": decades}
-            if not flabel.startswith("differential"):
-                kwargs["emin"] = emin
+ #           if not flabel.startswith("differential"):
+            kwargs["emin"] = emin
             val = fom.benchmark(q, **kwargs)
             if not flabel in meta:
                 meta[flabel] = {}

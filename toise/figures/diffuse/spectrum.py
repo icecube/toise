@@ -132,7 +132,7 @@ def unfold_llh(chunk_llh):
     import toolz
 
     fixed = dict(gamma=-2, prompt=1, atmo=1, muon=1)
-    fit = chunk_llh.fit(minimizer_params=dict(epsilon=1e-2), **fixed)
+    fit = chunk_llh.fit(minimizer_params=dict(options=dict(epsilon=1e-2)), **fixed)
     is_astro = partial(filter, lambda s: s.startswith("astro"))
     keys = toolz.pipe(list(chunk_llh.components.keys()), is_astro, sorted)[4:]
     xlimits = np.array(
