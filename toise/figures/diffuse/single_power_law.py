@@ -47,6 +47,7 @@ def make_components(aeffs, emin=1e2, emax=1e11):
         components["muon"] = surface_veto.MuonBundleBackground(muon_aeff, 1)
     return components
 
+
 @lru_cache()
 def asimov_llh(bundle, seed_flux, decades=1.0 / 3, emin=1e2, emax=1e11):
     components = bundle.get_components()
@@ -62,6 +63,7 @@ def asimov_llh(bundle, seed_flux, decades=1.0 / 3, emin=1e2, emax=1e11):
             bundle, seed_flux=seed_flux, decades=decades, emin=emin, emax=emax
         ).get_components()
     )
+
 
 def psi_binning():
     factory.set_kwargs(
@@ -100,7 +102,9 @@ def contour(
 
     fixed = {"atmo": 1, "muon": 1, "prompt": 1}
 
-    for g, n in tqdm(product(gamma_axis, norm_axis), total=len(norm_axis)*len(gamma_axis)):
+    for g, n in tqdm(
+        product(gamma_axis, norm_axis), total=len(norm_axis) * len(gamma_axis)
+    ):
         fit = llh.fit(astro=n, gamma=g, **fixed)
         fit["LLH"] = llh.llh(**fit)
         params.append(fit)
@@ -110,10 +114,11 @@ def contour(
     meta = {
         "astro": astro_v.tolist(),
         "gamma": gamma_v.tolist(),
-        "confidence_level": (stats.chi2.cdf(ts.T, 2) * 100).tolist()
+        "confidence_level": (stats.chi2.cdf(ts.T, 2) * 100).tolist(),
     }
-    
+
     return meta
+
 
 @figure
 def contour(datasets):
@@ -129,9 +134,10 @@ def contour(datasets):
             values["astro"],
             np.asarray(values["confidence_level"]).T,
             levels=[
-                68, 90,
+                68,
+                90,
             ],
-            linestyles=['-', '--'],
+            linestyles=["-", "--"],
             colors=handles[-1].get_color(),
         )
     ax.legend(handles, labels)
@@ -140,10 +146,10 @@ def contour(datasets):
 
     return ax.figure
 
+
 def northern_only():
-    factory.set_kwargs(
-        cos_theta=np.linspace(-1, 1, 21)[:12]
-    )
+    factory.set_kwargs(cos_theta=np.linspace(-1, 1, 21)[:12])
+
 
 @figure_data(setup=(psi_binning, northern_only))
 def event_counts(
@@ -153,13 +159,7 @@ def event_counts(
     clean=False,
 ):
     """
-    Calculate exclusion confidence levels for alternate flavor ratios, assuming
-    Wilks theorem.
-
-    :param astro: per-flavor astrophysical normalization at 100 TeV, in 1e-18 GeV^-2 cm^-2 sr^-1 s^-1
-    :param gamma: astrophysical spectral index
-    :param steps: number of steps along one axis of flavor scan
-    :param gamma_step: granularity of optimization in spectral index. if 0, the spectral index is fixed.
+    Calculate expected event rates in the northern sky
     """
 
     bundle = factory.component_bundle(dict(exposures), make_components)
@@ -196,5 +196,72 @@ def event_counts(
             k[len(prefix) + 1 :]: v.sum(axis=0)[::-1].cumsum()[::-1]
             for k, v in llh.expectations(**params).items()
         }
+    meta["purity"] = {
+        channel: meta["event_counts"]["astro"][channel]
+        / (
+            meta["event_counts"]["astro"][channel]
+            + meta["event_counts"]["atmospheric"][channel]
+        )
+        for channel in meta["event_counts"]["astro"]
+    }
 
     return meta
+
+
+@figure
+def alert_rates(datasets):
+    ax1 = plt.gca()
+    ax2 = ax1.twinx()
+    labels = []
+    handles = []
+    for i, meta in enumerate(datasets):
+        handles.append(Line2D([0], [0], color=f"C{i}"))
+        labels.append(detector_label(meta["detectors"]))
+        values = meta["data"]
+
+        x = np.asarray(values["reco_energy_threshold"]["unshadowed_tracks"])
+        mask = (x >= 1e3) & (x <= 1e6)
+
+        rate = np.asarray(
+            values["event_counts"]["astro"]["unshadowed_tracks"]
+        ) + np.asarray(values["event_counts"]["atmospheric"]["unshadowed_tracks"])
+        purity = np.asarray(values["purity"]["unshadowed_tracks"])
+
+        ax1.plot(x[mask], rate[mask])
+        ax2.plot(x[mask], purity[mask])
+
+        # interpolate threshold for target purity
+        target_purity = [0.3, 0.5]
+        thresholds = np.interp(target_purity, purity, np.log(x))
+        count_above_threshold = np.interp(thresholds, np.log(x), rate)
+
+        for p, logx, y in zip(target_purity, thresholds, count_above_threshold):
+            ax2.annotate(
+                f"{p*100:.0f}%: {y:.1f} alerts/year",
+                (np.exp(logx), p),
+                (0 - i * 5 * 15, 15 + i * 15),
+                textcoords="offset points",
+                arrowprops=dict(arrowstyle="->", connectionstyle="angle3"),
+                color=f"C{i}",
+                zorder=50,
+                bbox=dict(
+                    facecolor="w",
+                    edgecolor="None",
+                    alpha=0.66,
+                    boxstyle="round,pad=0.1",
+                ),
+            )
+
+    ax1.set_ylabel("Northern-sky throughgoing tracks/year")
+    ax2.set_ylabel("Purity")
+    ax1.set_xlabel("(reconstructed) muon energy (GeV)")
+
+    ax1.loglog()
+
+    ax1.set_title(
+        f"$\Phi_{{\\rm astro}} = {meta['args']['astro']} \\times 10^{{-18}} (E_{{\\nu}}/100 \, {{\\rm TeV}})^{{ {meta['args']['gamma']} }} \,\, {{\\rm GeV^{{-1}} \, cm^{{-2}} \, sr^{{-1}} \, s^{{-1}} }}$"
+    )
+
+    ax2.legend(handles, labels)
+
+    return ax1.figure
