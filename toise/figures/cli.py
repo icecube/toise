@@ -8,7 +8,7 @@ from pkgutil import iter_modules
 import importlib
 import inspect
 
-from typing import Any, Literal, get_args, get_origin
+from typing import Any, Callable, Literal, Sequence, Union, get_args, get_origin
 
 try:
     from typing import List
@@ -144,6 +144,14 @@ def jsonify(obj):
         return obj
 
 
+def _maybe_call_sequence(f: Union[Callable, Sequence[Callable]]):
+    if isinstance(f, Callable):
+        f()
+    elif isinstance(f, Sequence):
+        for element in f:
+            _maybe_call_sequence(element)
+
+
 def make_figure_data():
     from toise import figures
 
@@ -189,8 +197,7 @@ def make_figure_data():
         )
 
     func, setup, teardown = args.pop("command")
-    if setup:
-        setup()
+    _maybe_call_sequence(setup)
     try:
         for exposure, outfile in zip(exposures, outfiles):
             meta = {
@@ -204,8 +211,7 @@ def make_figure_data():
             with gzip.open(outfile, "wt") as f:
                 json.dump(meta, f, indent=2)
     finally:
-        if teardown:
-            teardown()
+        _maybe_call_sequence(teardown)
 
 
 def load_gzip(fname):
