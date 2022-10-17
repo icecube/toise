@@ -147,11 +147,7 @@ def contour(datasets):
     return ax.figure
 
 
-def northern_only():
-    factory.set_kwargs(cos_theta=np.linspace(-1, 1, 21)[:12])
-
-
-@figure_data(setup=(psi_binning, northern_only))
+@figure_data(setup=(psi_binning,))
 def event_counts(
     exposures,
     astro=1.36,
@@ -179,22 +175,34 @@ def event_counts(
 
     flavors = {
         "astro": {"astro": 1},
-        "atmospheric": {"astro": 0, "atmo": 1, "prompt": 1, "muon": 0},
-        # "atmospheric": {"astro": 0, "atmo": 1, "prompt": 1, "muon": 1},
+        "atmospheric": {"astro": 0, "atmo": 1, "prompt": 1, "muon": 1},
     }
     prefix = exposures[0][0]
     energy_thresholds = {
         k[len(prefix) + 1 :]: v[0]._aeff.get_bin_edges("reco_energy")[:-1]
         for k, v in llh.components["astro"]._components.items()
     }
+    cos_theta = next(iter(llh.components["astro"]._components.values()))[
+        0
+    ]._aeff.get_bin_edges("true_zenith_band")
+    # find index of first band with upper edge above the horizon, then increment
+    # by one (i.e. include the first band that is entirely above the horizon in
+    # "upgoing")
+    horizon_index = np.where(cos_theta > 0)[0][0] + 1
 
     meta = {"reco_energy_threshold": energy_thresholds, "event_counts": {}}
     for label, values in flavors.items():
         params = dict(nominal)
         params.update(values)
         meta["event_counts"][label] = {
-            k[len(prefix) + 1 :]: v.sum(axis=0)[::-1].cumsum()[::-1]
+            f"{hemisphere}_{k[len(prefix) + 1 :]}": v[mask, :]
+            .sum(axis=0)[::-1]
+            .cumsum()[::-1]
             for k, v in llh.expectations(**params).items()
+            for hemisphere, mask in [
+                ("upgoing", slice(None, horizon_index)),
+                ("downgoing", slice(horizon_index, None)),
+            ]
         }
     meta["purity"] = {
         channel: meta["event_counts"]["astro"][channel]
@@ -223,9 +231,11 @@ def alert_rates(datasets):
         mask = (x >= 1e3) & (x <= 1e6)
 
         rate = np.asarray(
-            values["event_counts"]["astro"]["unshadowed_tracks"]
-        ) + np.asarray(values["event_counts"]["atmospheric"]["unshadowed_tracks"])
-        purity = np.asarray(values["purity"]["unshadowed_tracks"])
+            values["event_counts"]["astro"]["upgoing_unshadowed_tracks"]
+        ) + np.asarray(
+            values["event_counts"]["atmospheric"]["upgoing_unshadowed_tracks"]
+        )
+        purity = np.asarray(values["purity"]["upgoing_unshadowed_tracks"])
 
         ax1.plot(x[mask], rate[mask])
         ax2.plot(x[mask], purity[mask])
