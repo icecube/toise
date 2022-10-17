@@ -190,7 +190,11 @@ def event_counts(
     # "upgoing")
     horizon_index = np.where(cos_theta > 0)[0][0] + 1
 
-    meta = {"reco_energy_threshold": energy_thresholds, "event_counts": {}}
+    meta = {
+        "reco_energy_threshold": energy_thresholds,
+        "horizon": cos_theta[horizon_index],
+        "event_counts": {},
+    }
     for label, values in flavors.items():
         params = dict(nominal)
         params.update(values)
@@ -262,7 +266,9 @@ def alert_rates(datasets):
                 ),
             )
 
-    ax1.set_ylabel("Northern-sky throughgoing tracks/year")
+    ax1.set_ylabel(
+        f"Upgoing throughgoing tracks ($\\cos\\theta < {values['horizon']:.2f}$)"
+    )
     ax2.set_ylabel("Purity")
     ax1.set_xlabel("(reconstructed) muon energy (GeV)")
 
