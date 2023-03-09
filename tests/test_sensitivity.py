@@ -25,14 +25,9 @@ def components(dummy_configuration):
     def make_components(aeffs: tuple[effective_area, Optional[effective_area]]):
         aeff, muon_aeff = aeffs
 
-        energy_threshold = np.inf
-        atmo = diffuse.AtmosphericNu.conventional(
-            aeff, 1, hard_veto_threshold=energy_threshold
-        )
+        atmo = diffuse.AtmosphericNu.conventional(aeff, 1)
         atmo.prior = lambda v, **kwargs: -((v - 1) ** 2) / (2 * 0.1**2)
-        prompt = diffuse.AtmosphericNu.prompt(
-            aeff, 1, hard_veto_threshold=energy_threshold
-        )
+        prompt = diffuse.AtmosphericNu.prompt(aeff, 1)
         prompt.min = 0.5
         prompt.max = 3.0
         astro = diffuse.DiffuseAstro(aeff, 1)
