@@ -516,7 +516,7 @@ class effective_area(object):
     @property
     def nside(self):
         assert self.is_healpix
-        return self.nring / 4 + 1
+        return self.nring // 4 + 1
 
     @property
     def nring(self):
