@@ -133,5 +133,5 @@ def performance(tabulated_psf=False):
 
     for ax in fig.axes:
         ax.set_xlim(-1, 1)
-    plt.tight_layout(0.1, w_pad=0.5)
+    plt.tight_layout(pad=0.1, w_pad=0.5)
     return fig
