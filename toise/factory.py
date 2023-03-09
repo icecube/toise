@@ -226,6 +226,9 @@ class aeff_factory(object):
     def _create(self, opts, **kwargs):
         aeffs = {}
 
+        if hasattr(opts, "__call__"):
+            return opts(**kwargs)
+
         if "custom_radio" in opts:
             if opts.custom_radio == True:
                 aeffs["radio_events"] = opts.aeffs
@@ -246,9 +249,9 @@ class aeff_factory(object):
                     psi_bins=psi_bins["radio"], config=opts.config_file
                 )
                 aeffs["radio_events"] = (
-                    radio.create(cos_theta=default_cos_theta_bins),
+                    radio.create(cos_theta=kwargs["cos_theta"]),
                     radio.create_muon_background_from_tabulated(
-                        cos_theta=default_cos_theta_bins
+                        cos_theta=kwargs["cos_theta"]
                     ),
                 )
             else:
