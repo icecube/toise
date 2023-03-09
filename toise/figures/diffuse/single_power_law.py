@@ -1,4 +1,4 @@
-from toise.figures import figure_data, figure
+from toise.figures import figure_data, figure, table
 
 from toise import (
     diffuse,
@@ -175,7 +175,7 @@ def event_counts(
 
     flavors = {
         "astro": {"astro": 1},
-        "atmospheric": {"astro": 0, "atmo": 1, "prompt": 1, "muon": 1},
+        "atmospheric": {"astro": 0, "atmo": 1, "prompt": 1, "muon": 0},
     }
     prefix = exposures[0][0]
     energy_thresholds = {
@@ -281,3 +281,31 @@ def alert_rates(datasets):
     ax2.legend(handles, labels)
 
     return ax1.figure
+
+
+@table
+def event_rates(datasets):
+    labels = []
+
+    thresholds = [3,4,5]
+
+    rows = []
+
+    for i, meta in enumerate(datasets):
+        detector = meta["detectors"][0][0]
+        values = meta["data"]
+        for source, channels in values["event_counts"].items():
+            for channel, rate in channels.items():
+                base_channel = "_".join(channel.split("_")[1:])
+                x = np.log10(values["reco_energy_threshold"][base_channel])
+                rates = np.interp(thresholds, x, rate)
+                for ti, rate in enumerate(rates):
+                    rows.append({
+                        "threshold": 10**(thresholds[ti]),
+                        "source": source,
+                        "channel": channel,
+                        "detector": detector,
+                        "rate": rate,
+                    })
+    
+    return DataFrame(rows).set_index(["threshold", "detector", "source", "channel"])
