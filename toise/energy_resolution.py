@@ -68,7 +68,7 @@ class EnergySmearingMatrix(object):
         loge_lo = numpy.log10(reco_energy[:-1])
         loge_hi = numpy.log10(reco_energy[1:])
         # evaluate at the right edge for maximum smearing on a falling spectrum
-        loge_center = loge_hi
+        loge_center = loge_true[1:]
         mu, hi = numpy.meshgrid(
             self.bias(loge_center) + loge_width, loge_hi, indexing="ij"
         )
