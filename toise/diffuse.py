@@ -1259,6 +1259,20 @@ class KRAGalacticFlux(object):
         )
 
 
+class ExtrapolatedPowerlawFlux:
+    def __init__(self, base, pivot_energy=1e4, index=-2.4):
+        self._base = base
+        self._pivot_energy = pivot_energy
+        self._index = index
+
+    def __call__(self, e_center):
+        return np.maximum(
+            self._base(e_center),
+            self._base(self._pivot_energy)
+            * (e_center / self._pivot_energy) ** self._index,
+        )
+
+
 class KRAGalacticDiffuseEmission(DiffuseNuGen):
     r"""
     Diffuse emission from the galaxy as modeled in
@@ -1291,12 +1305,18 @@ class KRAGalacticDiffuseEmission(DiffuseNuGen):
         )
 
         enu = effective_area.bin_edges[0]
-        # integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
-        flux_func = KRAGalacticFlux(cutoff_PeV)
+        if cutoff_PeV is None:
+            # continue flux after cutoff
+            flux_func = ExtrapolatedPowerlawFlux(
+                KRAGalacticFlux(5), pivot_energy=1e3, index=-2.4
+            )
+        else:
+            flux_func = KRAGalacticFlux(cutoff_PeV)
         # integrate to mean of patch shown in fig. 2
         flux = np.asarray(
             [quad(flux_func, enu[i], enu[i + 1])[0] for i, e in enumerate(enu[:-1])]
         )
+        # integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
         flux *= (
             healpy.nside2pixarea(effective_area.nside) * constants.cm2 * constants.annum
         )
