@@ -98,7 +98,7 @@ def survey_volume(sindec, phi, L0=1e45):
     :returns: the volume in Gpc^3 in which standard candles of luminosity L0 would be detectable
     """
     dl = survey_distance(phi, L0)
-    return ((sindec.max() - sindec.min()) * 2 * numpy.pi / 3.0) * ((dl ** 3).mean())
+    return ((sindec.max() - sindec.min()) * 2 * numpy.pi / 3.0) * ((dl**3).mean())
 
 
 def print_result(value, **kwargs):
@@ -358,7 +358,7 @@ elif opts.figure_of_merit == "gzk":
         atmo = diffuse.AtmosphericNu.conventional(
             aeff, 1.0, hard_veto_threshold=energy_threshold
         )
-        atmo.prior = lambda v: -((v - 1) ** 2) / (2 * 0.1 ** 2)
+        atmo.prior = lambda v: -((v - 1) ** 2) / (2 * 0.1**2)
         prompt = diffuse.AtmosphericNu.prompt(
             aeff, 1.0, hard_veto_threshold=energy_threshold
         )
@@ -406,7 +406,7 @@ elif opts.figure_of_merit == "differential_diffuse":
     atmo = diffuse.AtmosphericNu.conventional(
         aeff, opts.livetime, hard_veto_threshold=energy_threshold
     )
-    atmo.prior = lambda v: -((v - 1) ** 2) / (2 * 0.1 ** 2)
+    atmo.prior = lambda v: -((v - 1) ** 2) / (2 * 0.1**2)
     prompt = diffuse.AtmosphericNu.prompt(
         aeff, opts.livetime, hard_veto_threshold=energy_threshold
     )
@@ -448,7 +448,7 @@ elif opts.figure_of_merit == "diffuse_index":
         atmo = diffuse.AtmosphericNu.conventional(
             aeff, 1, hard_veto_threshold=energy_threshold
         )
-        atmo.prior = lambda v: -((v - 1) ** 2) / (2 * 0.1 ** 2)
+        atmo.prior = lambda v: -((v - 1) ** 2) / (2 * 0.1**2)
         prompt = diffuse.AtmosphericNu.prompt(
             aeff, 1, hard_veto_threshold=energy_threshold
         )
@@ -485,7 +485,7 @@ elif opts.figure_of_merit == "diffuse_index":
 
     from scipy import stats, optimize
 
-    def find_limits(llh, critical_ts=1 ** 2, plotit=False):
+    def find_limits(llh, critical_ts=1**2, plotit=False):
         nom = {k: v.seed for k, v in llh.components.items()}
         base = llh.llh(**nom)
 

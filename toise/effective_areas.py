@@ -464,7 +464,10 @@ class effective_area(object):
             )
 
     def get_bin_edges(self, dim_name):
-        return self.bin_edges[self.dimensions.index(dim_name) - 1]
+        if len(self.dimensions) == 3:
+            return self.bin_edges[self.dimensions.index(dim_name)]
+        else:
+            return self.bin_edges[self.dimensions.index(dim_name) - 1]
 
     def get_bin_centers(self, dim_name):
         return center(self.get_bin_edges(dim_name))
@@ -1247,7 +1250,9 @@ def create_gen2_ehe_aeff(
     #         detector with a given energy
     (e_nu, cos_theta, e_det), aeff = _interpolate_gen2_ehe_aeff(cos_theta)
 
-    # Step 2: for now, assume no energy resolution
+    # Step 2: for now, assume _no_ energy resolution
+    e_det = np.array([e_det[0], e_det[-1]])
+    aeff = aeff.sum(axis=-1, keepdims=True)
 
     # Step 3: dummy angular resolution smearing
     psi_bins = numpy.array([0, numpy.inf])

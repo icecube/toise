@@ -162,22 +162,18 @@ def _load_radio_veff_json(
     )
 
 
-def _interpolate_radio_veff(
-    energy_edges, ct_edges=None, filename="json.file", trigger=None
-):
-    """
-                Loads a NuRadioMC effective volume and interpolates for the requested energy / cos theta binning
+def _interpolate_e_cosz_table(table_data, energy_edges, ct_edges=None):
+    """interpolates a 2d table to the requested energy / cos theta binning
 
-            :param energy_edges: final energy binning to interpolate Veff to
-            :param ct_edges: final cos theta binning to interpolate Veff to, if None, keep original binning
-            :param filename: name of the json export of the Veff calculated using NuRadioMC
-            :param trigger: name of the trigger to be used
+    :param table_data: ((energy_edges, cz_edges), table) to interpolate from
+    :param energy_edges: final energy binning to interpolate Veff to
+    :param ct_edges: final cos theta binning to interpolate Veff to, if None, keep original binning
 
     :returns: a tuple (edges, veff). veff has units of m^3
     """
-    logger.debug("interpolating effective area")
-    edges, veff = _load_radio_veff_json(filename, trigger)
-    logger.debug(f"Veff shape before interpolation: {np.shape(veff)}")
+    logger.debug("interpolating table")
+    edges, veff = table_data
+    logger.debug(f"Table shape before interpolation: {np.shape(veff)}")
 
     def interp_masked(arr, x, xp):
         # NB: occasionally there may be NaN effective volumes. interpolate through them
@@ -193,6 +189,14 @@ def _interpolate_radio_veff(
             interpolation_result = interpolator(x)
             return interpolation_result
 
+    print(
+        "interpolation function",
+        np.shape(ct_edges),
+        np.shape(energy_edges),
+        np.shape(table_data[0]),
+        np.shape(table_data[1]),
+    )
+
     # interpolate in log-log space, where the curve is ~smooth and slowly varying
     veff = 10 ** (
         np.apply_along_axis(
@@ -203,12 +207,13 @@ def _interpolate_radio_veff(
             center(np.log10(edges[0])),
         )
     )
-    logger.debug(f"Veff shape after interpolation: {np.shape(veff)}")
+    logger.debug(f"table shape after interpolation: {np.shape(veff)}")
 
     if ct_edges is None:
         # do return original cos theta binning
         return (energy_edges, edges[1]), veff
     else:
+        print(ct_edges, edges[1])
         # use 'nearest' neighbour binning to return finer Veff ins cos theta
         interp = interpolate.interp1d(
             center(edges[1]), veff, "nearest", axis=1, bounds_error=False, fill_value=0
@@ -218,6 +223,26 @@ def _interpolate_radio_veff(
         )
 
         return (energy_edges, ct_edges), interp(center_ct)
+
+
+def _interpolate_radio_veff(
+    energy_edges, ct_edges=None, filename="json.file", trigger=None
+):
+    """Loads a NuRadioMC effective volume and interpolates for the requested energy / cos theta binning
+
+    :param energy_edges: final energy binning to interpolate Veff to
+    :param ct_edges: final cos theta binning to interpolate Veff to, if None, keep original binning
+    :param filename: name of the json export of the Veff calculated using NuRadioMC
+    :param trigger: name of the trigger to be used
+
+    :returns: a tuple (edges, veff). veff has units of m^3
+    """
+    logger.debug("interpolating effective area")
+    edges, veff = _load_radio_veff_json(filename, trigger)
+    logger.debug(f"Veff shape before interpolation: {np.shape(veff)}")
+
+    table_data = _load_radio_veff_json(filename, trigger)
+    return _interpolate_e_cosz_table(table_data, energy_edges, ct_edges)
 
 
 class radio_aeff:
@@ -233,6 +258,14 @@ class radio_aeff:
         self.logger = logger
         self.logger.info(self.configuration)
         self.set_psi_bins(psi_bins=psi_bins)
+
+    def get_file(self, path):
+        if os.path.isfile(path):
+            return path
+        else:
+            return os.path.realpath(
+                os.path.join(os.path.dirname(self.configfile), path)
+            )
 
     def switch_energy_resolution(self, on=True):
         """(De)activate energy smearing"""
@@ -353,14 +386,41 @@ class radio_aeff:
         if "cr_cut" in configuration["muon_background"]:
             cr_cut = configuration["muon_background"]["cr_cut"]
         (e_cr_shower, cos_t, e_shower), muon_distro = get_tabulated_muon_distribution(
-            configuration["muon_background"]["table"], cr_cut
-        )  # cos_theta, neutrino_energy)
+            self.get_file(configuration["muon_background"]["table"]),
+            cr_cut,
+            ct_edges=cos_theta,
+        )
         aeff = muon_distro * veff_scale
-        edges = (neutrino_energy, cos_theta, neutrino_energy)
-        # print(cos_theta)
+        edges = (
+            e_cr_shower,
+            cos_t,
+            e_shower,
+        )  # (neutrino_energy, cos_theta, neutrino_energy)
         self.logger.warning(
             "Direction resolution smearing not applied for atm. muons for now!"
         )
+
+        # apply analysis efficency
+        if (
+            configuration["apply_analysis_efficiency"] == True
+            and configuration["muon_background"]["apply_efficiency"] == True
+        ):
+            self.logger.info(
+                "applying analysis efficiency as function of shower energy"
+            )
+
+            ana_efficiency = radio_analysis_efficiency(
+                neutrino_energy[:-1],
+                configuration["analysis_efficiency"]["minval"],
+                configuration["analysis_efficiency"]["maxval"],
+                configuration["analysis_efficiency"]["log_turnon_gev"],
+                configuration["analysis_efficiency"]["log_turnon_width"],
+            )
+            aeff = np.apply_along_axis(np.multiply, 2, aeff, ana_efficiency)
+        else:
+            self.logger.warning(
+                "requested to skip accounting for analysis efficiency for atm. muons"
+            )
 
         # apply smearing for shower energy resolution
         configuration = self.configuration
@@ -375,8 +435,9 @@ class radio_aeff:
             )
             aeff = np.apply_along_axis(np.inner, 2, aeff, response)
         else:
-            self.logger.warning("requested to skip accounting for energy resolution")
-
+            self.logger.warning(
+                "requested to skip accounting for energy resolution for atm. muons"
+            )
         return effective_area(edges, aeff, "cos_theta", source="atm_muon")
 
     def create(
@@ -422,11 +483,12 @@ class radio_aeff:
                 return L_int
 
             matrix_data = np.load(
-                configuration["transfer_matrix"]["table"], allow_pickle=True
+                self.get_file(configuration["transfer_matrix"]["table"]),
+                allow_pickle=True,
             )
             if (
                 (not np.allclose(neutrino_energy, matrix_data["bin_edges"][0] * 1e-9))
-                or (not np.allclose(cos_theta, matrix_data["bin_edges"][1]))
+                # or (not np.allclose(cos_theta, matrix_data["bin_edges"][1]))
                 or (
                     not np.allclose(neutrino_energy, matrix_data["bin_edges"][2] * 1e-9)
                 )
@@ -447,6 +509,11 @@ class radio_aeff:
                 aeffs_flavor = []
                 for fi, flavor in enumerate(["e", "e", "mu", "mu", "tau", "tau"]):
                     data = matrix_data[f"transfer_matrix_{flavor}"]
+                    print(np.shape(data))
+                    data = np.concatenate(
+                        (data, data[:, -1, :][:, np.newaxis, :]), axis=1
+                    )  # quickfix for 21 cosz bins
+                    print(np.shape(data))
                     prod_dens = 1.0 / neutrino_interaction_length_ice(
                         fi, neutrino_energy
                     )
@@ -482,19 +549,19 @@ class radio_aeff:
         edges_e, veff_e = _interpolate_radio_veff(
             e_showering,
             cos_theta,
-            filename=veff_filename["e"],
+            filename=self.get_file(veff_filename["e"]),
             trigger=veff_filename["trigger_name"],
         )
         edges_mu, veff_mu = _interpolate_radio_veff(
             e_showering,
             cos_theta,
-            filename=veff_filename["mu"],
+            filename=self.get_file(veff_filename["mu"]),
             trigger=veff_filename["trigger_name"],
         )
         edges_tau, veff_tau = _interpolate_radio_veff(
             e_showering,
             cos_theta,
-            filename=veff_filename["tau"],
+            filename=self.get_file(veff_filename["tau"]),
             trigger=veff_filename["trigger_name"],
         )
 
@@ -521,7 +588,7 @@ class radio_aeff:
         ###aeff[0:2,...] *= (veff_e.T)[None,None,...]*veff_scale # electron neutrino
         ###aeff[2:4,...] *= (veff_mu.T)[None,None,...]*veff_scale # muon neutrino
         ###aeff[4:6,...] *= (veff_tau.T)[None,None,...]*veff_scale # tau neutrino
-
+        print(np.shape(aeff), np.shape(veff_e))
         ### applying triggered veff in terms of e_neutrino / cosz
         aeff[0:2, ...] *= (veff_e)[None, ..., None] * veff_scale  # electron neutrino
         aeff[2:4, ...] *= (veff_mu)[None, ..., None] * veff_scale  # muon neutrino
@@ -626,6 +693,7 @@ def combine_aeffs(
     """
     Combine two effective area tuples while removing the overlap of events seen in both
     (as done in the Feb. review array sims, where deep + shallow arrays had been simulated separately)
+
     :param aeff1: first aeff tuple
     :param aeff2: second aeff tuple
     :param overlap_E: energies for overlap to be subtracted

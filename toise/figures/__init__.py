@@ -1,10 +1,15 @@
 import inspect
+from typing import Sequence
 
 _figure_data = {}
 _figures = {}
 
 
 def _ensure_nullary(f):
+    if isinstance(f, Sequence):
+        for element in f:
+            _ensure_nullary(element)
+        return
     if f:
         try:
             spec = inspect.signature(f)

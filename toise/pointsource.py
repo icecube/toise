@@ -122,7 +122,6 @@ class PointSource(object):
         # we're on the correct side
         lo = ebins.searchsorted(emin - 1e-4)
         hi = min((ebins.searchsorted(emax - 1e-4) + 1, loge.size))
-
         if exclusive:
             bins = list(range(lo, hi - 1, bin_range))
         else:
@@ -208,6 +207,39 @@ class WBSteadyPointSource(PointSource):
 
         norm = (
             WaxmannBahcallFluence()(effective_area.bin_edges[0][1:])
+            * effective_area.bin_edges[0][1:] ** 2
+        )
+        norm /= norm.max()
+        fluence *= norm
+
+        PointSource.__init__(self, effective_area, fluence, zenith_bin, with_energy)
+        self._livetime = livetime
+
+
+class NSNSMerger(PointSource):
+    def __init__(self, effective_area, livetime, zenith_bin, with_energy=True):
+        # reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
+        # remember: fluxes are defined as neutrino + antineutrino, so the flux
+        # per particle (which we need here) is .5e-12
+        def intflux(e, gamma):
+            return (e ** (1 + gamma)) / (1 + gamma)
+
+        tev = effective_area.bin_edges[0] / 1e3
+        # 1/cm^2 yr
+        fluence = (
+            0.5e-12
+            * (intflux(tev[1:], -2) - intflux(tev[:-1], -2))
+            * livetime
+            * 365
+            * 24
+            * 3600
+        )
+
+        # scale by the WB GRB fluence, normalized to the E^-2 flux between 100 TeV and 10 PeV
+        from .nsns import NSNS
+
+        norm = (
+            NSNS()(effective_area.bin_edges[0][1:])
             * effective_area.bin_edges[0][1:] ** 2
         )
         norm /= norm.max()
@@ -451,6 +483,11 @@ def discovery_potential(
 def events_above(observables, edges, ecutoff):
     n = 0
     for k, edge_k in edges.items():
+        # print(ecutoff, edges)
+        # print(np.shape(edges))
+        # print(np.shape(observables[k]))
+        if len(edge_k) > 2:
+            edge_k = [edge_k[1], edge_k[2]]
         cut = numpy.where(edge_k[1][1:] > ecutoff)[0][0]
         n += observables[k].sum(axis=0)[cut:].sum()
 
@@ -570,6 +607,8 @@ def differential_discovery_potential(
     baseline=None,
     tolerance=1e-2,
     decades=0.5,
+    emin=-numpy.inf,
+    emax=numpy.inf,
     **fixed
 ):
     """
@@ -584,7 +623,9 @@ def differential_discovery_potential(
     sensitivities = []
     ns = []
     nb = []
-    for energy, pschunk in point_source.differential_chunks(decades=decades):
+    for energy, pschunk in point_source.differential_chunks(
+        decades=decades, emin=emin, emax=emax
+    ):
         energies.append(energy)
         norm, _ns, _nb = discovery_potential(
             pschunk, diffuse_components, sigma, baseline, tolerance, **fixed
@@ -602,6 +643,8 @@ def differential_upper_limit(
     baseline=None,
     tolerance=1e-2,
     decades=0.5,
+    emin=-numpy.inf,
+    emax=numpy.inf,
     **fixed
 ):
     """
@@ -616,7 +659,9 @@ def differential_upper_limit(
     sensitivities = []
     ns = []
     nb = []
-    for energy, pschunk in point_source.differential_chunks(decades=decades):
+    for energy, pschunk in point_source.differential_chunks(
+        decades=decades, emin=emin, emax=emax
+    ):
         energies.append(energy)
         norm, _ns, _nb = upper_limit(
             pschunk, diffuse_components, cl, baseline, tolerance, **fixed
@@ -628,11 +673,20 @@ def differential_upper_limit(
 
 
 def differential_fc_upper_limit(
-    point_source, diffuse_components, ecutoff=0, cl=0.9, decades=0.5, **fixed
+    point_source,
+    diffuse_components,
+    ecutoff=0,
+    cl=0.9,
+    decades=0.5,
+    emin=-numpy.inf,
+    emax=numpy.inf,
+    **fixed
 ):
     energies = []
     sensitivities = []
-    for energy, pschunk in point_source.differential_chunks(decades=decades):
+    for energy, pschunk in point_source.differential_chunks(
+        decades=decades, emin=emin, emax=emax
+    ):
         energies.append(energy)
         sensitivities.append(
             fc_upper_limit(pschunk, diffuse_components, ecutoff, cl, **fixed)

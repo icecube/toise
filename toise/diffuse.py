@@ -1,5 +1,5 @@
 import warnings
-import numpy
+import numpy as np
 import itertools
 from scipy.integrate import quad
 from io import StringIO
@@ -11,7 +11,7 @@ import numexpr
 import pickle as pickle
 import logging
 from functools import partial
-
+from enum import Enum
 import nuflux
 
 from .util import *
@@ -21,6 +21,65 @@ try:
     from functools import lru_cache
 except ImportError:
     from backports.functools_lru_cache import lru_cache
+
+# Enums for diffuse flux models, extracted datapoints provided by Bustamante & Valera
+DIFFUSE_MODELS = Enum(
+    "DIFFUSE_MODELS",
+    [
+        "fang_murase",
+        "fang_pulsar",
+        "heinze_zmax_1",
+        "muzio_2019",
+        "muzio_2021",
+        "padovani_2015",
+        "rodrigues_bench_cosmo",
+        "rodrigues_bench_source",
+        "rodrigues_hlbllacs_cosmo",
+        "van_vliet_ta",
+        # "AGNJetMax"
+    ],
+)
+
+DIFFUSE_MODELS.fang_murase.filename = "diffuse/fang_murase.txt"
+DIFFUSE_MODELS.fang_pulsar.filename = "diffuse/fang_pulsar.txt"
+DIFFUSE_MODELS.heinze_zmax_1.filename = "diffuse/heinze_zmax_1.txt"
+DIFFUSE_MODELS.muzio_2019.filename = "diffuse/muzio_2019.txt"
+DIFFUSE_MODELS.muzio_2021.filename = "diffuse/muzio_2021.txt"
+DIFFUSE_MODELS.padovani_2015.filename = "diffuse/padovani_2015.txt"
+DIFFUSE_MODELS.rodrigues_bench_cosmo.filename = "diffuse/rodrigues_bench_cosmo.txt"
+DIFFUSE_MODELS.rodrigues_bench_source.filename = "diffuse/rodrigues_bench_source.txt"
+DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.filename = (
+    "diffuse/rodrigues_hlbllacs_cosmo.txt"
+)
+DIFFUSE_MODELS.van_vliet_ta.filename = "diffuse/van_vliet_ta.txt"
+# DIFFUSE_MODELS.AGNJetMax.filename                = "diffuse/AGN_jet_max_allowed_Rodrigues_et_al_PRL_126_191101.csv"
+
+# diffuse digitized models provided by V. Valera & M. Bustamante, cf. https://arxiv.org/abs/2204.04237
+DIFFUSE_MODELS.fang_murase.__doc__ = "Fang & Murase, cosmic-ray reservoirs (cosmogenic + source), Nature Phys. 14, 396 (2018)"
+DIFFUSE_MODELS.fang_pulsar.__doc__ = (
+    "Fang et al., newborn pulsars (source), Phys. Rev. D 90, 103005 (2014)"
+)
+DIFFUSE_MODELS.heinze_zmax_1.__doc__ = (
+    "Heinze et al., fit to Auger UHECRs (cosmogenic), Astrophys. J. 873, 88 (2019)"
+)
+DIFFUSE_MODELS.muzio_2019.__doc__ = "Muzio et al., maximum extra p component (cosmogenic + source), Phys. Rev. D 100, 103008 (2019)"
+DIFFUSE_MODELS.muzio_2021.__doc__ = "Muzio et al., cosmic ray-gas interactions (cosmogenic + source), Phys. Rev. D 105, 023022 (2022)"
+DIFFUSE_MODELS.padovani_2015.__doc__ = (
+    "Padovani et al. BL Lacs (source), Mon. Not. Roy. Astron. Soc. 452, 1877 (2015)"
+)
+DIFFUSE_MODELS.rodrigues_bench_cosmo.__doc__ = (
+    "Rodrigues et al., all AGN (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
+)
+DIFFUSE_MODELS.rodrigues_bench_source.__doc__ = (
+    "Rodrigues et al., all AGN (source), Phys. Rev. Lett. 126, 191101 (2021)"
+)
+DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.__doc__ = (
+    "Rodrigues et al., HL BL Lacs (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
+)
+DIFFUSE_MODELS.van_vliet_ta.__doc__ = (
+    "Bergman & van Vliet, fit to TA UHECRs (cosmogenic), cf. arXiv:2004.09841, Fig. 3"
+)
+# DIFFUSE_MODELS.AGNJetMax.__doc__                = "AGN Jets, maximum allowed source, Rodrigues et al., Phys. Rev. Lett. 126, 191101 (2021)"
 
 
 class NullComponent(object):
@@ -36,7 +95,7 @@ class NullComponent(object):
         i, j = aeff.dimensions.index("true_zenith_band"), aeff.dimensions.index(
             "reco_energy"
         )
-        self.expectations = numpy.zeros((aeff.values.shape[i], aeff.values.shape[j]))
+        self.expectations = np.zeros((aeff.values.shape[i], aeff.values.shape[j]))
 
 
 class DiffuseNuGen(object):
@@ -62,7 +121,7 @@ class DiffuseNuGen(object):
         self._flux = flux
 
         # FIXME: account for healpix binning
-        self._solid_angle = 2 * numpy.pi * numpy.diff(self._aeff.bin_edges[1])
+        self._solid_angle = 2 * np.pi * np.diff(self._aeff.bin_edges[1])
 
         self.seed = 1.0
         self.uncertainty = None
@@ -86,7 +145,7 @@ class DiffuseNuGen(object):
     ):
         from .util import PDGCode
 
-        intflux = numpy.empty((6, len(edges[0]) - 1, len(edges[1]) - 1))
+        intflux = np.empty((6, len(edges[0]) - 1, len(edges[1]) - 1))
         for i, (flavor, anti) in enumerate(
             itertools.product(("E", "Mu", "Tau"), ("", "Bar"))
         ):
@@ -101,7 +160,7 @@ class DiffuseNuGen(object):
                 ct_hi = edges[1][j + 1]
                 ct_lo = edges[1][j]
                 ct = (ct_lo + ct_hi) / 2.0
-                fluxband = numpy.zeros(len(edges[0]) - 1)
+                fluxband = np.zeros(len(edges[0]) - 1)
 
                 def f(e):
                     if e < energy_range[0] or e > energy_range[1]:
@@ -177,7 +236,7 @@ class AtmosphericNu(DiffuseNuGen):
             if effective_area.is_healpix:
                 flux *= healpy.nside2pixarea(effective_area.nside)
             else:
-                flux *= (2 * numpy.pi * numpy.diff(effective_area.bin_edges[1]))[
+                flux *= (2 * np.pi * np.diff(effective_area.bin_edges[1]))[
                     None, None, :
                 ]
         else:
@@ -191,7 +250,7 @@ class AtmosphericNu(DiffuseNuGen):
             # NB: assumes that a surface veto has been applied!
             flux = (
                 self._flux
-                * numpy.where(center(effective_area.bin_edges[1]) < 0.05, 1, 1e-4)[
+                * np.where(center(effective_area.bin_edges[1]) < 0.05, 1, 1e-4)[
                     None, None, :
                 ]
             )
@@ -231,7 +290,7 @@ class AtmosphericNu(DiffuseNuGen):
 
         background = copy(self)
         psi_bins = self._aeff.bin_edges[-1][:-1]
-        bin_areas = (numpy.pi * numpy.diff(psi_bins**2))[None, ...]
+        bin_areas = (np.pi * np.diff(psi_bins**2))[None, ...]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             bin_areas *= livetime / self._livetime / constants.annum
@@ -251,9 +310,9 @@ class AtmosphericNu(DiffuseNuGen):
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):
             background.expectations = (
-                numpy.nansum(
-                    (self.expectations * zenith_index[:, None]) / omega, axis=0
-                )[..., None]
+                np.nansum((self.expectations * zenith_index[:, None]) / omega, axis=0)[
+                    ..., None
+                ]
                 * bin_areas
             )
         else:
@@ -398,7 +457,7 @@ class DiffuseAstro(DiffuseNuGen):
             flux *= healpy.nside2pixarea(effective_area.nside)
         else:
             flux = flux * (
-                (2 * numpy.pi * numpy.diff(effective_area.bin_edges[1]))[None, None, :]
+                (2 * np.pi * np.diff(effective_area.bin_edges[1]))[None, None, :]
             )
         super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
         self._with_psi = False
@@ -437,7 +496,7 @@ class DiffuseAstro(DiffuseNuGen):
         psi_bins = self._aeff.bin_edges[-1][:-1]
         expand = [None] * 5
         expand[-1] = slice(None)
-        bin_areas = (numpy.pi * numpy.diff(psi_bins**2))[expand]
+        bin_areas = (np.pi * np.diff(psi_bins**2))[expand]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             background._livetime = livetime / constants.annum
@@ -495,7 +554,7 @@ class DiffuseAstro(DiffuseNuGen):
         return background
 
     def differential_chunks(
-        self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False
+        self, decades=1, emin=-np.inf, emax=np.inf, exclusive=False
     ):
         """
         Yield copies of self with the neutrino spectrum restricted to *decade*
@@ -503,19 +562,19 @@ class DiffuseAstro(DiffuseNuGen):
         """
         # now, sum over decades in neutrino energy
         ebins = self._aeff.bin_edges[0]
-        loge = numpy.log10(ebins)
+        loge = np.log10(ebins)
         dloge = loge[1] - loge[0]
         bin_range = int(round(decades / dloge))
-        if numpy.isfinite(emin):
-            lo = int(round((numpy.log10(emin) - loge[0]) / dloge))
+        if np.isfinite(emin):
+            lo = int(round((np.log10(emin) - loge[0]) / dloge))
         else:
             # when emin is "equal" to an edge in ebins
             # searchsorted sometimes returns inconsistent indices
             # (wrong side). subtract a little fudge factor to ensure
             # we're on the correct side
             lo = ebins.searchsorted(emin - 1e-4)
-        if numpy.isfinite(emax):
-            hi = (loge.size - 1) - int(round((loge[-1] - numpy.log10(emax)) / dloge))
+        if np.isfinite(emax):
+            hi = (loge.size - 1) - int(round((loge[-1] - np.log10(emax)) / dloge))
         else:
             hi = min((ebins.searchsorted(emax - 1e-4) + 1, loge.size))
 
@@ -527,8 +586,8 @@ class DiffuseAstro(DiffuseNuGen):
         for i in bins:
             start = i
             stop = min((start + bin_range, hi - 1))
-            bounds = numpy.asarray([loge[0] + start * dloge, loge[0] + stop * dloge])
-            e_center = 10 ** numpy.mean(bounds)
+            bounds = np.asarray([loge[0] + start * dloge, loge[0] + stop * dloge])
+            e_center = 10 ** np.mean(bounds)
             if stop < 0 or start > ebins.size - 1:
                 yield e_center, None
                 continue
@@ -587,7 +646,7 @@ class DiffuseAstro(DiffuseNuGen):
             total = total.repeat(self._aeff.ring_repeat_pattern, axis=1)
         # FIXME is dim 1 still the angular dimension?
         if total.shape[1] == 1:
-            total = numpy.squeeze(total, axis=1)
+            total = np.squeeze(total, axis=1)
 
         if not self._with_energy:
             total = total.sum(axis=2)
@@ -610,9 +669,7 @@ class DiffuseAstro(DiffuseNuGen):
         expectations_by_flavor = self._apply_flux_weights(**spec_kwargs)
 
         if param("mu_fraction") in kwargs or param("pgamma_fraction") in flavor_kwargs:
-            flavor_weight = 3 * numpy.ones(
-                (6,) + (1,) * (expectations_by_flavor.ndim - 1)
-            )
+            flavor_weight = 3 * np.ones((6,) + (1,) * (expectations_by_flavor.ndim - 1))
             if param("mu_fraction") in flavor_kwargs:
                 eratio, mu = (
                     flavor_kwargs[param("e_tau_ratio")],
@@ -693,7 +750,7 @@ class MuonDampedDiffuseAstro(DiffuseAstro):
         def knee_flux(e, e_knee):
             return (1 + (e / e_knee) ** epsilon) ** (-delta_gamma / epsilon)
 
-        flux = numpy.zeros(e_nu.shape + (3,))
+        flux = np.zeros(e_nu.shape + (3,))
 
         flux[:, :2] = knee_flux(e_nu, e_knee)[:, None]
         flux[:, 1] += knee_flux(e_nu, 15 * e_knee)
@@ -713,7 +770,7 @@ class MuonDampedDiffuseAstro(DiffuseAstro):
             avg = specweight.sum(axis=0, keepdims=True) / 3.0
             specweight = avg.repeat(3, 0)
         specweight *= ((e_center / 1e5) ** (kwargs[self._gamma_name] + 2))[None, :]
-        return numpy.repeat(specweight, 2, axis=0)
+        return np.repeat(specweight, 2, axis=0)
 
 
 class AhlersGZKFlux(object):
@@ -727,8 +784,8 @@ class AhlersGZKFlux(object):
     def __init__(self):
         from scipy import interpolate
 
-        logE, logWeight = numpy.log10(
-            numpy.loadtxt(
+        logE, logWeight = np.log10(
+            np.loadtxt(
                 StringIO(
                     """3.095e5	8.345e-13
 		    4.306e5	1.534e-12
@@ -776,11 +833,11 @@ class AhlersGZKFlux(object):
         ).T
 
         self._interpolant = interpolate.interp1d(
-            logE, logWeight + 8, bounds_error=False, fill_value=-numpy.inf
+            logE, logWeight + 8, bounds_error=False, fill_value=-np.inf
         )
 
     def __call__(self, e_center):
-        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
+        return 10 ** (self._interpolant(np.log10(e_center)) - 8) / e_center**2
 
 
 class VanVlietGZKFlux(object):
@@ -793,8 +850,8 @@ class VanVlietGZKFlux(object):
     def __init__(self):
         from scipy import interpolate
 
-        logE, logWeight = numpy.log10(
-            numpy.loadtxt(
+        logE, logWeight = np.log10(
+            np.loadtxt(
                 StringIO(
                     """
 			2.387e6	5.206e-11
@@ -829,11 +886,11 @@ class VanVlietGZKFlux(object):
         ).T
 
         self._interpolant = interpolate.interp1d(
-            logE, logWeight + 8, bounds_error=False, fill_value=-numpy.inf
+            logE, logWeight + 8, bounds_error=False, fill_value=-np.inf
         )
 
     def __call__(self, e_center):
-        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
+        return 10 ** (self._interpolant(np.log10(e_center)) - 8) / e_center**2
 
 
 class ReasonableGZKFlux(object):
@@ -847,16 +904,91 @@ class ReasonableGZKFlux(object):
     def __init__(self):
         from scipy import interpolate
 
-        E, Weight = numpy.loadtxt(data_dir + "/models/ReasonableNeutrinos1.txt")
+        E, Weight = np.loadtxt(data_dir + "/models/ReasonableNeutrinos1.txt")
         logE = np.log10(E)
         logWeight = np.log10(Weight)  # flux is expected for all-flavour
 
         self._interpolant = interpolate.interp1d(
-            logE, logWeight + 8, bounds_error=False, fill_value=-numpy.inf
+            logE, logWeight + 8, bounds_error=False, fill_value=-np.inf
         )
 
     def __call__(self, e_center):
-        return 10 ** (self._interpolant(numpy.log10(e_center)) - 8) / e_center**2
+        return 10 ** (self._interpolant(np.log10(e_center)) - 8) / e_center**2
+
+
+class DiffuseModelFlux(object):
+    """A tabulated flux. Can be either 2 columns or 7 columns, first is energy, others are either summed E**2*flux or E**2*flux per flavor"""
+
+    def __init__(self, flux_model):
+        from scipy import interpolate
+
+        # check if string, else see if it is a defined flux
+        if isinstance(flux_model, DIFFUSE_MODELS):
+            diff_data = np.loadtxt(
+                data_dir + "/models/" + flux_model.filename, delimiter=","
+            )
+        elif isinstance(flux_model, str):
+            if not os.path.isfile(flux_model):
+                raise RuntimeError(
+                    f"Trying to read diffuse flux from text file, {flux_model} not found."
+                )
+            # custom flux model provided via text file
+            diff_data = np.loadtxt(flux_model, delimiter=",")
+        else:
+            raise RuntimeError(f"No such diffuse model defined: {flux_model}")
+        E = diff_data[:, 0]
+        Weight = diff_data[:, 1:]
+        logE = np.log10(E)
+        logWeight = np.log10(Weight)
+
+        # interpolant for all-flavor
+        self._interpolant = interpolate.interp1d(
+            logE,
+            np.log10(np.sum(Weight, axis=1)) + 8,
+            bounds_error=False,
+            fill_value=-np.inf,
+        )
+
+        # interpolants per flavor (if given)
+        self._has_per_flavor_flux = False
+        flavorcodes = [
+            PDGCode.NuE,
+            PDGCode.NuEBar,
+            PDGCode.NuMu,
+            PDGCode.NuMuBar,
+            PDGCode.NuTau,
+            PDGCode.NuTauBar,
+        ]
+        if np.shape(logWeight)[1] == 6:  # per flavor weight is given
+            self._has_per_flavor_flux = True
+            self._interpolant_per_flavor = {
+                flav: interpolate.interp1d(
+                    logE, logWeight[:, i] + 8, bounds_error=False, fill_value=-np.inf
+                )
+                for i, flav in enumerate(flavorcodes)
+            }
+
+    def has_per_flavor_flux(self):
+        """flag if provided flux file was all-flavor or per-flavor"""
+        return self._has_per_flavor_flux
+
+    def __call__(self, e_center, flavor=None):
+        assert flavor is None or flavor in [
+            PDGCode.NuE,
+            PDGCode.NuEBar,
+            PDGCode.NuMu,
+            PDGCode.NuMuBar,
+            PDGCode.NuTau,
+            PDGCode.NuTauBar,
+        ]
+        if flavor is None:
+            # return all flavor flux
+            return 10 ** (self._interpolant(np.log10(e_center)) - 8) / e_center**2
+        # return per-flavor flux
+        return (
+            10 ** (self._interpolant_per_flavor[flavor](np.log10(e_center)) - 8)
+            / e_center**2
+        )
 
 
 def atmos_flux(enu, model):
@@ -939,6 +1071,53 @@ class ArbitraryFlux(DiffuseAstro):
         )
 
 
+class DiffuseModel(ArbitraryFlux):
+    def __init__(self, model, *args, **kwargs):
+        super(DiffuseModel, self).__init__(*args, **kwargs)
+        self._flux_func = DiffuseModelFlux(model)
+
+    @property
+    def spectral_weight_params(self):
+        return tuple()
+
+    def spectral_weight(self, e_center, **kwargs):
+        enu = self._aeff.bin_edges[0]
+        if self._flux_func.has_per_flavor_flux():
+            integrated = np.asarray(
+                [
+                    [
+                        quad(self._flux_func, enu[i], enu[i + 1], j)[0]
+                        for i, e in enumerate(enu[:-1])
+                    ]
+                    for j in [
+                        PDGCode.NuE,
+                        PDGCode.NuEBar,
+                        PDGCode.NuMu,
+                        PDGCode.NuMuBar,
+                        PDGCode.NuTau,
+                        PDGCode.NuTauBar,
+                    ]
+                ]
+            )
+        else:
+            integrated = (
+                np.asarray(
+                    [
+                        quad(self._flux_func, enu[i], enu[i + 1])[0]
+                        for i, e in enumerate(enu[:-1])
+                    ]
+                )
+                / 6.0
+            )
+        # flux is already for per flavor
+        return (
+            integrated
+            * constants.cm2
+            * constants.annum
+            / (self._integral_flux(self._aeff))
+        )
+
+
 class AhlersGZK(ArbitraryFlux):
     """
     Minimal GZK neutrino flux, assuming that post-ankle flux in Auger/TA is
@@ -976,7 +1155,7 @@ def transform_map(skymap):
     """
     r = healpy.Rotator(coord=("C", "G"))
     npix = skymap.size
-    theta_gal, phi_gal = healpy.pix2ang(healpy.npix2nside(npix), numpy.arange(npix))
+    theta_gal, phi_gal = healpy.pix2ang(healpy.npix2nside(npix), np.arange(npix))
     theta_ecl, phi_ecl = r(theta_gal, phi_gal)
     return healpy.pixelfunc.get_interp_val(skymap, theta_ecl, phi_ecl)
 
@@ -990,7 +1169,7 @@ class FermiGalacticEmission(DiffuseNuGen):
     def __init__(self, effective_area, livetime=1.0):
         assert effective_area.is_healpix
         # differential all-flavor flux at 1 GeV [1/(GeV cm^2 sr s)]
-        map1GeV = numpy.load(
+        map1GeV = np.load(
             os.path.join(data_dir, "models", "fermi_galactic_emission.npy")
         )
         # downsample to resolution of effective area map, and divide by 6 to
@@ -1034,8 +1213,8 @@ class KRAGalacticFlux(object):
         from scipy import interpolate
 
         if cutoff_PeV == 5:
-            logE, logWeight = numpy.log10(
-                numpy.loadtxt(
+            logE, logWeight = np.log10(
+                np.loadtxt(
                     StringIO(
                         """
             0.011	1.224e-5
@@ -1060,8 +1239,8 @@ class KRAGalacticFlux(object):
                 )
             ).T
         elif cutoff_PeV == 50:
-            logE, logWeight = numpy.log10(
-                numpy.loadtxt(
+            logE, logWeight = np.log10(
+                np.loadtxt(
                     StringIO(
                         """
             0.011	1.224e-5
@@ -1091,15 +1270,13 @@ class KRAGalacticFlux(object):
             raise ValueError("can't handle cutoff {}".format(cutoff_PeV))
 
         self._interpolant = interpolate.interp1d(
-            logE, logWeight + 8, bounds_error=False, fill_value=-numpy.inf
+            logE, logWeight + 8, bounds_error=False, fill_value=-np.inf
         )
 
     def __call__(self, e_center):
         # NB: flux is given as all-particle, here we return per-particle (/6)
         return (
-            10 ** (self._interpolant(numpy.log10(e_center) - 3) - 8)
-            / e_center**2
-            / 6.0
+            10 ** (self._interpolant(np.log10(e_center) - 3) - 8) / e_center**2 / 6.0
         )
 
 
@@ -1119,7 +1296,7 @@ class KRAGalacticDiffuseEmission(DiffuseNuGen):
     def __init__(self, effective_area, livetime=1.0, cutoff_PeV=5):
         assert effective_area.is_healpix
         # differential all-flavor flux at 1 GeV [1/(GeV cm^2 sr s)]
-        map1GeV = numpy.load(
+        map1GeV = np.load(
             os.path.join(data_dir, "models", "fermi_galactic_emission.npy")
         )
         # average over inner galactic plane to get flux normalization compared to figure 2
@@ -1167,13 +1344,13 @@ def pmns_matrix(theta12, theta23, theta13, delta):
     """
 
     def comps(angle):
-        return (numpy.sin(angle), numpy.cos(angle))
+        return (np.sin(angle), np.cos(angle))
 
     s12, c12 = comps(theta12)
     s13, c13 = comps(theta13)
     s23, c23 = comps(theta23)
-    phase = numpy.exp(complex(0, delta))
-    U = numpy.matrix(
+    phase = np.exp(complex(0, delta))
+    U = np.matrix(
         [
             [c12 * c13, s12 * c13, s13 / phase],
             [
@@ -1199,7 +1376,7 @@ def transfer_matrix(U):
     def prob(alpha, beta):
         return sum(abs(U[alpha, i]) ** 2 * abs(U[beta, i]) ** 2 for i in range(3))
 
-    return numpy.matrix([[prob(i, j) for j in range(3)] for i in range(3)])
+    return np.matrix([[prob(i, j) for j in range(3)] for i in range(3)])
 
 
 class IncoherentOscillation(object):
@@ -1217,12 +1394,12 @@ class IncoherentOscillation(object):
             params = (33.48, 42.3, 8.50, 306)
         else:
             raise ValueError("Unknown oscillation parameters '{}'".format(label))
-        return cls(*map(numpy.radians, params))
+        return cls(*map(np.radians, params))
 
     def __init__(self, theta12, theta23, theta13, delta):
         self.P = transfer_matrix(pmns_matrix(theta12, theta23, theta13, delta))
 
     def __call__(self, e, mu, tau):
-        original = numpy.array(numpy.broadcast_arrays(e, mu, tau), dtype=float)
-        oscillated = numpy.asarray(numpy.dot(self.P, original))
+        original = np.array(np.broadcast_arrays(e, mu, tau), dtype=float)
+        oscillated = np.asarray(np.dot(self.P, original))
         return oscillated

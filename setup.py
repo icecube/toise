@@ -42,6 +42,7 @@ setup(
         "console_scripts": [
             "toise-figure-data = toise.figures.cli:make_figure_data",
             "toise-plot = toise.figures.cli:make_figure",
+            "toise-table = toise.figures.cli:make_table",
         ]
     },
 )

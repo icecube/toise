@@ -8,7 +8,7 @@ from pkgutil import iter_modules
 import importlib
 import inspect
 
-from typing import Any, Literal, get_args, get_origin
+from typing import Any, Callable, Literal, Sequence, Union, get_args, get_origin
 
 try:
     from typing import List
@@ -144,6 +144,14 @@ def jsonify(obj):
         return obj
 
 
+def _maybe_call_sequence(f: Union[Callable, Sequence[Callable]]):
+    if isinstance(f, Callable):
+        f()
+    elif isinstance(f, Sequence):
+        for element in f:
+            _maybe_call_sequence(element)
+
+
 def make_figure_data():
     from toise import figures
 
@@ -189,8 +197,7 @@ def make_figure_data():
         )
 
     func, setup, teardown = args.pop("command")
-    if setup:
-        setup()
+    _maybe_call_sequence(setup)
     try:
         for exposure, outfile in zip(exposures, outfiles):
             meta = {
@@ -204,8 +211,7 @@ def make_figure_data():
             with gzip.open(outfile, "wt") as f:
                 json.dump(meta, f, indent=2)
     finally:
-        if teardown:
-            teardown()
+        _maybe_call_sequence(teardown)
 
 
 def load_gzip(fname):
@@ -318,3 +324,52 @@ def make_figure():
         import matplotlib.pyplot as plt
 
         plt.show()
+
+
+def make_table():
+    from toise import figures
+
+    # find all submodules of toise.figures and import them
+    for submod in find_modules(os.path.dirname(sys.modules[__name__].__file__)):
+        importlib.import_module(".".join(__name__.split(".")[:-1] + [submod]))
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    subparsers = parser.add_subparsers(dest="command")
+    subparsers.required = True
+
+    for name, func in sorted(figures._tables.items()):
+        docstring, param_help = getdoc(func)
+        p = subparsers.add_parser(
+            name, help=docstring, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
+        p.set_defaults(command=func)
+        p.add_argument("-o", "--outfile")
+        spec = inspect.signature(func)
+        num_required_args = 0
+        if (
+            sum(1 for param in spec.parameters.values() if param.default is param.empty)
+            == 1
+        ):
+            p.add_argument("infiles", nargs="+")
+            num_required_args = 1
+        _add_options_for_args(p, spec, param_help)
+    kwargs = parser.parse_args().__dict__
+    infiles = kwargs.pop("infiles", None)
+    outfile = kwargs.pop("outfile")
+
+    func = kwargs.pop("command")
+    if infiles:
+        args = (list(map(load_gzip, infiles)),)
+    else:
+        args = tuple()
+    dataframe = func(*args, **kwargs)
+
+    if outfile:
+        base, ext = os.path.splitext(outfile)
+        f = getattr(dataframe, f"to_{ext[1:]}")
+        f(outfile)
+    else:
+        print(dataframe)

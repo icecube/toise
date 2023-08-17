@@ -421,6 +421,7 @@ def untagged_fraction(eprim, **kwargs):
 class MuonBundleBackground(object):
     def __init__(self, effective_area, livetime=1.0):
         self._aeff = effective_area
+        self.bin_edges = list(self._aeff.bin_edges)
 
         emu, cos_theta = effective_area.bin_edges[:2]
         # FIXME: account for healpix binning

@@ -44,7 +44,7 @@ def create_psf(
     # avoid NaNs
     norm[norm == 0] = 1
     h._h_bincontent /= norm
-    h._h_squaredweights /= norm ** 2
+    h._h_squaredweights /= norm**2
 
     return h
 

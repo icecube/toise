@@ -3,6 +3,7 @@ from functools import partial
 import numpy
 from . import factory, diffuse, surface_veto, pointsource, multillh
 from .util import constants
+from . import radio_aeff_generation
 
 # Enum has no facility for setting docstrings inline. Do it by hand.
 TOT = Enum("TOT", ["ul", "dp", "fc"])
@@ -98,13 +99,65 @@ class GZK(object):
         # return dict(gzk=gzk, uhe=uhe)
 
 
+class UHEFlux(object):
+    """
+    Sensitivity to an isotropic, 1:1:1 flux, ignoring background from known
+    IceCube diffuse flux
+    """
+
+    def __init__(self, exposures):
+        self.bundle = factory.component_bundle(exposures, self.make_components)
+
+    def benchmark(self, fom, **kwargs):
+        components = self.bundle.get_components()
+        components["uhe_gamma"] = multillh.NuisanceParam(-2, 0.5, min=-2.7, max=-1.7)
+
+        uhe = components.pop("uhe")
+        if "uhe_gamma" not in kwargs:
+            kwargs["uhe_gamma"] = -2.0
+        if fom == DIFF.ul:
+            return pointsource.differential_upper_limit(
+                uhe, components, tolerance=1e-4, **kwargs
+            )
+        elif fom == DIFF.dp:
+            return pointsource.differential_discovery_potential(
+                uhe, components, tolerance=1e-4, **kwargs
+            )
+        elif fom == DIFF.fc:
+            return pointsource.differential_fc_upper_limit(uhe, components, **kwargs)
+        else:
+            raise RuntimeError("No such fom")
+
+    @staticmethod
+    def make_components(aeffs):
+        aeff, muon_aeff = aeffs
+        energy_threshold = numpy.inf
+        atmo = diffuse.AtmosphericNu.conventional(
+            aeff, 1.0, hard_veto_threshold=energy_threshold
+        )
+        atmo.uncertainty = 0.1
+        prompt = diffuse.AtmosphericNu.prompt(
+            aeff, 1.0, hard_veto_threshold=energy_threshold
+        )
+        prompt.min = 0.5
+        prompt.max = 3
+        uhe = diffuse.DiffuseAstro(aeff, 1.0, gamma_name="uhe_gamma")
+        components = dict(atmo=atmo, prompt=prompt, uhe=uhe)
+        if muon_aeff is not None:
+            if min(aeff.get_bin_edges("true_energy")) < 1e5:
+                components["muon"] = surface_veto.MuonBundleBackground(muon_aeff, 1)
+            else:
+                components["muon"] = radio_aeff_generation.MuonBackground(muon_aeff, 1)
+        return components
+
+
 class PointSource(object):
     def __init__(self, exposures, zi):
         self.bundle = factory.component_bundle(
             exposures, partial(self.make_components, zi)
         )
 
-    def benchmark(self, fom, gamma=-2.0, diff_gamma=-2.3, **kwargs):
+    def benchmark(self, fom, gamma=-2.0, diff_gamma=-2.5, **kwargs):
         components = self.bundle.get_components()
         ps = components.pop("ps")
 
@@ -113,8 +166,8 @@ class PointSource(object):
         if len(kwargs) != 0:
             raise ValueError("Can't take kwargs")
         if emin is not None:
-            if fom not in (TOT.dp, TOT.ul, TOT.fc):
-                raise ValueError("emin argument not supported for FoM {}".format(fom))
+            #        if fom not in (TOT.dp, TOT.ul, TOT.fc):
+            #            raise ValueError("emin argument not supported for FoM {}".format(fom))
             ecenter, ps = next(ps.differential_chunks(emin=emin, decades=1000))
         # assume all backgrounds known perfectly
         kwargs = {k: v.seed for k, v in components.items()}
@@ -155,6 +208,7 @@ class PointSource(object):
                 ps_gamma=gamma,
                 tolerance=1e-4,
                 decades=decades,
+                emin=emin,
                 **kwargs
             )
         elif fom == DIFF.dp:
@@ -165,6 +219,7 @@ class PointSource(object):
                 ps_gamma=-2,
                 tolerance=1e-4,
                 decades=decades,
+                emin=emin,
                 **kwargs
             )
         else:
@@ -187,8 +242,20 @@ class PointSource(object):
 
         components = dict(atmo=atmo_bkg, prompt=prompt_bkg, astro=astro_bkg, ps=ps)
         if muon_aeff is not None:
-            components["muon"] = surface_veto.MuonBundleBackground(
-                muon_aeff, 1
-            ).point_source_background(zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1])
+            import numpy as np
 
+            print("muon aeff shape", np.shape(muon_aeff.values))
+            if min(aeff.get_bin_edges("true_energy")) < 1e5:
+                components["muon"] = surface_veto.MuonBundleBackground(
+                    muon_aeff, 1
+                ).point_source_background(
+                    zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1]
+                )
+            else:
+                print("using radio muon background")
+                components["muon"] = radio_aeff_generation.MuonBackground(
+                    muon_aeff, 1
+                ).point_source_background(
+                    zenith_index=zi, psi_bins=aeff.bin_edges[-1][:-1]
+                )
         return components

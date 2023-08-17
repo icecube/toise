@@ -39,7 +39,7 @@ def refresh_data_tables(icecube_password=os.environ.get("ICECUBE_PASSWORD", None
 
 
 def center(x):
-    return 0.5 * (x[1:] + x[:-1])
+    return 0.5 * (np.array(x)[1:] + np.array(x)[:-1])
 
 
 def edge(x):
@@ -49,10 +49,12 @@ def edge(x):
 
 
 class constants:
+    second = 1.0
     day = 24 * 3600.0
     annum = 365 * day
     cm = 1e2
     cm2 = 1e4
+    Mpc = 1e6  # use pc as default units
 
 
 class baseEnum(int):

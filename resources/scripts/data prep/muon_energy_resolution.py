@@ -41,11 +41,11 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
         cmap = cm.get_cmap("viridis")
         img = h2.imshow(norm=norm, cmap=cmap)
         ax.errorbar(
-            10 ** sp.x,
-            10 ** sp.y,
+            10**sp.x,
+            10**sp.y,
             yerr=(
-                10 ** sp.y - 10 ** (sp.y - sp.yerr),
-                10 ** (sp.yerr + sp.y) - 10 ** sp.y,
+                10**sp.y - 10 ** (sp.y - sp.yerr),
+                10 ** (sp.yerr + sp.y) - 10**sp.y,
             ),
             color="k",
             capsize=2,
@@ -56,7 +56,7 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
         cax.xaxis.set_ticks_position("top")
         cax.xaxis.set_label_position("top")
         cb.set_label(r"$P(E_{\rm reco} | E_{\mu})$")
-        axis_range = tuple([10 ** x for x in axis_range])
+        axis_range = tuple([10**x for x in axis_range])
         ax.set_xlim(axis_range)
         ax.set_ylim(axis_range)
         ax.set_xlabel(r"Muon energy $E_{\mu}$ [GeV]")
@@ -64,7 +64,7 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
         ax.grid()
 
         ax = plt.subplot(right_grid[0])
-        ax.semilogx(10 ** sp.x, sp.y - sp.x, color=cmap(0))
+        ax.semilogx(10**sp.x, sp.y - sp.x, color=cmap(0))
         ax.set_ylabel(r"$\left< \log_{10}(E_{\rm reco}/E_{\mu}) \right>$")
         ax.xaxis.set_major_formatter(NullFormatter())
         ax.set_xlim(axis_range)
@@ -72,7 +72,7 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
         ax.grid()
 
         ax = plt.subplot(right_grid[1])
-        ax.semilogx(10 ** sp.x, sp.yerr, color=cmap(0))
+        ax.semilogx(10**sp.x, sp.yerr, color=cmap(0))
         ax.set_ylabel(r"$\sigma_{\log_{10}E_{\rm reco}}$")
         ax.set_xlabel(r"Muon energy $E_{\mu}$ [GeV]")
         ax.set_xlim(axis_range)

@@ -245,7 +245,12 @@ class aeff_factory(object):
                 radio = radio_aeff_generation.radio_aeff(
                     psi_bins=psi_bins["radio"], config=opts.config_file
                 )
-                aeffs["radio_events"] = (radio.create(), radio.create_muon_background())
+                aeffs["radio_events"] = (
+                    radio.create(cos_theta=default_cos_theta_bins),
+                    radio.create_muon_background_from_tabulated(
+                        cos_theta=default_cos_theta_bins
+                    ),
+                )
             else:
                 kwargs["nstations"] = opts.nstations
                 if hasattr(opts, "veff_filename"):
@@ -287,6 +292,14 @@ class aeff_factory(object):
             self._aeffs[name] = self._create(opts, **kwargs)
         return self._aeffs[name]
 
+    def get_kwargs(self, name):
+        opts, kwargs = self._recipes[name]
+        return kwargs
+
+    def get_opts(self, name):
+        opts, kwargs = self._recipes[name]
+        return opts
+
     @classmethod
     def get(cls):
         if not hasattr(cls, "instance"):
@@ -312,13 +325,15 @@ class component_bundle(object):
                             aeff_mu = aeff[1].truncate_energy_range(emin, emax)
                         except:
                             aeff_mu = aeff[1]
-                            self.components[key] = component_factory((aeff_c, aeff_mu))
+                            self.components[key] = component_factory(
+                                (aeff_c, aeff_mu), **kwargs
+                            )
                     else:
                         self.components[key] = component_factory(
-                            aeff, emin=emin, emax=emax
+                            aeff, emin=emin, emax=emax, **kwargs
                         )
                 else:
-                    self.components[key] = component_factory(aeff)
+                    self.components[key] = component_factory(aeff, **kwargs)
                 self.detectors[key] = detector
 
     def get_component(self, key, livetimes=None):
@@ -421,7 +436,9 @@ def add_aeffs(name, aeffs):
 set_kwargs = aeff_factory.get().set_kwargs
 
 
-def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True):
+def scale_gen2_sensors(
+    scale=1.0, ssmpe=True, mdom=True, with_cascades=True, veto_area=5.8
+):
     """
     Approximate a Gen2 instrumented with sensors `scale` times the photon
     effective area of a PDOM
@@ -430,7 +447,7 @@ def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True):
         geometry="Sunflower",
         spacing=240,
         cascade_energy_threshold=2e5 / scale if with_cascades else None,
-        veto_area=5.8,
+        veto_area=veto_area,
         veto_threshold=defer(surface_veto.UDelSurfaceVeto),
         angular_resolution_scale=partial(
             gen2_throughgoing_muon_angular_resolution_correction,
@@ -471,7 +488,15 @@ default_configs = {
         scale_gen2_sensors(3.0, with_cascades=False)
         | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
     ),
-    "Gen2-Radio": dict(geometry="Radio", nstations=200),
+    "Gen2-InIce-NoVeto": scale_gen2_sensors(3.0, veto_area=0.0),
+    "Gen2-InIce-TracksOnly-NoVeto": (
+        scale_gen2_sensors(3.0, with_cascades=False, veto_area=0.0)
+        | {"veto_threshold": defer(surface_veto.UDelSurfaceVeto)}
+    ),
+    "Gen2-Radio": dict(
+        geometry="Radio",
+        config_file="data/gen2-radio/baseline.yaml",
+    ),
     "Fictive-Radio": dict(geometry="Radio", nstations=30),
     "Sunflower_240": dict(
         geometry="Sunflower",
@@ -535,7 +560,31 @@ default_psi_bins = {
     "radio": numpy.linspace(0, numpy.radians(15) ** 2, 50) ** (1.0 / 2),
 }
 
-default_cos_theta_bins = numpy.linspace(-1, 1, 21)
+# default_cos_theta_bins = numpy.linspace(-1, 1, 21)
+default_cos_theta_bins = [
+    -1.0,
+    -0.95,
+    -0.85,
+    -0.75,
+    -0.65,
+    -0.55,
+    -0.45,
+    -0.35,
+    -0.25,
+    -0.15,
+    -0.05,
+    0.05,
+    0.15,
+    0.25,
+    0.35,
+    0.45,
+    0.55,
+    0.65,
+    0.75,
+    0.85,
+    0.95,
+    1.0,
+]
 
 for k, config in default_configs.items():
     psi_bins = dict(default_psi_bins)

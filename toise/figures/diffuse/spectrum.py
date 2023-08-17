@@ -132,7 +132,7 @@ def unfold_llh(chunk_llh):
     import toolz
 
     fixed = dict(gamma=-2, prompt=1, atmo=1, muon=1)
-    fit = chunk_llh.fit(minimizer_params=dict(epsilon=1e-2), **fixed)
+    fit = chunk_llh.fit(minimizer_params=dict(options=dict(epsilon=1e-2)), **fixed)
     is_astro = partial(filter, lambda s: s.startswith("astro"))
     keys = toolz.pipe(list(chunk_llh.components.keys()), is_astro, sorted)[4:]
     xlimits = np.array(
@@ -150,19 +150,47 @@ def unfold_llh(chunk_llh):
 
 
 @ecached(
-    __name__ + ".unfolding.{exposures}.{astro}.{gamma}.emax{emax}.{gzk}x{gzk_norm}",
+    __name__
+    + ".unfolding.{exposures}.{astro}.{gamma}.emax{emax}.{gzk}x{gzk_norm}.{astro_model}",
     timeout=2 * 24 * 3600,
 )
-def unfold_bundle(exposures, astro, gamma, gzk="vanvliet", gzk_norm=1, emax=1e9):
+def unfold_bundle(
+    exposures,
+    astro,
+    gamma,
+    gzk="vanvliet",
+    gzk_norm=1,
+    astro_model="powerlaw",
+    emax=1e9,
+):
     bundle = factory.component_bundle(dict(exposures), make_components)
+
     assert gzk == "vanvliet"
 
-    def seed_flux(energy):
+    def powerlaw_flux(energy):
         # NB: ArbitraryFlux assumes all-flavor flux, and divides by 6 to get per-particle
         return 3 * (
             astro * powerlaw(energy, gamma, emax)
             + gzk_norm * diffuse.VanVlietGZKFlux()(energy)
         )
+
+    def dip_spectrum(energy):
+        # NB: this is the model with a dip at few hundred GeV fom the 6yr cascade paper (https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.125.121104)
+        return 3 * (
+            4.3e-18 * ((energy / 1.0e5) ** -2) * np.exp(-energy / 10**5.1)
+            + 1.3e-21
+            * ((energy / 1.0e6) ** -1.25)
+            * np.exp(-((energy / (10**7.3)) ** 0.5))
+            + gzk_norm * diffuse.VanVlietGZKFlux()(energy)
+        )
+
+    function_map = {
+        "powerlaw": powerlaw_flux,
+        "cascade_paper_dip_spectrum": dip_spectrum,
+    }
+
+    assert astro_model in list(function_map.keys())
+    seed_flux = function_map[astro_model]
 
     result = unfold_llh(asimov_llh(bundle, seed_flux))
     for k, v in diffuse.DiffuseAstro.__dict__.items():
@@ -184,6 +212,7 @@ def unfold(
     gamma=-2.5,
     gzk="vanvliet",
     gzk_norm=1.0,
+    astro_model="powerlaw",
     emax=1e9,
     clean=False,
 ):
@@ -198,10 +227,10 @@ def unfold(
     """
     if clean:
         unfold_bundle.invalidate_cache_by_key(
-            exposures, astro, gamma, gzk, gzk_norm, emax
+            exposures, astro, gamma, gzk, gzk_norm, astro_model, emax
         )
     xlimits, ycenters, ylimits = unfold_bundle(
-        exposures, astro, gamma, gzk, gzk_norm, emax
+        exposures, astro, gamma, gzk, gzk_norm, astro_model, emax
     )
 
     return {
@@ -240,7 +269,7 @@ def flux_error(datasets):
     return ax.figure
 
 
-def get_ic_contour(source="lars"):
+def get_ic_contour(source="lars", all_flavor=True):
     # 99% confidence interval
     if source == "lars":
         return np.loadtxt(
@@ -304,9 +333,164 @@ def get_ic_contour(source="lars"):
                                      """
             )
         )
-        # factor of 3 for all-flavor
+    elif source == "6y_cascades":
+        dat = np.loadtxt(
+            StringIO(
+                """
+        16295.4 5.31484e-08 
+        71709.4 2.35803e-08 
+        102127  1.99827e-08  
+        2.58918e+06     4.64159e-09   
+        2.58918e+06     1.82574e-09
+        131471  1.06205e-08      
+        78008   1.39249e-08  
+        16023.3 2.95521e-08 
+        16295.4 5.31484e-08 
+        """
+            )
+        )
+
+    elif source == "10y_diffuse":
+        dat = np.loadtxt(
+            StringIO(
+                """
+        14715.6 4.40177e-08            
+        100072  1.83298e-08       
+        220273  1.32939e-08       
+        458691  1.01916e-08       
+        997280  7.97466e-09       
+        5100000     5.10121e-09       
+        5100000     2.12424e-09       
+        2334730     3.06903e-09       
+        997280  4.5521e-09        
+        515683  5.9551e-09        
+        253824  7.58843e-09       
+        99456.8 9.89831e-09       
+        33405.1 1.32939e-08       
+        14715.6 1.63567e-08       
+        14715.6 4.40177e-08  
+        """
+            )
+        )
+
+    else:
+        raise RuntimeError("Unknown IceCube result.")
+
+    # factor of 3 for all-flavor
+    if all_flavor:
         dat[:, 1] *= 3
-        return dat
+    return dat
+
+
+def plot_ic_data(ax, source, all_flavor=True, **kwargs):
+    if all_flavor:
+        flavf = 3.0
+    else:
+        flavf = 1.0
+    if source == "10y_diffuse":
+        dat = np.loadtxt(
+            StringIO(
+                """
+#        5874.68 3.09105e-08     2875.48     9361.91      0      0
+        44356   2.21612e-08     29730.9 58847.9 7.86045e-09     7.95203e-09     
+        276700  1.21079e-08     173496  442646  2.96006e-09     3.05292e-09     
+        1.82456e+06     3.33051e-09     1.10522e+06     3.15858e+06     1.73494e-09     2.20532e-09    
+#        1.94433e+07     4.04861e-09     1.44499e+07     3.02453e+07     0       0
+        """
+            )
+        ).transpose()
+    if source == "glashow_nature":
+        dat = np.array(
+            [
+                [4.62979e06, 6.30957e06, 8.56512e06],
+                [1.14994e-07, 5.67596e-09, 7.29325e-07],
+                [620830, 916725, 1.19692e06],
+                [787417, 1.07256e06, 1.39135e06],
+                [0, 3.2638e-09, 0],
+                [0, 2.81791e-08, 0],
+            ]
+        )
+        for i in [1, 4, 5]:
+            dat[i] = dat[i] / 3.0
+    if source == "6y_cascades":
+        dat = np.loadtxt(
+            StringIO(
+                """
+        6800.99 3.16228e-08     1804.9  3269.35 2.10701e-08     2.24166e-08     
+        14703.7 3.37316e-08     4703.74 6765.24 1.08328e-08     9.10109e-09     
+        31567.4 4.42379e-08     10098.4 14848.5 7.78917e-09     9.45374e-09     
+        68248.7 1.93605e-08     21832.8 32102.4 5.34108e-09     6.69434e-09     
+        146523  1.99956e-08     46171.9 68920.5 5.0413e-09      5.89154e-09     
+        316782  1.73108e-09     101339  149006  0       0       
+        680099  5.52149e-10     217564  319901  4.67236e-10     4.2177e-09      
+        1.47037e+06     1.08989e-08     470374  691625  5.50659e-09     7.13437e-09     
+        3.17895e+06     4.89463e-09     1.03205e+06     1.46264e+06     0       0       
+        6.82487e+06     1.44482e-09     2.18328e+06     3.21024e+06     0       0       
+        1.46523e+07     7.69097e-09     4.68728e+06     6.89205e+06     0       0       
+        3.16782e+07     1.35741e-08     1.01339e+07     1.49006e+07     0       0       
+        6.80099e+07     2.62236e-08     2.17564e+07     3.19901e+07     0       0 
+        """
+            )
+        ).transpose()
+    #        dat=dat[:,:-4]
+    is_limit = (dat[4] == 0) & (dat[5] == 0)
+    dat[4] = np.where(is_limit, 0.3 * dat[1], dat[4])
+    ax.errorbar(
+        dat[0],
+        flavf * dat[1],
+        xerr=dat[2:4],
+        yerr=flavf * dat[4:],
+        uplims=is_limit,
+        linestyle="",
+        capsize=0,
+        **kwargs
+    )
+    return ax
+
+
+def plot_ic_limit(ax, source, all_flavor=True, **kwargs):
+    if source == "ehe_limit":
+        # IceCube
+        # log (E^2 * Phi [GeV cm^02 s^-1 sr^-1]) : log (E [Gev])
+        # Phys Rev D 98 062003 (2018)
+        # Numbers private correspondence Shigeru Yoshida
+        ice_cube_limit = np.array(
+            (
+                [
+                    #    (6.199999125, -7.698484687),
+                    #    (6.299999496, -8.162876678),
+                    #    (6.400000617, -8.11395291),
+                    #    (6.500000321, -8.063634144),
+                    #    (6.599999814, -8.004841781),
+                    #    (6.699999798, -7.944960162),
+                    #    (6.799999763, -7.924197388),
+                    (6.899999872, -7.899315263),
+                    (7.299999496, -7.730561153),
+                    (7.699999798, -7.670680637),
+                    (8.100001583, -7.683379711),
+                    (8.500000321, -7.748746801),
+                    (8.899999872, -7.703060304),
+                    (9.299999496, -7.512907553),
+                    (9.699999798, -7.370926525),
+                    (10.10000158, -7.134626026),
+                    (10.50000032, -6.926516638),
+                    (10.89999987, -6.576523031),
+                ]
+            )
+        )
+
+        ice_cube_limit[:, 0] = 10 ** ice_cube_limit[:, 0]
+        ice_cube_limit[:, 1] = 10 ** ice_cube_limit[:, 1]
+        if not all_flavor:
+            ice_cube_limit[:, 1] /= 3.0
+    ax.errorbar(
+        ice_cube_limit[:, 0],
+        ice_cube_limit[:, 1],
+        xerr=None,
+        yerr=ice_cube_limit[:, 1] * 0.3,
+        uplims=np.ones_like(ice_cube_limit[:, 1]),
+        **kwargs
+    )
 
 
 def ic_butterfly(energy, source="lars"):
@@ -395,7 +579,7 @@ def unfolded_flux(datasets, label="Gen2-InIce+Radio"):
         label="IceCube (tracks only, ApJ 2016)"
     )
 
-    ax.loglog(nonposy="clip")
+    ax.loglog(nonpositive="clip")
     ax.set_xlim((1e4, 2e9))
     ax.set_ylim((2e-9, 1e-6))
     ax.set_xlabel("Neutrino energy (GeV)")
@@ -413,7 +597,7 @@ def unfolded_flux(datasets, label="Gen2-InIce+Radio"):
         frameon=False,
     )
 
-    plt.tight_layout(0.1)
+    plt.tight_layout()
     return ax.figure
 
 
@@ -450,7 +634,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     import matplotlib.pyplot as plt
     from matplotlib.container import ErrorbarContainer
 
-    fig = plt.figure(figsize=(7, 3.5))
+    fig = plt.figure(figsize=(7, 3.5), dpi=300)
     ax = plt.gca()
 
     plot_crs(ax)
@@ -511,7 +695,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     )
 
     ax.set_xscale("log")
-    ax.set_yscale("log", nonposy="clip")
+    ax.set_yscale("log", nonpositive="clip")
     ax.set_ylim(5e-11, 5e-5)
     ax.set_xlabel(r"$E\,\,[\mathrm{GeV}]$")
     ax.set_ylabel(
@@ -536,5 +720,375 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     #     ax.xaxis.set_major_formatter(plt.NullFormatter())
     #     ax.set_xlabel('')
 
-    plt.tight_layout(0.1)
+    plt.tight_layout()
     return ax.figure
+
+
+@figure
+def unfolded_flux_plus_sensitivity_mm(
+    datasets,
+    sensitivity,
+    label="Gen2-InIce+Radio",
+    plot_elements=None,
+    all_flavor=True,
+    ax=None,
+):
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+    from matplotlib.container import ErrorbarContainer
+
+    _default_plot_elements = [
+        "cr",
+        "10y_diffuse",
+        "6y_cascade",
+        "glashow",
+        "ehe",
+        "gen2_unfolding",
+        "gen2_sensitivity",
+        "model_flux_powerlaw",
+    ]
+    if plot_elements is None:
+        plot_elements = _default_plot_elements
+    group_label_ic, group_label_gen2 = False, False
+
+    if all_flavor:
+        flavor_factor = 3
+    else:
+        flavor_factor = 1
+    if ax is None:
+        fig = plt.figure(figsize=(6.2, 3.5), dpi=300)
+        ax = plt.gca()
+    else:
+        plt.sca(ax)
+
+    if "cr" in plot_elements:
+        plot_crs(ax)
+
+    assert datasets[0]["source"] == "toise.figures.diffuse.spectrum.unfold"
+    args = datasets[0]["args"]
+
+    # plot underlying fluxes
+
+    if "lars_butterfly" in plot_elements:
+        x = np.logspace(np.log10(25e3), np.log10(2.8e6), 101)
+        fill = ax.fill_between(
+            x, *ic_butterfly(x, "lars"), facecolor="lightgrey", edgecolor="None"
+        )
+        group_label_ic = True
+
+    if "10y_diffuse_butterfly" in plot_elements:
+        if "ic+label+color" in plot_elements:
+            legend_entry, plot_color, group_label_ic = (
+                "IceCube tracks (power-law model)",
+                "darkblue",
+                False,
+            )
+        else:
+            legend_entry, plot_color, group_label_ic = None, "#566573", True
+        if "10y_diffuse" in plot_elements:
+            legend_entry = None
+        poly1 = plt.Polygon(
+            np.array(get_ic_contour("10y_diffuse", all_flavor=all_flavor)),
+            edgecolor=plot_color,
+            alpha=1.0,
+            fill=False,
+            label=legend_entry,
+        )
+        ax.add_patch(poly1)
+
+    if "6y_cascade_butterfly" in plot_elements:
+        if "ic+label+color" in plot_elements:
+            legend_entry, plot_color, group_label_ic = (
+                "IceCube showers (power-law model)",
+                "#1f77b4",
+                False,
+            )
+        else:
+            legend_entry, plot_color, group_label_ic = None, "lightgrey", True
+        if "6y_cascade" in plot_elements:
+            legend_entry = None
+        poly2 = plt.Polygon(
+            np.array(get_ic_contour("6y_cascades", all_flavor=all_flavor)),
+            edgecolor=None,
+            alpha=0.5,
+            color=plot_color,
+            label=legend_entry,
+        )
+        ax.add_patch(
+            poly2,
+        )
+
+    if "10y_diffuse" in plot_elements:
+        if "ic+label+color" in plot_elements:
+            legend_entry, plot_color, group_label_ic = (
+                "IceCube tracks, Aartsen et al., ApJ, 2022",
+                "darkblue",
+                False,
+            )
+        else:
+            legend_entry, plot_color, group_label_ic = None, "#566573", True
+        plot_ic_data(
+            ax,
+            "10y_diffuse",
+            color=plot_color,
+            lw=1,
+            alpha=0.8,
+            marker="o",
+            markersize=4,
+            label=legend_entry,
+            all_flavor=all_flavor,
+        )
+
+    if "6y_cascade" in plot_elements:
+        if "ic+label+color" in plot_elements:
+            legend_entry, plot_color, group_label_ic = (
+                "IceCube showers, Aartsen et al., PRL, 2020",
+                "#1f77b4",
+                False,
+            )
+        else:
+            legend_entry, plot_color, group_label_ic = None, "grey", True
+        plot_ic_data(
+            ax,
+            "6y_cascades",
+            color=plot_color,
+            lw=1,
+            alpha=0.8,
+            marker="s",
+            markersize=4,
+            label=legend_entry,
+            all_flavor=all_flavor,
+        )
+
+    if "glashow" in plot_elements:
+        if "ic+label+color" in plot_elements:
+            legend_entry, plot_color, group_label_ic = (
+                "IceCube Glashow, Aartsen et al., Nature, 2021",
+                "#3f97F4",
+                False,
+            )
+        else:
+            legend_entry, plot_color, group_label_ic = None, "#768593", True
+        plot_ic_data(
+            ax,
+            "glashow_nature",
+            color=plot_color,
+            lw=1,
+            alpha=0.8,
+            marker="P",
+            markersize=4,
+            label=legend_entry,
+            all_flavor=all_flavor,
+        )
+
+    if "ehe" in plot_elements:
+        if "ic+label+color" in plot_elements:
+            legend_entry, plot_color, group_label_ic = (
+                "IceCube EHE, Aartsen et al., PRD, 2018",
+                "#1f77b4",
+                False,
+            )
+        else:
+            legend_entry, plot_color, group_label_ic = None, "grey", True
+        plot_ic_limit(
+            ax,
+            "ehe_limit",
+            color=plot_color,
+            lw=1,
+            alpha=0.5,
+            label=legend_entry,
+            all_flavor=all_flavor,
+        )
+
+    poly_handle, poly_label = [], []
+
+    print(group_label_ic)
+    if group_label_ic:
+        poly_handle.append(Patch(alpha=0.5, edgecolor="#566573", facecolor="lightgrey"))
+        poly_label.append("IceCube")
+
+    if "model_flux_powerlaw" in plot_elements:
+        x = np.logspace(3.85, 7.15, 51)
+        pl = x**2 * args["astro"] * powerlaw(x, args["gamma"], args["emax"])
+        ax.plot(
+            x,
+            flavor_factor * pl,
+            ls=":",
+            lw=1,
+            color="darkblue",
+            zorder=200,
+            label="Astrophysical flux model\n(power law, index = -2.5)",
+        )
+
+    if "model_flux_dip_spectrum" in plot_elements:
+        x = np.logspace(3.85, 7.15, 51)
+        dip = x**2 * (
+            4.3e-18 * ((x / 1.0e5) ** -2) * np.exp(-x / 10**5.1)
+            + 1.3e-21 * ((x / 1.0e6) ** -1.25) * np.exp(-((x / (10**7.3)) ** 0.5))
+        )
+        ax.plot(
+            x,
+            flavor_factor * dip,
+            ls=":",
+            lw=1,
+            color="darkblue",
+            zorder=200,
+            label="Astrophysical flux model\n(Aartsen et al., PRL 2020, model E)",
+        )
+
+    if "gen2_unfolding" in plot_elements:
+        plot_kwargs = dict(linestyle="None", marker="o", markersize=0, color="#1f77b4")
+        for dataset in datasets:
+            xlimits = np.array(dataset["data"]["xlimits"])
+            ylimits = np.array(dataset["data"]["ylimits"])
+            yvalues = np.array(dataset["data"]["ycenters"])
+            # factor 3 for all-flavor convention!
+            unit = flavor_factor * 1e-8
+            ylimits *= unit
+            yvalues *= unit
+
+            years = next(
+                years
+                for detector, years in dataset["detectors"]
+                if detector != "IceCube"
+            )
+
+            edges = np.concatenate((xlimits[:, 0], [xlimits[-1, 1]]))
+            xvalues = 0.5 * (edges[1:] + edges[:-1])
+            index_start = (np.asarray(xvalues) < 1e4).sum() - 1
+            index_stop = (np.asarray(xvalues) < 1e7).sum()
+            x, y = xvalues[index_start:index_stop], yvalues[index_start:index_stop]
+            yerr = abs(ylimits - yvalues[:, None]).T
+            yerr_s = np.array(
+                [yerr[0, index_start:index_stop], yerr[1, index_start:index_stop]]
+            )
+            delta_loge = np.log(x[1] / x[0])
+            xerr_s = [
+                x * (1 - 1 / np.exp(0.5 * delta_loge)),
+                x * (np.exp(0.5 * delta_loge) - 1),
+            ]
+
+            for xx, yy, xe0, xe1, ye0, ye1 in zip(x, y, *xerr_s, *yerr_s):
+                ax.add_patch(
+                    plt.Rectangle(
+                        (xx - xe0, yy - ye0),
+                        xe0 + xe1,
+                        ye0 + ye1,
+                        edgecolor=None,
+                        alpha=0.9,
+                        facecolor="#1f77b4",
+                        linewidth=0,
+                        zorder=100,
+                    )
+                )
+        group_label_gen2 = True
+
+    if "gen2_sensitivity" in plot_elements:
+        energies, flux, ns, nb = sensitivity
+        flux = np.array(flux) * unit
+        fluxerr = 0.3 * flux
+        index_start = (np.asarray(energies) < 1e7).sum()
+        index_low = (np.asarray(energies) < 1e4).sum()
+        energies_s, flux_s, fluxerr_s = [
+            x[index_start:-1] for x in [energies, flux, fluxerr]
+        ]
+        energies_l, flux_l, fluxerr_l = [
+            x[index_low : index_start + 1] for x in [energies, flux, fluxerr]
+        ]
+        ax.errorbar(
+            energies_s,
+            flux_s,
+            xerr=None,
+            yerr=fluxerr_s,
+            uplims=np.ones_like(flux_s),
+            color="#1f77b4",
+        )
+        group_label_gen2 = True
+
+    if "gen2_sensitivity_extension" in plot_elements:
+        ax.plot(energies_l, flux_l, ls="--", color="#1f77b4")
+        group_label_gen2 = True
+
+    if group_label_gen2:
+        poly_handle.append(
+            Patch(edgecolor=None, alpha=0.9, facecolor="#1f77b4", linewidth=0)
+        )
+        poly_label.append(
+            "{label} ({years:.0f} years)".format(label=label, years=years)
+        )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log", nonpositive="clip")
+    ax.set_xlabel(r"$E\,\,[\mathrm{GeV}]$")
+    ax.set_ylabel(
+        r"$E^{2}\times\Phi\,\,[\mathrm{GeV}\,\mathrm{s}^{-1}\,\mathrm{sr}^{-1}\,\mathrm{cm}^{-2}]$"
+    )
+
+    handles, labels = ax.get_legend_handles_labels()
+    handles += poly_handle
+    labels += poly_label
+    order, label_idx = [], len(labels) - 1
+    if group_label_gen2:
+        order.append(label_idx)
+        label_idx -= 1
+    if group_label_ic:
+        order.append(label_idx)
+        label_idx -= 1
+    order += range(0, label_idx + 1)
+    osorted = lambda items, order: [x for _, x in sorted(zip(order, items))]
+    if "ic+label+color" in plot_elements and "cr" not in plot_elements:
+        legend_ncol = 1
+    else:
+        legend_ncol = 2
+    ax.legend(
+        [handles[i] for i in order],
+        [labels[i] for i in order],
+        loc="upper center",
+        ncol=legend_ncol,
+        frameon=False,
+        fontsize="small",
+    )
+    ax.yaxis.set_tick_params(which="both")
+    ax.yaxis.set_ticks_position("both")
+    if "cr" in plot_elements:
+        ax.set_xlim(5e-2, 3e11)
+        if all_flavor:
+            ax.set_ylim(5e-11, 1e-4)
+        else:
+            ax.set_ylim(1e-11, 3e-5)
+        ax.xaxis.set_ticks(np.logspace(-1, 11, 13))
+    else:
+        ax.set_xlim(3e3, 1e11)
+        if all_flavor:
+            ax.set_ylim(1e-10, 1e-5)
+        else:
+            ax.set_ylim(3e-11, 3e-6)
+        ax.xaxis.set_ticks(np.logspace(3, 11, 9))
+
+    plt.tight_layout()
+    return ax.figure
+
+
+@figure
+def unfolded_flux_plus_sensitivity(
+    datasets,
+    sensitivity,
+    label="Gen2-InIce+Radio",
+    plot_elements=None,
+    all_flavor=True,
+    ax=None,
+):
+    _default_plot_elements = [
+        "10y_diffuse",
+        "6y_cascade",
+        "glashow",
+        "ehe",
+        "gen2_unfolding",
+        "gen2_sensitivity",
+        "model_flux_powerlaw",
+    ]
+    if plot_elements is None:
+        plot_elements = _default_plot_elements
+    return unfolded_flux_plus_sensitivity_mm(
+        datasets, sensitivity, label, plot_elements, all_flavor, ax
+    )

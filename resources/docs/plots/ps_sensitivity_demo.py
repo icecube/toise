@@ -95,7 +95,7 @@ def demo_plot(
 
         ax = plt.subplot(griddy[0])
         psi = np.degrees(aeff.bin_edges[-1][:-1])
-        bin_area = np.pi * np.diff(psi ** 2)[0]
+        bin_area = np.pi * np.diff(psi**2)[0]
         ax.plot(
             *plotting.stepped_path(psi, dp * ps.expectations()["tracks"].sum(axis=0)),
             label=r"$%.2f \times 10^{-12} \rm \,\, TeV \, cm^{-2} \, s^{-1}$" % dp
