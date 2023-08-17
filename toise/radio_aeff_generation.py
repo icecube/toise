@@ -509,11 +509,6 @@ class radio_aeff:
                 aeffs_flavor = []
                 for fi, flavor in enumerate(["e", "e", "mu", "mu", "tau", "tau"]):
                     data = matrix_data[f"transfer_matrix_{flavor}"]
-                    print(np.shape(data))
-                    data = np.concatenate(
-                        (data, data[:, -1, :][:, np.newaxis, :]), axis=1
-                    )  # quickfix for 21 cosz bins
-                    print(np.shape(data))
                     prod_dens = 1.0 / neutrino_interaction_length_ice(
                         fi, neutrino_energy
                     )
