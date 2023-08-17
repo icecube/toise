@@ -359,7 +359,7 @@ class component_bundle(object):
 
 def gen2_throughgoing_muon_efficiency_correction(energy, scale):
     x, y = [1.0, 1.5, 2.2, 3.0, 5.0], [-0.0, 1138.0, 1985.0, 2307.0, 2397.0]
-    b = interpolate.interp1d(x, y, 2)(scale)
+    b = interpolate.interp1d(x, y, 2, fill_value="extrapolate")(scale)
     return 1 + b / energy
 
 
