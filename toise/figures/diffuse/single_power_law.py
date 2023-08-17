@@ -287,7 +287,7 @@ def alert_rates(datasets):
 def event_rates(datasets):
     labels = []
 
-    thresholds = [3,4,5]
+    thresholds = [3, 4, 5]
 
     rows = []
 
@@ -300,12 +300,14 @@ def event_rates(datasets):
                 x = np.log10(values["reco_energy_threshold"][base_channel])
                 rates = np.interp(thresholds, x, rate)
                 for ti, rate in enumerate(rates):
-                    rows.append({
-                        "threshold": 10**(thresholds[ti]),
-                        "source": source,
-                        "channel": channel,
-                        "detector": detector,
-                        "rate": rate,
-                    })
-    
+                    rows.append(
+                        {
+                            "threshold": 10 ** (thresholds[ti]),
+                            "source": source,
+                            "channel": channel,
+                            "detector": detector,
+                            "rate": rate,
+                        }
+                    )
+
     return DataFrame(rows).set_index(["threshold", "detector", "source", "channel"])

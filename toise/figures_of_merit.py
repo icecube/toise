@@ -166,8 +166,8 @@ class PointSource(object):
         if len(kwargs) != 0:
             raise ValueError("Can't take kwargs")
         if emin is not None:
-    #        if fom not in (TOT.dp, TOT.ul, TOT.fc):
-    #            raise ValueError("emin argument not supported for FoM {}".format(fom))
+            #        if fom not in (TOT.dp, TOT.ul, TOT.fc):
+            #            raise ValueError("emin argument not supported for FoM {}".format(fom))
             ecenter, ps = next(ps.differential_chunks(emin=emin, decades=1000))
         # assume all backgrounds known perfectly
         kwargs = {k: v.seed for k, v in components.items()}

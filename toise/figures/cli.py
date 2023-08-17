@@ -370,6 +370,6 @@ def make_table():
     if outfile:
         base, ext = os.path.splitext(outfile)
         f = getattr(dataframe, f"to_{ext[1:]}")
-        f(outfile)    
+        f(outfile)
     else:
         print(dataframe)

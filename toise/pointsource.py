@@ -623,7 +623,9 @@ def differential_discovery_potential(
     sensitivities = []
     ns = []
     nb = []
-    for energy, pschunk in point_source.differential_chunks(decades=decades, emin=emin, emax=emax):
+    for energy, pschunk in point_source.differential_chunks(
+        decades=decades, emin=emin, emax=emax
+    ):
         energies.append(energy)
         norm, _ns, _nb = discovery_potential(
             pschunk, diffuse_components, sigma, baseline, tolerance, **fixed

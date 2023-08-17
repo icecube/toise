@@ -23,43 +23,64 @@ except ImportError:
     from backports.functools_lru_cache import lru_cache
 
 # Enums for diffuse flux models, extracted datapoints provided by Bustamante & Valera
-DIFFUSE_MODELS = Enum("DIFFUSE_MODELS", ["fang_murase",
-                           "fang_pulsar",
-                           "heinze_zmax_1",
-                           "muzio_2019",
-                           "muzio_2021",
-                           "padovani_2015",
-                           "rodrigues_bench_cosmo",
-                           "rodrigues_bench_source",
-                           "rodrigues_hlbllacs_cosmo",
-                           "van_vliet_ta",
-                           #"AGNJetMax"
-                           ])
+DIFFUSE_MODELS = Enum(
+    "DIFFUSE_MODELS",
+    [
+        "fang_murase",
+        "fang_pulsar",
+        "heinze_zmax_1",
+        "muzio_2019",
+        "muzio_2021",
+        "padovani_2015",
+        "rodrigues_bench_cosmo",
+        "rodrigues_bench_source",
+        "rodrigues_hlbllacs_cosmo",
+        "van_vliet_ta",
+        # "AGNJetMax"
+    ],
+)
 
-DIFFUSE_MODELS.fang_murase.filename              = "diffuse/fang_murase.txt"
-DIFFUSE_MODELS.fang_pulsar.filename              = "diffuse/fang_pulsar.txt"
-DIFFUSE_MODELS.heinze_zmax_1.filename            = "diffuse/heinze_zmax_1.txt"
-DIFFUSE_MODELS.muzio_2019.filename               = "diffuse/muzio_2019.txt"
-DIFFUSE_MODELS.muzio_2021.filename               = "diffuse/muzio_2021.txt"
-DIFFUSE_MODELS.padovani_2015.filename            = "diffuse/padovani_2015.txt"
-DIFFUSE_MODELS.rodrigues_bench_cosmo.filename    = "diffuse/rodrigues_bench_cosmo.txt"
-DIFFUSE_MODELS.rodrigues_bench_source.filename   = "diffuse/rodrigues_bench_source.txt"
-DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.filename = "diffuse/rodrigues_hlbllacs_cosmo.txt"
-DIFFUSE_MODELS.van_vliet_ta.filename             = "diffuse/van_vliet_ta.txt"
-#DIFFUSE_MODELS.AGNJetMax.filename                = "diffuse/AGN_jet_max_allowed_Rodrigues_et_al_PRL_126_191101.csv"
+DIFFUSE_MODELS.fang_murase.filename = "diffuse/fang_murase.txt"
+DIFFUSE_MODELS.fang_pulsar.filename = "diffuse/fang_pulsar.txt"
+DIFFUSE_MODELS.heinze_zmax_1.filename = "diffuse/heinze_zmax_1.txt"
+DIFFUSE_MODELS.muzio_2019.filename = "diffuse/muzio_2019.txt"
+DIFFUSE_MODELS.muzio_2021.filename = "diffuse/muzio_2021.txt"
+DIFFUSE_MODELS.padovani_2015.filename = "diffuse/padovani_2015.txt"
+DIFFUSE_MODELS.rodrigues_bench_cosmo.filename = "diffuse/rodrigues_bench_cosmo.txt"
+DIFFUSE_MODELS.rodrigues_bench_source.filename = "diffuse/rodrigues_bench_source.txt"
+DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.filename = (
+    "diffuse/rodrigues_hlbllacs_cosmo.txt"
+)
+DIFFUSE_MODELS.van_vliet_ta.filename = "diffuse/van_vliet_ta.txt"
+# DIFFUSE_MODELS.AGNJetMax.filename                = "diffuse/AGN_jet_max_allowed_Rodrigues_et_al_PRL_126_191101.csv"
 
 # diffuse digitized models provided by V. Valera & M. Bustamante, cf. https://arxiv.org/abs/2204.04237
-DIFFUSE_MODELS.fang_murase.__doc__              = "Fang & Murase, cosmic-ray reservoirs (cosmogenic + source), Nature Phys. 14, 396 (2018)"
-DIFFUSE_MODELS.fang_pulsar.__doc__              = "Fang et al., newborn pulsars (source), Phys. Rev. D 90, 103005 (2014)"
-DIFFUSE_MODELS.heinze_zmax_1.__doc__            = "Heinze et al., fit to Auger UHECRs (cosmogenic), Astrophys. J. 873, 88 (2019)"
-DIFFUSE_MODELS.muzio_2019.__doc__               = "Muzio et al., maximum extra p component (cosmogenic + source), Phys. Rev. D 100, 103008 (2019)"
-DIFFUSE_MODELS.muzio_2021.__doc__               = "Muzio et al., cosmic ray-gas interactions (cosmogenic + source), Phys. Rev. D 105, 023022 (2022)"
-DIFFUSE_MODELS.padovani_2015.__doc__            = "Padovani et al. BL Lacs (source), Mon. Not. Roy. Astron. Soc. 452, 1877 (2015)"
-DIFFUSE_MODELS.rodrigues_bench_cosmo.__doc__    = "Rodrigues et al., all AGN (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
-DIFFUSE_MODELS.rodrigues_bench_source.__doc__   = "Rodrigues et al., all AGN (source), Phys. Rev. Lett. 126, 191101 (2021)"
-DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.__doc__ = "Rodrigues et al., HL BL Lacs (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
-DIFFUSE_MODELS.van_vliet_ta.__doc__             = "Bergman & van Vliet, fit to TA UHECRs (cosmogenic), cf. arXiv:2004.09841, Fig. 3"
-#DIFFUSE_MODELS.AGNJetMax.__doc__                = "AGN Jets, maximum allowed source, Rodrigues et al., Phys. Rev. Lett. 126, 191101 (2021)"
+DIFFUSE_MODELS.fang_murase.__doc__ = "Fang & Murase, cosmic-ray reservoirs (cosmogenic + source), Nature Phys. 14, 396 (2018)"
+DIFFUSE_MODELS.fang_pulsar.__doc__ = (
+    "Fang et al., newborn pulsars (source), Phys. Rev. D 90, 103005 (2014)"
+)
+DIFFUSE_MODELS.heinze_zmax_1.__doc__ = (
+    "Heinze et al., fit to Auger UHECRs (cosmogenic), Astrophys. J. 873, 88 (2019)"
+)
+DIFFUSE_MODELS.muzio_2019.__doc__ = "Muzio et al., maximum extra p component (cosmogenic + source), Phys. Rev. D 100, 103008 (2019)"
+DIFFUSE_MODELS.muzio_2021.__doc__ = "Muzio et al., cosmic ray-gas interactions (cosmogenic + source), Phys. Rev. D 105, 023022 (2022)"
+DIFFUSE_MODELS.padovani_2015.__doc__ = (
+    "Padovani et al. BL Lacs (source), Mon. Not. Roy. Astron. Soc. 452, 1877 (2015)"
+)
+DIFFUSE_MODELS.rodrigues_bench_cosmo.__doc__ = (
+    "Rodrigues et al., all AGN (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
+)
+DIFFUSE_MODELS.rodrigues_bench_source.__doc__ = (
+    "Rodrigues et al., all AGN (source), Phys. Rev. Lett. 126, 191101 (2021)"
+)
+DIFFUSE_MODELS.rodrigues_hlbllacs_cosmo.__doc__ = (
+    "Rodrigues et al., HL BL Lacs (cosmogenic), Phys. Rev. Lett. 126, 191101 (2021)"
+)
+DIFFUSE_MODELS.van_vliet_ta.__doc__ = (
+    "Bergman & van Vliet, fit to TA UHECRs (cosmogenic), cf. arXiv:2004.09841, Fig. 3"
+)
+# DIFFUSE_MODELS.AGNJetMax.__doc__                = "AGN Jets, maximum allowed source, Rodrigues et al., Phys. Rev. Lett. 126, 191101 (2021)"
+
 
 class NullComponent(object):
     """
@@ -289,9 +310,9 @@ class AtmosphericNu(DiffuseNuGen):
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):
             background.expectations = (
-                np.nansum(
-                    (self.expectations * zenith_index[:, None]) / omega, axis=0
-                )[..., None]
+                np.nansum((self.expectations * zenith_index[:, None]) / omega, axis=0)[
+                    ..., None
+                ]
                 * bin_areas
             )
         else:
@@ -648,9 +669,7 @@ class DiffuseAstro(DiffuseNuGen):
         expectations_by_flavor = self._apply_flux_weights(**spec_kwargs)
 
         if param("mu_fraction") in kwargs or param("pgamma_fraction") in flavor_kwargs:
-            flavor_weight = 3 * np.ones(
-                (6,) + (1,) * (expectations_by_flavor.ndim - 1)
-            )
+            flavor_weight = 3 * np.ones((6,) + (1,) * (expectations_by_flavor.ndim - 1))
             if param("mu_fraction") in flavor_kwargs:
                 eratio, mu = (
                     flavor_kwargs[param("e_tau_ratio")],
@@ -898,51 +917,78 @@ class ReasonableGZKFlux(object):
 
 
 class DiffuseModelFlux(object):
-    """ A tabulated flux. Can be either 2 columns or 7 columns, first is energy, others are either summed E**2*flux or E**2*flux per flavor """
+    """A tabulated flux. Can be either 2 columns or 7 columns, first is energy, others are either summed E**2*flux or E**2*flux per flavor"""
 
     def __init__(self, flux_model):
         from scipy import interpolate
 
         # check if string, else see if it is a defined flux
         if isinstance(flux_model, DIFFUSE_MODELS):
-            diff_data = np.loadtxt(data_dir + "/models/" + flux_model.filename, delimiter=",")
+            diff_data = np.loadtxt(
+                data_dir + "/models/" + flux_model.filename, delimiter=","
+            )
         elif isinstance(flux_model, str):
             if not os.path.isfile(flux_model):
-                raise RuntimeError(f"Trying to read diffuse flux from text file, {flux_model} not found.")
-            #custom flux model provided via text file
+                raise RuntimeError(
+                    f"Trying to read diffuse flux from text file, {flux_model} not found."
+                )
+            # custom flux model provided via text file
             diff_data = np.loadtxt(flux_model, delimiter=",")
         else:
             raise RuntimeError(f"No such diffuse model defined: {flux_model}")
-        E = diff_data[:,0]
-        Weight = diff_data[:,1:]
+        E = diff_data[:, 0]
+        Weight = diff_data[:, 1:]
         logE = np.log10(E)
         logWeight = np.log10(Weight)
 
         # interpolant for all-flavor
         self._interpolant = interpolate.interp1d(
-            logE, np.log10(np.sum(Weight, axis=1)) + 8, bounds_error=False, fill_value=-np.inf
+            logE,
+            np.log10(np.sum(Weight, axis=1)) + 8,
+            bounds_error=False,
+            fill_value=-np.inf,
         )
 
         # interpolants per flavor (if given)
         self._has_per_flavor_flux = False
-        flavorcodes = [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar]
-        if np.shape(logWeight)[1] == 6: # per flavor weight is given
+        flavorcodes = [
+            PDGCode.NuE,
+            PDGCode.NuEBar,
+            PDGCode.NuMu,
+            PDGCode.NuMuBar,
+            PDGCode.NuTau,
+            PDGCode.NuTauBar,
+        ]
+        if np.shape(logWeight)[1] == 6:  # per flavor weight is given
             self._has_per_flavor_flux = True
-            self._interpolant_per_flavor = {flav: interpolate.interp1d(
-                logE, logWeight[:,i] + 8, bounds_error=False, fill_value=-np.inf
-            ) for i, flav in enumerate(flavorcodes)}
+            self._interpolant_per_flavor = {
+                flav: interpolate.interp1d(
+                    logE, logWeight[:, i] + 8, bounds_error=False, fill_value=-np.inf
+                )
+                for i, flav in enumerate(flavorcodes)
+            }
 
     def has_per_flavor_flux(self):
         """flag if provided flux file was all-flavor or per-flavor"""
         return self._has_per_flavor_flux
 
     def __call__(self, e_center, flavor=None):
-        assert (flavor is None or flavor in [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar])
+        assert flavor is None or flavor in [
+            PDGCode.NuE,
+            PDGCode.NuEBar,
+            PDGCode.NuMu,
+            PDGCode.NuMuBar,
+            PDGCode.NuTau,
+            PDGCode.NuTauBar,
+        ]
         if flavor is None:
             # return all flavor flux
             return 10 ** (self._interpolant(np.log10(e_center)) - 8) / e_center**2
         # return per-flavor flux
-        return 10 ** (self._interpolant_per_flavor[flavor](np.log10(e_center)) - 8) / e_center**2
+        return (
+            10 ** (self._interpolant_per_flavor[flavor](np.log10(e_center)) - 8)
+            / e_center**2
+        )
 
 
 def atmos_flux(enu, model):
@@ -1024,6 +1070,7 @@ class ArbitraryFlux(DiffuseAstro):
             / (6 * self._integral_flux(self._aeff))
         )
 
+
 class DiffuseModel(ArbitraryFlux):
     def __init__(self, model, *args, **kwargs):
         super(DiffuseModel, self).__init__(*args, **kwargs)
@@ -1037,18 +1084,31 @@ class DiffuseModel(ArbitraryFlux):
         enu = self._aeff.bin_edges[0]
         if self._flux_func.has_per_flavor_flux():
             integrated = np.asarray(
-                [[
-                    quad(self._flux_func, enu[i], enu[i + 1], j)[0]
-                    for i, e in enumerate(enu[:-1])
-                ] for j in [PDGCode.NuE, PDGCode.NuEBar, PDGCode.NuMu, PDGCode.NuMuBar,  PDGCode.NuTau, PDGCode.NuTauBar]]
+                [
+                    [
+                        quad(self._flux_func, enu[i], enu[i + 1], j)[0]
+                        for i, e in enumerate(enu[:-1])
+                    ]
+                    for j in [
+                        PDGCode.NuE,
+                        PDGCode.NuEBar,
+                        PDGCode.NuMu,
+                        PDGCode.NuMuBar,
+                        PDGCode.NuTau,
+                        PDGCode.NuTauBar,
+                    ]
+                ]
             )
         else:
-            integrated = np.asarray(
-                [
-                    quad(self._flux_func, enu[i], enu[i + 1])[0]
-                    for i, e in enumerate(enu[:-1])
-                ]
-            )/6.
+            integrated = (
+                np.asarray(
+                    [
+                        quad(self._flux_func, enu[i], enu[i + 1])[0]
+                        for i, e in enumerate(enu[:-1])
+                    ]
+                )
+                / 6.0
+            )
         # flux is already for per flavor
         return (
             integrated
@@ -1216,9 +1276,7 @@ class KRAGalacticFlux(object):
     def __call__(self, e_center):
         # NB: flux is given as all-particle, here we return per-particle (/6)
         return (
-            10 ** (self._interpolant(np.log10(e_center) - 3) - 8)
-            / e_center**2
-            / 6.0
+            10 ** (self._interpolant(np.log10(e_center) - 3) - 8) / e_center**2 / 6.0
         )
 
 
