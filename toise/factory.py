@@ -226,6 +226,9 @@ class aeff_factory(object):
     def _create(self, opts, **kwargs):
         aeffs = {}
 
+        if hasattr(opts, "__call__"):
+            return opts(**kwargs)
+
         if "custom_radio" in opts:
             if opts.custom_radio == True:
                 aeffs["radio_events"] = opts.aeffs
@@ -246,9 +249,9 @@ class aeff_factory(object):
                     psi_bins=psi_bins["radio"], config=opts.config_file
                 )
                 aeffs["radio_events"] = (
-                    radio.create(cos_theta=default_cos_theta_bins),
+                    radio.create(cos_theta=kwargs["cos_theta"]),
                     radio.create_muon_background_from_tabulated(
-                        cos_theta=default_cos_theta_bins
+                        cos_theta=kwargs["cos_theta"]
                     ),
                 )
             else:
@@ -356,7 +359,7 @@ class component_bundle(object):
 
 def gen2_throughgoing_muon_efficiency_correction(energy, scale):
     x, y = [1.0, 1.5, 2.2, 3.0, 5.0], [-0.0, 1138.0, 1985.0, 2307.0, 2397.0]
-    b = interpolate.interp1d(x, y, 2)(scale)
+    b = interpolate.interp1d(x, y, 2, fill_value="extrapolate")(scale)
     return 1 + b / energy
 
 

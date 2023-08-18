@@ -1,4 +1,9 @@
 # slightly more minimal style than matplotlib 2 defaults
 figure.figsize : 6, 3
-legend.frameon : False
+legend.frameon : True
+legend.framealpha : 0.75
+legend.edgecolor : white
 legend.handlelength : 1
+legend.fontsize : small
+legend.title_fontsize : small
+grid.linewidth : 0.25

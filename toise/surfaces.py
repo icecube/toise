@@ -258,7 +258,7 @@ class UprightSurface(object):
         ) / 2.0
 
     def etendue(self, cosMin=-1.0, cosMax=1.0):
-        """
+        r"""
         Integrate A * d\Omega over the given range of zenith angles
 
         :param cosMin: cosine of the maximum zenith angle

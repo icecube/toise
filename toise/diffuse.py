@@ -215,7 +215,7 @@ class AtmosphericNu(DiffuseNuGen):
     The units of the model are scalings of the underlying flux parameterization.
     """
 
-    def __init__(self, effective_area, flux, livetime, hard_veto_threshold=None):
+    def __init__(self, effective_area, flux, livetime):
         if isinstance(flux, tuple):
             flux_func, passing_fraction = flux
             if passing_fraction is not None:
@@ -245,20 +245,8 @@ class AtmosphericNu(DiffuseNuGen):
 
         super(AtmosphericNu, self).__init__(effective_area, flux, livetime)
 
-        if hard_veto_threshold is not None:
-            # reduce the flux in the south
-            # NB: assumes that a surface veto has been applied!
-            flux = (
-                self._flux
-                * np.where(center(effective_area.bin_edges[1]) < 0.05, 1, 1e-4)[
-                    None, None, :
-                ]
-            )
-        else:
-            flux = self._flux
-
         # sum over neutrino flavors, energies, and zenith angles
-        total = self._apply_flux(self._aeff.values, flux, self._livetime)
+        total = self._apply_flux(self._aeff.values, self._flux, self._livetime)
 
         # up to now we've assumed that everything is azimuthally symmetric and
         # dealt with zenith bins/healpix rings. repeat the values in each ring
@@ -332,9 +320,7 @@ class AtmosphericNu(DiffuseNuGen):
         _fluxes = dict(conventional=dict(), prompt=dict())
 
     @classmethod
-    def conventional(
-        cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None
-    ):
+    def conventional(cls, effective_area, livetime, veto_threshold=1e3):
         """
         Instantiate a conventional atmospheric neutrino flux, using the Honda
         parameterization with corrections for the cosmic ray knee and the fraction
@@ -351,11 +337,6 @@ class AtmosphericNu(DiffuseNuGen):
         :param veto_threshold: muon energy, in GeV, above which atmospheric muons
                                can be vetoed. This will be used to modify the effective
                                atmospheric neutrino flux.
-        :param hard_veto_threshold: if not None, reduce the atmospheric flux to
-                                    1e-4 of its nominal value in the southern
-                                    hemisphere to model the effect of a surface
-                                    veto. This assumes that an energy threshold
-                                    has been applied to the effective area.
         """
         from .externals import AtmosphericSelfVeto
 
@@ -377,7 +358,7 @@ class AtmosphericNu(DiffuseNuGen):
             flux = (flux, pf)
         else:
             flux = flux[1]
-        instance = cls(effective_area, flux, livetime, hard_veto_threshold)
+        instance = cls(effective_area, flux, livetime)
         if isinstance(flux, tuple):
 
             if not veto_threshold in cache:
@@ -390,9 +371,7 @@ class AtmosphericNu(DiffuseNuGen):
         return instance
 
     @classmethod
-    def prompt(
-        cls, effective_area, livetime, veto_threshold=1e3, hard_veto_threshold=None
-    ):
+    def prompt(cls, effective_area, livetime, veto_threshold=1e3):
         """
         Instantiate a prompt atmospheric neutrino flux, using the Enberg
         parameterization with corrections for the cosmic ray knee and the fraction
@@ -420,7 +399,7 @@ class AtmosphericNu(DiffuseNuGen):
             flux = (flux, pf)
         else:
             flux = flux[1]
-        instance = cls(effective_area, flux, livetime, hard_veto_threshold)
+        instance = cls(effective_area, flux, livetime)
         if isinstance(flux, tuple):
             if not veto_threshold in cache:
                 cache[veto_threshold] = list()
@@ -1280,6 +1259,20 @@ class KRAGalacticFlux(object):
         )
 
 
+class ExtrapolatedPowerlawFlux:
+    def __init__(self, base, pivot_energy=1e4, index=-2.4):
+        self._base = base
+        self._pivot_energy = pivot_energy
+        self._index = index
+
+    def __call__(self, e_center):
+        return np.maximum(
+            self._base(e_center),
+            self._base(self._pivot_energy)
+            * (e_center / self._pivot_energy) ** self._index,
+        )
+
+
 class KRAGalacticDiffuseEmission(DiffuseNuGen):
     r"""
     Diffuse emission from the galaxy as modeled in
@@ -1312,12 +1305,18 @@ class KRAGalacticDiffuseEmission(DiffuseNuGen):
         )
 
         enu = effective_area.bin_edges[0]
-        # integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
-        flux_func = KRAGalacticFlux(cutoff_PeV)
+        if cutoff_PeV is None:
+            # continue flux after cutoff
+            flux_func = ExtrapolatedPowerlawFlux(
+                KRAGalacticFlux(5), pivot_energy=1e3, index=-2.4
+            )
+        else:
+            flux_func = KRAGalacticFlux(cutoff_PeV)
         # integrate to mean of patch shown in fig. 2
         flux = np.asarray(
             [quad(flux_func, enu[i], enu[i + 1])[0] for i, e in enumerate(enu[:-1])]
         )
+        # integrate flux over energy and solid angle: 1/GeV sr cm^2 s -> 1/cm^2 s
         flux *= (
             healpy.nside2pixarea(effective_area.nside) * constants.cm2 * constants.annum
         )

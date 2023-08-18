@@ -125,7 +125,7 @@ class _fm_gen(stats.rv_continuous):
         return numpy.all(kappa >= 0)
 
     def _pdf(self, x, kappa):
-        return numpy.exp(kappa * x) * kappa / (2 * numpy.pi * numpy.sinh(kappa))
+        return numpy.exp(kappa * x) * kappa / (2 * numpy.sinh(kappa))
 
 
 fisher = _fm_gen(name="fisher", a=-1, b=1)

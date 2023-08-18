@@ -3,6 +3,7 @@ from typing import Sequence
 
 _figure_data = {}
 _figures = {}
+_tables = {}
 
 
 def _ensure_nullary(f):
@@ -53,4 +54,13 @@ def figure(wrapped):
     """
     name = wrapped.__module__[len(__name__) + 1 :] + "." + wrapped.__name__
     _figures[name] = wrapped
+    return wrapped
+
+
+def table(wrapped):
+    """
+    Register a function that makes a table
+    """
+    name = wrapped.__module__[len(__name__) + 1 :] + "." + wrapped.__name__
+    _tables[name] = wrapped
     return wrapped

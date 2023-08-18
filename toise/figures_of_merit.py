@@ -81,14 +81,9 @@ class GZK(object):
     @staticmethod
     def make_components(aeffs):
         aeff, muon_aeff = aeffs
-        energy_threshold = numpy.inf
-        atmo = diffuse.AtmosphericNu.conventional(
-            aeff, 1.0, hard_veto_threshold=energy_threshold
-        )
+        atmo = diffuse.AtmosphericNu.conventional(aeff, 1.0)
         atmo.uncertainty = 0.1
-        prompt = diffuse.AtmosphericNu.prompt(
-            aeff, 1.0, hard_veto_threshold=energy_threshold
-        )
+        prompt = diffuse.AtmosphericNu.prompt(aeff, 1.0)
         prompt.min = 0.5
         prompt.max = 3
         astro = diffuse.DiffuseAstro(aeff, 1.0)
@@ -131,14 +126,9 @@ class UHEFlux(object):
     @staticmethod
     def make_components(aeffs):
         aeff, muon_aeff = aeffs
-        energy_threshold = numpy.inf
-        atmo = diffuse.AtmosphericNu.conventional(
-            aeff, 1.0, hard_veto_threshold=energy_threshold
-        )
+        atmo = diffuse.AtmosphericNu.conventional(aeff, 1.0)
         atmo.uncertainty = 0.1
-        prompt = diffuse.AtmosphericNu.prompt(
-            aeff, 1.0, hard_veto_threshold=energy_threshold
-        )
+        prompt = diffuse.AtmosphericNu.prompt(aeff, 1.0)
         prompt.min = 0.5
         prompt.max = 3
         uhe = diffuse.DiffuseAstro(aeff, 1.0, gamma_name="uhe_gamma")
