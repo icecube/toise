@@ -508,7 +508,14 @@ class radio_aeff:
             else:
                 aeffs_flavor = []
                 for fi, flavor in enumerate(["e", "e", "mu", "mu", "tau", "tau"]):
-                    data = matrix_data[f"transfer_matrix_{flavor}"]
+                    data = interpolate.interp1d(
+                        # interpolate to the nearest neighbor in zenith, subtracting a small amount prefer the value to the right
+                        center(matrix_data["bin_edges"][1]) - 1e-12,
+                        matrix_data[f"transfer_matrix_{flavor}"],
+                        kind="nearest",
+                        axis=1,
+                        bounds_error=False,
+                    )(center(cos_theta))
                     prod_dens = 1.0 / neutrino_interaction_length_ice(
                         fi, neutrino_energy
                     )

@@ -1,6 +1,6 @@
-from shutil import which
 
-from toise.figures import figure
+from toise.figures import figure, figure_data
+from toise.figures.diffuse.flavor import psi_binning
 
 from toise import surfaces
 import gzip
@@ -561,4 +561,70 @@ def radio_surface_geometry():
 
     plt.tight_layout()
 
+    return fig
+
+
+@figure_data(setup=psi_binning)
+def effective_areas(exposures):
+    from toise import factory
+
+    pretty_labels = {"Gen2-InIce": "Gen2-Optical"}
+
+    meta = [
+        {
+            "detector": pretty_labels.get(detector, detector),
+            "channel": channel,
+            "energy": neutrino_aeff.get_bin_edges("true_energy").tolist(),
+            "cos_zenith": neutrino_aeff.get_bin_edges("true_zenith_band").tolist(),
+            "area": neutrino_aeff.values.sum(axis=(-2, -1))
+        }
+        for detector, _ in exposures
+        for channel, (neutrino_aeff, _) in factory.get(detector).items()
+    ]
+    return meta
+
+@figure
+def effective_areas(datasets):
+    import matplotlib.pyplot as plt
+    import os
+    from toise import plotting
+
+    nplots = len(datasets[0]["data"])
+    ncol = min(3, nplots)
+    nrow = (nplots - 1) // ncol + 1
+
+    fig, axes = plt.subplots(nrow, ncol, figsize=(3.375*ncol, 3.375*nrow))
+    # remove extraneous axes
+    for ax in axes.flat[nplots:]:
+        ax.set_visible(False)
+    
+    ylim = (1e-1, 1e7)
+
+    for dataset in datasets:
+        assert dataset["source"] == "toise.figures.detector.effective_areas"
+        for aeff, ax in zip(dataset["data"], axes.flat):
+            energy = np.asarray(aeff["energy"])
+            values = np.asarray(aeff["area"]).mean(axis=0)
+            ct_edges = aeff["cos_zenith"]
+            assert len(ct_edges) == 22
+            idx = (0, 5, 10, 11, 16, 21)
+            for lo, hi in zip(idx[:-1], idx[1:]):
+                avg = values[:,lo:hi].mean(axis=1)
+                line = ax.loglog(*plotting.stepped_path(energy, avg), label=f"({-ct_edges[hi]:.2f},{-ct_edges[lo]:.2f}]")[0]
+                if avg.max() <= ylim[0]:
+                    del ax.lines[-1]
+
+            if "radio" in aeff["detector"].lower():
+                title = aeff["detector"]
+            else:
+                title = f"{aeff['detector']} ({aeff['channel'].replace('_', ' ')})"
+            ax.set_title(title)
+
+            ax.set_xlabel("Neutrino energy (GeV)")
+            ax.set_ylabel("Neutrino effective area (m$^2$)")
+            # ax.set_xlim(1e4, 5e8)
+            ax.set_ylim(*ylim)
+            ax.grid()
+        fig.legend(*ax.get_legend_handles_labels(), frameon=False, title=r"$\sin\delta$", loc="lower right")
+    plt.tight_layout()
     return fig

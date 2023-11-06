@@ -1,0 +1,12 @@
+The files Gen2_EHE_{NuE|NuMu|NuTau}_effective_area.npz hold the effective area
+for a simple EHE analysis port to IceCube Gen2 using simulations with the
+Sunflower 240m detector configuration and pDOMs as detector modules (essentially
+IceCube DOMs with HQE PMTs).
+
+The nu/nubar averaged effective area, given in m2, is binned in three dimensions:
+    - True cos(zenith)
+    - Energy at the detector volume
+    - Neutrino energy at the surface
+
+The binning scheme used is given in the npz file.
+
