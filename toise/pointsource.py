@@ -475,7 +475,7 @@ def discovery_potential(
         ns = total - nb
         logging.getLogger().info(
             "baseline: %.2g actual %.2g ns: %.2g nb: %.2g ts: %.2g"
-            % (baseline, actual, ns, nb, ts(actual))
+            % (baseline, actual[0], ns, nb, ts(actual))
         )
         return actual[0], ns, nb
 
@@ -591,7 +591,7 @@ def upper_limit(
     else:
         # actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
         actual = optimize.fsolve(f, baseline, xtol=tolerance, factor=1, epsfcn=1)
-        logging.getLogger().debug("baseline: %.2g actual %.2g" % (baseline, actual))
+        logging.getLogger().debug("baseline: %.2g actual %.2g" % (baseline, actual[0]))
         allh = asimov_llh(components, ps=actual, **fixed)
         total = nevents(allh, ps=actual, **fixed)
         nb = nevents(allh, ps=0, **fixed)
