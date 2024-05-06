@@ -34,6 +34,7 @@ jobs:
           environment-file: conda-lock.yml
           environment-name: ci
           cache-environment: true
+          create-args: --category main dev
 
       - name: Install project
         env:
