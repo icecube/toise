@@ -6,7 +6,7 @@ platforms:
   - osx-64
   - osx-arm64
 dependencies:
-  - python >=3.8,<3.10
+  - python >=3.8
   - numpy
   - scipy>=0.15
   - healpy
@@ -22,6 +22,6 @@ dependencies:
   - photospline
   - pip
   - pip:
-    - easy-cache
-    - pydashi @ https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0-alpha.0.tar.gz#sha256=b2b8a179f4268d3619a72fc14f8f223f52bc9d51c3ff338863eb8b11c6bc0d5b
+    - easy-cache >=2
+    - pydashi @ https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0.tar.gz#sha256=dde4d041e16d64e04e704f3f594c9158e3b0d6a5099fecf634a8b502e292d0bb
     - -e .
