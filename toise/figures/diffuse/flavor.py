@@ -173,7 +173,7 @@ def make_profile(
     fixed = dict(atmo=1, prompt=1, muon=1)
     if "emu_crit" in nominal:
         fixed["emu_crit"] = nominal["emu_crit"]
-    if gamma_step is None:
+    if gamma_step is None and not suffix:
         fixed["gamma"] = llh.components["gamma"].seed
     bestfit = llh.fit(minimizer_params=minimizer_params, **fixed)
     params = []
