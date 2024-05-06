@@ -153,6 +153,9 @@ def _maybe_call_sequence(f: Union[Callable, Sequence[Callable]]):
 
 
 def make_figure_data():
+    import traceback
+    import sys
+    import pdb
     from toise import figures
 
     # find all submodules of toise.figures and import them
@@ -182,6 +185,9 @@ def make_figure_data():
             help="sequence of detector configuration/livetime pairs",
         )
         p.add_argument("-o", "--outputfile", action="append", help="")
+        p.add_argument(
+            "--pdb", action="store_true", help="Drop into debugger on exception"
+        )
         assert "exposures" in spec.parameters, "exposures argument is required"
         _add_options_for_args(p, spec, param_help)
     args = parser.parse_args().__dict__
@@ -195,23 +201,32 @@ def make_figure_data():
                 len(outfiles), len(exposures)
             )
         )
+    do_pdb = args.pop("pdb")
 
     func, setup, teardown = args.pop("command")
-    _maybe_call_sequence(setup)
     try:
-        for exposure, outfile in zip(exposures, outfiles):
-            meta = {
-                "source": func.__module__ + "." + func.__name__,
-                "detectors": exposure,
-                "args": args,
-            }
-            meta["data"] = jsonify(func(tuple(exposure), **args))
-            if not outfile.endswith(".json.gz"):
-                outfile = outfile + ".json.gz"
-            with gzip.open(outfile, "wt") as f:
-                json.dump(meta, f, indent=2)
-    finally:
-        _maybe_call_sequence(teardown)
+        _maybe_call_sequence(setup)
+        try:
+            for exposure, outfile in zip(exposures, outfiles):
+                meta = {
+                    "source": func.__module__ + "." + func.__name__,
+                    "detectors": exposure,
+                    "args": args,
+                }
+                meta["data"] = jsonify(func(tuple(exposure), **args))
+                if not outfile.endswith(".json.gz"):
+                    outfile = outfile + ".json.gz"
+                with gzip.open(outfile, "wt") as f:
+                    json.dump(meta, f, indent=2)
+        finally:
+            _maybe_call_sequence(teardown)
+    except:
+        if do_pdb:
+            extype, value, tb = sys.exc_info()
+            traceback.print_exc()
+            pdb.post_mortem(tb)
+        else:
+            raise
 
 
 def load_gzip(fname):
