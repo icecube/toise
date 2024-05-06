@@ -210,7 +210,7 @@ def make_source_profile(
     nominal=dict(),
     suffix="",
     steps=100,
-    minimizer_params=dict(epsilon=1e-2),
+    minimizer_params=dict(tol=None, method="Nelder-Mead"),
     gamma_step=None,
 ):
     if suffix:

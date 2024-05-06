@@ -312,6 +312,7 @@ class LLHEval(object):
                     minllh,
                     seeds,
                     bounds=bounds,
+                    method=minimizer_params.get("method"),
                     options=minimizer_params,
                 )
             else:
@@ -331,6 +332,7 @@ class LLHEval(object):
                         minllh,
                         seeds,
                         bounds=bounds,
+                        method=minimizer_params.get("method"),
                         options=minimizer_params,
                     )
                 else:
