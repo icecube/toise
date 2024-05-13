@@ -1,0 +1,75 @@
+# radio config file for toise framework
+
+#############
+### booleans to apply smearing/efficiencies or not...
+apply_analysis_efficiency: True
+apply_energy_resolution: True
+
+#############
+### detector setup scales effective area with number of stations,
+detector_setup:
+    nstations: 361 # 197 shallow-only / 164 hybrid
+
+#############
+### effective volume of radio review simulations: 144 deep (+surface) + 169 surface-only stations
+# combined to one file
+effective_volume:
+    # e: "param/effective_volume/Veff__baseline_array__config_config_ARZ2020_noise__D01detector_sim__e.json"
+    # mu: "param/effective_volume/Veff__baseline_array__config_config_ARZ2020_noise__D01detector_sim__mu.json"
+    # tau: "param/effective_volume/Veff__baseline_array__config_config_ARZ2020_noise__D01detector_sim__tau.json"
+    e: "param/effective_volume_exclusiveTriggers/Veff_withSelectionEfficiencies__baseline_array__config_ARZ2020_noise__D01detector_sim__e.json"
+    mu: "param/effective_volume_exclusiveTriggers/Veff_withSelectionEfficiencies__baseline_array__config_ARZ2020_noise__D01detector_sim__mu.json"
+    tau: "param/effective_volume_exclusiveTriggers/Veff_withSelectionEfficiencies__baseline_array__config_ARZ2020_noise__D01detector_sim__tau.json"
+    trigger_name: "combined_4channelPA"
+    # number of stations for which the veffs were generated. The veffs will be downscaled by that factor to a per-station veff.
+    # Be sure to set the detector_setup to the same number, unless you want to rescale
+    simulated_stations: 361 # 197 shallow-only / 164 hybrid
+
+#############
+### analysis efficiency is implemented as sigmoid function with
+#  - minval: low energy limit for efficiency (minval values < 0 are allowed, efficiencies are limited to [0,1])
+#  - maxval: high energy limit for efficiency (maxval values > 1 are allowed, efficiencies are limited to [0,1])
+#  - log_turnon_gev: turning point of the sigmoid in log10(E [GeV])
+#  - log_turnon_width: width of the turnon region in log10(E)
+
+
+## for gen2, A, 9deg
+analysis_efficiency:
+    minval: -1000.
+    maxval: 0.85
+    log_turnon_gev: -0.57852369
+    log_turnon_width: 1.13227653
+
+
+
+#############
+### energy resolution for radio, best guess from Christoph for RNO-G sims
+# implemented as Cauchy for larger tails compared to Gaussian
+# does not take into account LPM for nue really
+energy_resolution:
+    loc: 0.01868963
+    scale: 0.14255128
+
+#############
+### angular resolution for radio, best guess from Ilse for deep RNO-G sims
+# implemented as combination of "well-reco" gaus (1) + "bad-reco" components
+# fit to preliminary data for ~70 deg zenith angle, where bulk of events come from
+#angular_resolution:
+#    norm1: 0.69
+#    sigma1: 3.
+#    norm2: 0.31
+#    sigma2: 9.
+#    norm_const: 0.
+angular_resolution:
+     norm1: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9985489110692959, 0.9213451131552166, 0.8529130661463263, 0.7932527700426301, 0.7423642248441232, 0.7002474305508084, 0.6669023871626865, 0.6423290946797551, 0.626527553102016, 0.6194977624294682, 0.6188535517762731, 0.622208750256592, 0.6295633578704247, 0.6409173746177709, 0.6562708004986315, 0.6727311439800853, 0.6874059135292108, 0.700295109146009, 0.7113987308304792, 0.7207167785826225, 0.7290663235596873, 0.7372644369189235, 0.7453111186603315, 0.7532063687839109, 0.760950187289662, 0.7685425741775849, 0.7759835294476788, 0.7832730530999447, 0.7904111451343818, 0.7973978055509909, 0.8042330343497718, 0.8109168315307234, 0.8174491970938467, 0.8238301310391418, 0.8300596333666088, 0.836137704076247, 0.8420643431680572, 0.8478395506420382, 0.8534633264981917, 0.8589356707365159, 0.8642565833570144, 0.8694260643596792, 0.87444411374452, 0.8793107315115307, 0.8840259176607113, 0.8885896721920652, 0.8930019951055925]
+     sigma1: 3.
+     norm2: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0014510889307041142, 0.07865488684478339, 0.14708693385367366, 0.20674722995736994, 0.25763577515587677, 0.2997525694491916, 0.33309761283731354, 0.3576709053202449, 0.373472446897984, 0.3805022375705318, 0.3811464482237269, 0.37779124974340805, 0.3704366421295753, 0.3590826253822291, 0.3437291995013685, 0.32726885601991473, 0.31259408647078923, 0.299704890853991, 0.2886012691695208, 0.2792832214173775, 0.27093367644031274, 0.2627355630810765, 0.2546888813396685, 0.2467936312160891, 0.23904981271033798, 0.23145742582241513, 0.2240164705523212, 0.21672694690005534, 0.20958885486561818, 0.20260219444900907, 0.19576696565022822, 0.18908316846927664, 0.18255080290615333, 0.17616986896085818, 0.16994036663339118, 0.163862295923753, 0.15793565683194277, 0.1521604493579618, 0.14653667350180832, 0.1410643292634841, 0.13574341664298561, 0.13057393564032083, 0.12555588625547998, 0.12068926848846928, 0.11597408233928874, 0.1114103278079348, 0.10699800489440747]
+     sigma2: 9.
+     norm_const: 0.
+
+transfer_matrix:
+  table: "param/transfer_matrices/transfer_matrix_baseline_array.npz" 
+muon_background:
+  table: "param/backgrounds/baseline_GSF_2Dshowerenergy_zenith_SIBYLL23C.pkl"
+  cr_cut: True
+  apply_efficiency: False

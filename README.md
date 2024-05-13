@@ -18,17 +18,19 @@ sensitivities in different units depending on context.
 ## Installation
 
 The way to install `toise` and its depedencies is
-with `conda`. If you do not already have `miniconda` on your system, obtain the
-installer from https://conda.io/miniconda.html, and install in a location of
-your choice, e.g.:
+with [`micromamba`](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html). If you do not already have `micromamba` on your system,
 
-```sh
-sh ./Miniconda3-latest-Linux-x86_64.sh -p $CONDA_PREFIX
+```console
+"${SHELL}" <(curl -L micro.mamba.pm/install.sh)
 ```
 
-replacing `CONDA_PREFIX` with the prefix you chose.
+or, os macOS with Homebrew:
 
-Then, obtain `toise`:
+```console
+brew install micromamba
+```
+
+Next, obtain `toise`:
 
 ```sh
 git clone git@github.com:icecube/toise.git
@@ -37,21 +39,9 @@ git clone git@github.com:icecube/toise.git
 Then, from the `toise` source directory, create a new environment:
 ```sh
 cd toise
-$CONDA_PREFIX/bin/conda env create -n toise --file environment.yml
+micromamba create -n toise --file conda-lock.yml
+conda run -n toise pip install -e .
 ```
-
-This will also download the required data tables.
-
-The above will install the latest available versions of all dependencies. You can also install exactly the versions that were most recently tested with:
-```sh
-cd toise
-
-PLATFORM_LOCKFILE=$(conda info --json | jq -r '"conda-\(.platform).lock"')
-conda create -n toise --file $PLATFORM_LOCKFILE
-cat $PLATFORM_LOCKFILE | awk '/^# pip/ {print substr($0,7)}' > requirements.txt
-conda run -n toise pip install -r requirements.txt -e .
-```
-This should be much faster, as it does not have to solve for compatible versions of all the dependencies. If you do not have `jq` installed, you can set `PLATFORM_LOCKFILE` by hand to e.g. `conda-osx-64.lock`.
 
 If you have a Jupyter notebook installation from another conda environment, you should now be able to open this notebook in Jupyter and select the "Python [conda env:miniconda3-toise]" kernel.
 

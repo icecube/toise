@@ -1,0 +1,21 @@
+# linear expansions in sin^2(zenith) of the parameters a, g1, g2, eng0, curve
+#    def _fitfunc(eng, a, g1, g2, eng0, curve):
+#        """
+#        "When you work in cosmic rays, everything is a broken power law with a smooth roll-off :see_no_evil:"
+#        -- A. Coleman
+#        """
+#        return (
+#            a
+#            * eng**g1
+#            * (1 + (10**eng / 10**eng0) ** curve) ** ((g2 - g1) / curve)
+#        )
+8.018856427742836468e-01
+9.678594064587241197e-02
+-4.883883344585775166e-03
+9.731290023860154903e-02
+-2.323190254120556020e+00
+3.606741142853249482e-02
+1.262219516097010796e+01
+4.577831427506174333e-01
+1.487638305739540590e+00
+2.016882529271495639e-01
