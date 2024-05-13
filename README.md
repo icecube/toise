@@ -18,7 +18,7 @@ sensitivities in different units depending on context.
 ## Installation
 
 The way to install `toise` and its depedencies is
-with [`micromamba`](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html). If you do not already have `micromamba` on your system,
+with [`micromamba`](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)[^1]. If you do not already have `micromamba` on your system,
 
 ```console
 "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
@@ -40,20 +40,22 @@ Then, from the `toise` source directory, create a new environment:
 ```sh
 cd toise
 micromamba create -n toise --file conda-lock.yml
-conda run -n toise pip install -e .
+micromamba run -n toise pip install -e .
 ```
 
 If you have a Jupyter notebook installation from another conda environment, you should now be able to open this notebook in Jupyter and select the "Python [conda env:miniconda3-toise]" kernel.
 
-Otherwise, activate the environment with `. $CONDA_PREFIX/bin/activate toise`. This should leave you with a prompt that looks like
+Otherwise, activate the environment with `micromamba activate toise`. This should leave you with a prompt that looks like
 ```
 (toise) [jakob@TheInfoSphere3:~]$.
 ```
 
 If you'd like to install jupyter at this stage, you can do: 
 ```
-conda install --channel conda-forge notebook
+micromamba install --channel conda-forge notebook
 ```
+
+[^1]: micromamba is a fast, small, [mostly] drop-in replacement for the [conda](https://docs.conda.io/projects/conda/en/stable/) package manager. 
 
 ## Adding your detector to toise
 
