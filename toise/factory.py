@@ -425,7 +425,7 @@ def scale_gen2_sensors(scale=1.0, ssmpe=True, mdom=True, with_cascades=True):
     return dict(
         geometry="Sunflower",
         spacing=240,
-        cascade_energy_threshold=2e5 / scale if with_cascades else None,
+        cascade_energy_threshold=218341.3844992 / scale if with_cascades else None,
         veto_area=10.0,
         veto_threshold=1e5,
         angular_resolution_scale=partial(

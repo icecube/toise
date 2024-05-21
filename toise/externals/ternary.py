@@ -208,6 +208,7 @@ class TernaryAxes3(TernaryAxes2):
 def flavor_triangle(fig=None, subplotspec="111", grid=False):
     ax = TernaryAxes.create(fig, subplotspec)
     ax.grid(grid, "minor", zorder=0, linewidth=0.5)
+    ax.grid(grid, 'major', zorder=0, linewidth=0.5)
     ax.ab.xaxis.set_major_locator(MultipleLocator(0.2))
     ax.ab.xaxis.set_minor_locator(MultipleLocator(0.1))
     rot = 60
@@ -240,7 +241,7 @@ def flavor_triangle(fig=None, subplotspec="111", grid=False):
 
         rot -= 60
         sgn *= -1
-    fontdict = dict(size="xx-large")
+    fontdict = dict(size="xx-large",family = 'serif')
     ax.ab.set_xlabel(r"$f_{e}$", fontdict=fontdict).set_position((0.5, 0))
     ax.bc.set_xlabel(r"$f_{\mu}$", fontdict=fontdict).set_position((0.5, -0.07))
     ax.ca.set_xlabel(r"$f_{\tau}$", fontdict=fontdict).set_position((0.5, -0.1))
@@ -252,31 +253,31 @@ def flavor_triangle(fig=None, subplotspec="111", grid=False):
         [0.93 / 3],
         [1.05 / 3],
         marker="o",
-        facecolor="k",
+        facecolor="red",
         edgecolor="w",
         lw=0.5,
-        s=20,
-        label="1:2:0",
+        s=80,
+        label="1:2:0 --> 0.30:0.36:0.34",
     ).set_zorder(100)
     ax.ab.scatter(
         [0.19],
         [0.43],
         marker="s",
-        facecolor="k",
+        facecolor="orange",
         edgecolor="w",
         lw=0.5,
-        s=20,
-        label="0:1:0",
+        s=80,
+        label="0:1:0 --> 0.17:0.45:0.37",
     ).set_zorder(100)
     ax.ab.scatter(
         [0.55],
         [0.19],
         marker="^",
-        facecolor="k",
+        facecolor="green",
         edgecolor="w",
         lw=0.5,
-        s=20,
-        label="1:0:0",
+        s=80,
+        label="1:0:0 --> 0.55:0.17:0.28",
     ).set_zorder(100)
 
     return ax

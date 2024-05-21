@@ -58,7 +58,8 @@ def get_classification_efficiency(geometry="IceCube", spacing=125):
         )
     elif 240 <= spacing <= 260:
         return ClassificationEfficiency.load(
-            "sparsecube_doublecascade_efficiency.json", (6e4, 1e7)
+            "sparsecube_doublecascade_NL_efficiency.json", (6e4, 1e7)
+            
         )
 
 
@@ -78,6 +79,19 @@ class ClassificationEfficiency(object):
         :returns: classification efficiency in percent
         """
         return np.polyval(params[::-1], np.log(x / 1e3))
+    
+    @staticmethod
+    def power_law_cutoff(x, a, b, c):
+        return a*np.power(x, b)*np.exp(-(x)/c)
+
+    @staticmethod
+    def powerlaw_cutoff(x, a, b, c):
+        return a*np.power(x, b)*np.exp(-(x/c))
+    
+    @staticmethod
+    def sigmoid_updated(x, L ,x0, k,b):
+        y = (L) / (1 + np.exp(-k*(x-x0)))+b
+        return y
 
     @staticmethod
     def sigmoid(x, a, b, c, d, m):
@@ -97,6 +111,8 @@ class ClassificationEfficiency(object):
     def load(cls, filename, energy_range=(0, np.inf)):
         if not filename.startswith("/"):
             filename = os.path.join(data_dir, "selection_efficiency", filename)
+        print('Reading from file')
+        print(filename)
         with open(filename) as f:
             params = json.load(f)
             return cls(params, energy_range)
