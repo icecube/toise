@@ -48,7 +48,7 @@ class TernaryAxes(Axes):
         self.xaxis.set_label_coords(0.5, 0, transform=self._xlabel_transform)
 
     @classmethod
-    def create(cls, fig=None, subplotspec=111):
+    def create(cls, fig=None, subplotspec=None):
         """
         Top-level factory method. Use this to create new axes.
         """
@@ -56,6 +56,8 @@ class TernaryAxes(Axes):
             import pylab
 
             fig = pylab.gcf()
+        if subplotspec is None:
+            subplotspec = fig.add_gridspec()[0]
         try:
             self = fig.add_subplot(subplotspec, projection="ternary1")
         except TypeError:
@@ -205,7 +207,7 @@ class TernaryAxes3(TernaryAxes2):
         trans.rotate_around(1, 1 - h, self.angle).translate(-1, 0)
 
 
-def flavor_triangle(fig=None, subplotspec="111", grid=False):
+def flavor_triangle(fig=None, subplotspec=None, grid=False):
     ax = TernaryAxes.create(fig, subplotspec)
     ax.grid(grid, "minor", zorder=0, linewidth=0.5)
     ax.ab.xaxis.set_major_locator(MultipleLocator(0.2))
