@@ -313,7 +313,9 @@ class LLHEval(object):
                     seeds,
                     bounds=bounds,
                     method=minimizer_params.get("method"),
-                    options=minimizer_params,
+                    options={
+                        k: v for k, v in minimizer_params.items() if k != "method"
+                    },
                 )
             else:
                 bestfit = {"x": dict(fixedparams)}
@@ -333,7 +335,9 @@ class LLHEval(object):
                         seeds,
                         bounds=bounds,
                         method=minimizer_params.get("method"),
-                        options=minimizer_params,
+                        options={
+                            k: v for k, v in minimizer_params.items() if k != "method"
+                        },
                     )
                 else:
                     bestfit = {"x": dict(freeparams), "fun": -self.llh(**fixedparams)}
