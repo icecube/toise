@@ -293,6 +293,8 @@ def _add_options_for_args(parser, spec: inspect.Signature, param_help):
 
 
 def make_figure():
+    import traceback
+    import pdb
     from toise import figures
 
     # find all submodules of toise.figures and import them
@@ -313,6 +315,9 @@ def make_figure():
         )
         p.set_defaults(command=func)
         p.add_argument("-o", "--outfile")
+        p.add_argument(
+            "--pdb", action="store_true", help="Drop into debugger on exception"
+        )
         spec = inspect.signature(func)
         num_required_args = 0
         if (
@@ -325,13 +330,22 @@ def make_figure():
     kwargs = parser.parse_args().__dict__
     infiles = kwargs.pop("infiles", None)
     outfile = kwargs.pop("outfile")
+    do_pdb = kwargs.pop("pdb")
 
     func = kwargs.pop("command")
     if infiles:
         args = (list(map(load_gzip, infiles)),)
     else:
         args = tuple()
-    figure = func(*args, **kwargs)
+    try:
+        figure = func(*args, **kwargs)
+    except:
+        if do_pdb:
+            extype, value, tb = sys.exc_info()
+            traceback.print_exc()
+            pdb.post_mortem(tb)
+        else:
+            raise
 
     if outfile:
         figure.savefig(outfile)
