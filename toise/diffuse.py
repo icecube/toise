@@ -293,7 +293,7 @@ class AtmosphericNu(DiffuseNuGen):
         if n_sources is not None:
             expand = [None] * bin_areas.ndim
             expand[0] = slice(None)
-            bin_areas = bin_areas * n_sources[expand]
+            bin_areas = bin_areas * n_sources[tuple(expand)]
 
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):
@@ -475,7 +475,7 @@ class DiffuseAstro(DiffuseNuGen):
         psi_bins = self._aeff.bin_edges[-1][:-1]
         expand = [None] * 5
         expand[-1] = slice(None)
-        bin_areas = (np.pi * np.diff(psi_bins**2))[expand]
+        bin_areas = (np.pi * np.diff(psi_bins**2))[tuple(expand)]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             background._livetime = livetime / constants.annum
@@ -494,7 +494,7 @@ class DiffuseAstro(DiffuseNuGen):
         if n_sources is not None:
             expand = [None] * bin_areas.ndim
             expand[2] = slice(None)
-            bin_areas = bin_areas * n_sources[expand]
+            bin_areas = bin_areas * n_sources[tuple(expand)]
 
         # dimensions of flux are now 1/m^2 sr
         if isinstance(sel, slice):

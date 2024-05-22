@@ -86,7 +86,7 @@ def get_aeff(angular_resolution=0.5, energy_threshold=1e3):
     edges = (e_nu, cos_theta, e_mu[idx:], psi_bins)
 
     return effective_areas.effective_area(
-        edges, base.values[..., idx:, None] * smear[expand], "cos_theta"
+        edges, base.values[..., idx:, None] * smear[tuple(expand)], "cos_theta"
     )
 
 

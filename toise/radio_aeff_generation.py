@@ -786,7 +786,7 @@ class MuonBackground(object):
         if n_sources is not None:
             expand = [None] * bin_areas.ndim
             expand[0] = slice(None)
-            bin_areas = bin_areas * n_sources[expand]
+            bin_areas = bin_areas * n_sources[tuple(expand)]
 
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):

@@ -41,7 +41,7 @@ class PointSource(object):
             expand = [None] * effective_area.values.ndim
             expand[zenith_dim] = slice(None)
             effective_area = (
-                effective_area.values[..., :-1] * zenith_selection[expand]
+                effective_area.values[..., :-1] * zenith_selection[tuple(expand)]
             ).sum(axis=zenith_dim)
         else:
             effective_area = effective_area.values[..., zenith_selection, :, :-1]
@@ -82,7 +82,7 @@ class PointSource(object):
         expand[1] = slice(None)
 
         # FIXME: this still neglects the opening angle between neutrino and muon
-        total = (self._rate * (specweight[expand])).sum(axis=(0, 1))
+        total = (self._rate * (specweight[tuple(expand)])).sum(axis=(0, 1))
         # assert total.ndim == 2
 
         if not self._use_energies:
