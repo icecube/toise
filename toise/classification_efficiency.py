@@ -7,6 +7,7 @@ import numpy as np
 from .util import data_dir
 import json
 import os
+import warnings
 
 
 def get_classification_efficiency(geometry="IceCube", spacing=125):
@@ -56,7 +57,14 @@ def get_classification_efficiency(geometry="IceCube", spacing=125):
         return ClassificationEfficiency.load(
             "icecube_doublecascade_efficiency.json", (6e4, 1e7)
         )
+    elif geometry == "Sunflower" and spacing == 240:
+        return ClassificationEfficiency.load(
+            "sparsecube_doublecascade_NL_efficiency.json", (6e4, 1e7)
+        )
     elif 240 <= spacing <= 260:
+        warnings.warn(
+            f"Falling back to SparseCube classification efficiency for {geometry=} and {spacing=}"
+        )
         return ClassificationEfficiency.load(
             "sparsecube_doublecascade_efficiency.json", (6e4, 1e7)
         )
@@ -92,6 +100,11 @@ class ClassificationEfficiency(object):
         :returns: classification efficiency in percent
         """
         return ((a - d) / (1 + (np.exp(b * np.log(x / 1e3) - c)) ** m)) + d
+
+    @staticmethod
+    def sigmoid_updated(x, L, x0, k, b):
+        y = (L) / (1 + np.exp(-k * (x - x0))) + b
+        return y
 
     @classmethod
     def load(cls, filename, energy_range=(0, np.inf)):
