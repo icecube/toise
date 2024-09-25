@@ -7,25 +7,12 @@ jobs:
     name: test
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11]
+        os: [ubuntu-20.04, macos-14]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -l {0}
     steps:
-      - name: Detect platform
-        id: detect
-        run: |
-            if [[ "${RUNNER_ARCH}" == "X64" ]]; then
-              if [[ "${RUNNER_OS}" == "Linux" ]]; then
-                echo '::set-output name=platform::linux-64' && exit 0
-              elif [[ "${RUNNER_OS}" == "macOS" ]]; then
-                echo '::set-output name=platform::osx-64' && exit 0
-              fi
-            fi
-            echo "Unsupported platform ${RUNNER_OS} ${RUNNER_ARCH}"
-            exit 1
-
       - uses: actions/checkout@v2
 
       - name: Set up conda environment
