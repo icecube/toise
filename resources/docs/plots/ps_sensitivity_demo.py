@@ -10,7 +10,6 @@ from icecube.toise import (
     pointsource,
 )
 from matplotlib.gridspec import GridSpec
-from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 
 def create_aeff(

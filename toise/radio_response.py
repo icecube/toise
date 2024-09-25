@@ -1,9 +1,6 @@
 import logging
-import os
 
 import numpy as np
-from scipy import interpolate
-from scipy.special import erf
 from scipy.stats import cauchy, multivariate_normal
 
 from .energy_resolution import EnergySmearingMatrix

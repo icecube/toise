@@ -3,12 +3,12 @@ from copy import copy
 
 # from tqdm import tqdm
 from functools import partial
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 import numpy as np
 
-from toise import diffuse, factory, multillh, pointsource, surface_veto
-from toise.cache import ecached, lru_cache
+from toise import diffuse, factory, multillh, surface_veto
+from toise.cache import lru_cache
 from toise.figures import figure, figure_data
 
 from .dnnc import (
@@ -223,7 +223,6 @@ def fermi_pi0(
 def rates(datasets):
     import healpy
     import matplotlib.pyplot as plt
-    from matplotlib.colors import LogNorm
 
     from toise import plotting
 

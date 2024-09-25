@@ -9,16 +9,12 @@ from scipy import interpolate
 from . import (
     angular_resolution,
     classification_efficiency,
-    diffuse,
     effective_areas,
-    grb,
     multillh,
-    plotting,
-    pointsource,
     surface_veto,
     surfaces,
 )
-from .util import center, data_dir, defer
+from .util import data_dir, defer
 
 
 def make_key(opts, kwargs):

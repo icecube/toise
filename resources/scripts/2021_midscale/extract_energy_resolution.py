@@ -6,8 +6,6 @@ import pandas as pd
 import tables
 from toolz import memoize
 
-from toise import plotting, surfaces
-
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-n",

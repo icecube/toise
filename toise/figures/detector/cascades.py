@@ -54,12 +54,11 @@ def sparse_hese_veto_plot(ax, f):
 
 @figure
 def volume():
-    import os
 
     import matplotlib.pyplot as plt
     import numpy as np
 
-    from toise import effective_areas, factory, plotting, surfaces
+    from toise import effective_areas, factory
 
     edep = np.logspace(4, 8, 101)
     fig = plt.figure(figsize=(3.375, 3.375))
@@ -113,7 +112,6 @@ def effective_area(exposures):
 
 @figure
 def effective_area(datasets):
-    import os
 
     import matplotlib.pyplot as plt
 

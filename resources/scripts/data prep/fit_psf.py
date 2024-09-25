@@ -16,7 +16,6 @@ def create_psf(
     reco="SplineMPEMuEXDifferential",
     cut=None,
 ):
-    import dashi
     from cubicle.hdfweights import HDFScanner
 
     hdf = HDFScanner(fname, primary="/" + muon, type="unweighted")

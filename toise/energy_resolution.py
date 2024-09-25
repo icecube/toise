@@ -1,5 +1,4 @@
 import os
-import pickle
 
 import numpy
 from scipy import interpolate

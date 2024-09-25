@@ -6,7 +6,7 @@ import json
 import os
 import sys
 from pkgutil import iter_modules
-from typing import Any, Callable, Literal, Sequence, Union, get_args, get_origin
+from typing import Callable, Literal, Sequence, Union, get_args, get_origin
 
 from setuptools import find_packages
 

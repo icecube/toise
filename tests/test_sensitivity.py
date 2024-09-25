@@ -7,7 +7,6 @@ from scipy.optimize import bisect
 
 from toise import diffuse, factory, figures_of_merit, multillh, surface_veto
 from toise.effective_areas import effective_area
-from toise.figures import figure
 
 
 @pytest.fixture(scope="session")

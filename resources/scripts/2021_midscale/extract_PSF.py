@@ -3,7 +3,6 @@ import os
 
 import autograd
 import autograd.numpy as n
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

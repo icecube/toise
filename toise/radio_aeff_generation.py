@@ -11,10 +11,6 @@ from toise.externals import nuFATE
 
 from .effective_areas import calculate_cascade_production_density, effective_area
 from .pointsource import is_zenith_weight
-from .radio_muon_background import (
-    get_muon_distribution,
-    get_tabulated_muon_distribution,
-)
 from .radio_response import (
     RadioEnergyResolution,
     RadioPointSpreadFunction,

@@ -2,7 +2,7 @@ import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import bisect, fsolve
+from scipy.optimize import bisect
 
 from toise import angular_resolution, effective_areas, plotting, surfaces, util
 

@@ -8,7 +8,7 @@ def performance(tabulated_psf=False):
     """
     import matplotlib.pyplot as plt
     import numpy as np
-    from scipy.optimize import bisect, fsolve
+    from scipy.optimize import bisect
 
     from toise import (
         angular_resolution,

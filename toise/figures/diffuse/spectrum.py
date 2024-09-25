@@ -3,15 +3,13 @@ from functools import partial
 from io import StringIO
 
 import numpy as np
-from scipy import optimize, stats
+from scipy import optimize
 from tqdm import tqdm
 
 from toise import (
     diffuse,
     factory,
     multillh,
-    plotting,
-    pointsource,
     surface_veto,
 )
 from toise.cache import ecached, lru_cache
@@ -628,7 +626,6 @@ def plot_crs(ax):
 @figure
 def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     import matplotlib.pyplot as plt
-    from matplotlib.container import ErrorbarContainer
 
     fig = plt.figure(figsize=(7, 3.5), dpi=300)
     ax = plt.gca()
@@ -730,7 +727,6 @@ def unfolded_flux_plus_sensitivity_mm(
     ax=None,
 ):
     import matplotlib.pyplot as plt
-    from matplotlib.container import ErrorbarContainer
     from matplotlib.patches import Patch
 
     _default_plot_elements = [

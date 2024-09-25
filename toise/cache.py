@@ -3,16 +3,20 @@ import gzip
 import json
 import pickle as pickle
 import time
-from os import listdir, unlink
+from os import unlink
 from os.path import join
 
-from easy_cache import caches, create_cache_key, ecached, ecached_property
+from easy_cache import ecached
 from easy_cache.abc import AbstractCacheInstance
 from easy_cache.core import DEFAULT_TIMEOUT, NOT_FOUND
 from photospline import SplineTable
 
 from .util import data_dir
 
+__all__ = [
+    "ecached",
+    "lru_cache",
+]
 
 class PickleCache(AbstractCacheInstance):
     def __init__(self, base_dir=join(data_dir, "cache"), *args, **kwargs):
@@ -118,4 +122,4 @@ caches.set_default(PickleCache())
 try:
     from functools import lru_cache
 except ImportError:
-    from backports.functools_lru_cache import lru_cache
+    pass

@@ -13,7 +13,7 @@ from toise import diffuse, factory
 
 # get enums for models ...
 from toise.diffuse import DIFFUSE_MODELS, DiffuseModel
-from toise.figures import figure, figure_data
+from toise.figures import figure
 from toise.util import center
 
 IC_DIFFUSE = Enum("IC_DIFFUSE", ["HESE", "NUMU"])

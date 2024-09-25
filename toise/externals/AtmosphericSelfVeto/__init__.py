@@ -1,6 +1,6 @@
 import numpy
 
-from ...util import PDGCode, data_dir
+from ...util import PDGCode
 from . import selfveto
 
 

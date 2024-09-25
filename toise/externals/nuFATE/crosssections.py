@@ -1,11 +1,8 @@
-import itertools
-import os
 from functools import partial
 
 import numpy as np
 import photospline
 
-import toise.util
 from toise.cache import ecached, lru_cache
 
 from . import taudecay

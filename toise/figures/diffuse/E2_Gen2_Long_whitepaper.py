@@ -1,4 +1,4 @@
-from toise.figures import figure, figure_data
+from toise.figures import figure
 
 
 @figure

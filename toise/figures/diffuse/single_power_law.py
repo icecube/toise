@@ -1,24 +1,20 @@
 from copy import copy
-from functools import partial
-from io import StringIO
 from itertools import product
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from pandas import DataFrame
-from scipy import optimize, stats
+from scipy import stats
 from tqdm import tqdm
 
 from toise import (
     diffuse,
     factory,
     multillh,
-    plotting,
-    pointsource,
     surface_veto,
 )
-from toise.cache import ecached, lru_cache
+from toise.cache import lru_cache
 from toise.figures import figure, figure_data, table
 
 from .flavor import detector_label, extract_ts

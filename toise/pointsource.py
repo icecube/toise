@@ -1,4 +1,3 @@
-import itertools
 import logging
 from copy import copy
 from functools import partial
@@ -8,7 +7,7 @@ import numpy
 from scipy import interpolate, optimize, stats
 from scipy.optimize import bisect
 
-from .multillh import LLHEval, asimov_llh, get_expectations
+from .multillh import asimov_llh, get_expectations
 from .util import *
 
 

@@ -1,6 +1,4 @@
-import re
 from collections import OrderedDict
-from copy import copy
 from functools import partial
 
 import numpy as np

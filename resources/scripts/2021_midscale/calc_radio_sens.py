@@ -1,26 +1,16 @@
 import json
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 import numpy as np
 from tqdm import tqdm
 
 # generate aeff for radio
 from toise import (
-    angular_resolution,
-    diffuse,
-    effective_areas,
     factory,
     figures,
     figures_of_merit,
-    grb,
-    multillh,
-    plotting,
-    pointsource,
     radio_aeff_generation,
-    surface_veto,
-    util,
 )
-from toise.util import center, data_dir
 
 # this file is basically a copy/strip down of the figures.pointsource.flare.sensitivity workbook
 

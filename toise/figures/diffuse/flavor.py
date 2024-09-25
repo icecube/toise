@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import toolz
 from matplotlib.lines import Line2D
-from scipy.optimize import bisect
 from tqdm import tqdm
 
 from toise import diffuse, factory, multillh, plotting, surface_veto
@@ -428,7 +427,6 @@ def triangle(datasets):
     """
     Plot exclusion contours in flavor composition
     """
-    import matplotlib.pyplot as plt
 
     from toise.externals import ternary
 

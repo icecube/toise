@@ -1,11 +1,9 @@
 import itertools
-import logging
 import os
 import pickle as pickle
 import warnings
 from copy import copy
 from enum import Enum
-from functools import partial
 from io import StringIO
 
 import healpy
@@ -14,7 +12,6 @@ import numexpr
 import numpy as np
 from scipy.integrate import quad
 
-from . import multillh
 from .pointsource import is_zenith_weight
 from .util import *
 

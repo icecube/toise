@@ -574,9 +574,6 @@ def create_bundle_aeff(
     # 2) Selection efficiency
     # 3) Veto coverage
 
-    import dashi
-    import tables
-    from scipy.special import erf
 
     nside = None
     if isinstance(cos_theta, int):
@@ -677,9 +674,6 @@ def create_throughgoing_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-    import dashi
-    import tables
-    from scipy.special import erf
 
     nside = None
     if isinstance(cos_theta, int):
@@ -763,9 +757,6 @@ def create_cascade_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-    import dashi
-    import tables
-    from scipy.special import erf
 
     nside = None
     if isinstance(cos_theta, int):
@@ -837,9 +828,6 @@ def create_starting_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-    import dashi
-    import tables
-    from scipy.special import erf
 
     nside = None
     if isinstance(cos_theta, int):

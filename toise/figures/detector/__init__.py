@@ -399,12 +399,10 @@ def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
 
 @figure
 def radio_surface_geometry():
-    import itertools
 
     import matplotlib.patheffects as path_effects
     import matplotlib.pyplot as plt
     import numpy as np
-    from mpl_toolkits.axes_grid1 import inset_locator
     from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
     fig, axes = plt.subplots(1, 1, figsize=(2 * 2.5, 2 * 2.5))
@@ -588,7 +586,6 @@ def effective_areas(exposures):
 
 @figure
 def effective_areas(datasets):
-    import os
 
     import matplotlib.pyplot as plt
 
