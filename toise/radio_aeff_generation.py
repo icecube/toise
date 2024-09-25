@@ -16,7 +16,7 @@ from .radio_response import (
     RadioPointSpreadFunction,
     radio_analysis_efficiency,
 )
-from .util import *
+from .util import center, constants, data_dir
 
 logger = logging.getLogger("toise aeff calculation for radio")
 
@@ -707,7 +707,7 @@ def combine_aeffs(
         aeff = copy.deepcopy(aeff1)
 
         def overlap(E, logE, ovl):
-            interpolator = interpolate.interp1d(loge, ovl, fill_value="extrapolate")
+            interpolator = interpolate.interp1d(logE, ovl, fill_value="extrapolate")
             interpolation_result = np.maximum(interpolator(np.log10(E)), 0)
             return (interpolation_result + 1.0) ** -1
 

@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from icecube.toise import (
+from matplotlib.gridspec import GridSpec
+
+from toise import (
     angular_resolution,
     diffuse,
     effective_areas,
@@ -8,8 +10,8 @@ from icecube.toise import (
     multillh,
     plotting,
     pointsource,
+    surface_veto,
 )
-from matplotlib.gridspec import GridSpec
 
 
 def create_aeff(

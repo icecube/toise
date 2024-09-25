@@ -17,7 +17,7 @@ from toise import (
 from toise.cache import lru_cache
 from toise.figures import figure, figure_data, table
 
-from .flavor import detector_label, extract_ts
+from .flavor import detector_label, extract_ts, subdivide
 
 
 def make_components(aeffs, emin=1e2, emax=1e11):

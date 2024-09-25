@@ -6,7 +6,7 @@ import time
 from os import unlink
 from os.path import join
 
-from easy_cache import ecached
+from easy_cache import caches, ecached
 from easy_cache.abc import AbstractCacheInstance
 from easy_cache.core import DEFAULT_TIMEOUT, NOT_FOUND
 from photospline import SplineTable

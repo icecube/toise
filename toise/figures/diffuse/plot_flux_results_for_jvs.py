@@ -2,13 +2,6 @@ import numpy as n
 import pylab as p
 
 
-def xerr(bins, log=False):
-    binc = get_binc(bins, log)
-    l = binc - bins[:-1]
-    h = bins[1:] - binc
-    return (l, h)
-
-
 def create_figure(format=None):
     figsize = (5.5, 3.5) if format == "wide" else (4.5, 3.5)
     fig = p.figure(figsize=figsize)

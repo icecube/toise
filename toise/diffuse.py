@@ -13,7 +13,7 @@ import numpy as np
 from scipy.integrate import quad
 
 from .pointsource import is_zenith_weight
-from .util import *
+from .util import PDGCode, center, constants, data_dir
 
 try:
     from functools import lru_cache
@@ -1003,17 +1003,6 @@ def astro_gzk_flux(enu, norm=4.11e-6, spec=-2.46, cutoff=3e6):
     """returns the all-flavor differential flux summed over atmos, astro, and ahlers gzk"""
     ahlers_flux = AhlersGZKFlux()
     return astro_flux(enu, norm, spec, cutoff) + ahlers_flux(enu)
-
-
-def total_flux(enu):
-    """returns the all-flavor differential flux summed over atmos, astro, and ahlers gzk"""
-    ahlers_flux = AhlersGZKFlux()
-    return (
-        atmos_flux(enu, "honda2006")
-        + atmos_flux(enu, "sarcevic_std")
-        + astro_powerlaw_cutoff(enu)
-        + ahlers_flux(enu)
-    )
 
 
 class ArbitraryFlux(DiffuseAstro):

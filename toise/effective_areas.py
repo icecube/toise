@@ -14,7 +14,7 @@ from .angular_resolution import get_angular_resolution
 from .classification_efficiency import get_classification_efficiency
 from .energy_resolution import get_energy_resolution
 from .surfaces import get_fiducial_surface
-from .util import *
+from .util import center, data_dir, defer
 
 
 def load_jvs_mese():

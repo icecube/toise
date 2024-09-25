@@ -12,7 +12,7 @@ from toise import effective_areas
 
 from . import surfaces
 from .pointsource import is_zenith_weight
-from .util import *
+from .util import center, constants, data_dir
 
 # hobo-costing!
 
