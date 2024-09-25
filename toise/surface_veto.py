@@ -1,16 +1,18 @@
-from scipy.special import erf, erfc
-from scipy.optimize import fsolve
-from scipy import interpolate
-import healpy
-import pickle
 import os
-import numpy
+import pickle
 from copy import copy
 
+import healpy
+import numpy
+from scipy import interpolate
+from scipy.optimize import fsolve
+from scipy.special import erf, erfc
+
 from toise import effective_areas
+
 from . import surfaces
-from .util import *
 from .pointsource import is_zenith_weight
+from .util import *
 
 # hobo-costing!
 

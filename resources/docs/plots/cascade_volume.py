@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from toise import plotting, effective_areas
+
+from toise import effective_areas, plotting
 
 configs = [
     ("IceCube", 125.0),

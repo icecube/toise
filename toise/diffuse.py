@@ -1,21 +1,22 @@
-import warnings
-import numpy as np
 import itertools
-from scipy.integrate import quad
-from io import StringIO
-from copy import copy
-from . import multillh
-import healpy
-import os
-import numexpr
-import pickle as pickle
 import logging
-from functools import partial
+import os
+import pickle as pickle
+import warnings
+from copy import copy
 from enum import Enum
-import nuflux
+from functools import partial
+from io import StringIO
 
-from .util import *
+import healpy
+import nuflux
+import numexpr
+import numpy as np
+from scipy.integrate import quad
+
+from . import multillh
 from .pointsource import is_zenith_weight
+from .util import *
 
 try:
     from functools import lru_cache

@@ -655,8 +655,8 @@ def plot_response_function(enu, depth, cos_theta, kind):
 
 if __name__ == "__main__":
 
-    from optparse import OptionParser, OptionGroup
     import sys
+    from optparse import OptionGroup, OptionParser
 
     parser = OptionParser(usage="%prog [OPTIONS]", description=__doc__)
     parser.add_option(

@@ -1,19 +1,19 @@
-import matplotlib.pyplot as plt
-import tables
-import pandas as pd
-import numpy as np
-from toolz import memoize
-from toise import plotting, surfaces
+import argparse
+import os
 
-import photospline
-from scipy import optimize
-from autograd.misc.flatten import flatten_func
 import autograd
 import autograd.numpy as n
-import os
 import h5py
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import photospline
+import tables
+from autograd.misc.flatten import flatten_func
+from scipy import optimize
+from toolz import memoize
 
-import argparse
+from toise import plotting, surfaces
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

@@ -2,21 +2,19 @@
 Flavor ratio fits
 """
 
+import copy
 from functools import partial
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+import toolz
+from matplotlib.lines import Line2D
 from scipy.optimize import bisect
 from tqdm import tqdm
 
-import toolz
-import copy
-
-from toise.figures import figure_data, figure
+from toise import diffuse, factory, multillh, plotting, surface_veto
 from toise.cache import ecached, lru_cache
-from toise import diffuse, multillh, plotting, surface_veto, factory, plotting
-
-from matplotlib.lines import Line2D
+from toise.figures import figure, figure_data
 
 
 def make_components(aeffs, astro_class=diffuse.DiffuseAstro):
@@ -430,8 +428,9 @@ def triangle(datasets):
     """
     Plot exclusion contours in flavor composition
     """
-    from toise.externals import ternary
     import matplotlib.pyplot as plt
+
+    from toise.externals import ternary
 
     ax = ternary.flavor_triangle(grid=True)
     labels = []
@@ -482,10 +481,11 @@ def muon_damping(datasets, preliminary=False):
     """
     Plot exclusion contours in flavor composition
     """
-    from toise.externals import ternary
-    import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
-    from scipy import optimize, interpolate, stats
+    import matplotlib.pyplot as plt
+    from scipy import interpolate, optimize, stats
+
+    from toise.externals import ternary
 
     fig = plt.figure(figsize=(5, 4))
     w, h = fig.bbox_inches.width, fig.bbox_inches.height

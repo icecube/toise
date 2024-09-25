@@ -1,9 +1,10 @@
+import itertools
+
 import matplotlib.pyplot as plt
 import numpy as np
-import itertools
+from icecube.toise import effective_areas, plotting, util
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from icecube.toise import plotting, effective_areas, util
 
 # get muon production efficiency
 edges, muprod = effective_areas.get_cascade_production_density()

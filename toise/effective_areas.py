@@ -1,19 +1,19 @@
+import copy
+import itertools
+import os
+import warnings
+
 import dashi
+import healpy
+import numpy
+import numpy as np
 import tables
 from scipy import interpolate
-import numpy as np
 
-import os
-import numpy
-import itertools
-import healpy
-import warnings
-import copy
-
-from .surfaces import get_fiducial_surface
-from .energy_resolution import get_energy_resolution
 from .angular_resolution import get_angular_resolution
 from .classification_efficiency import get_classification_efficiency
+from .energy_resolution import get_energy_resolution
+from .surfaces import get_fiducial_surface
 from .util import *
 
 
@@ -574,8 +574,8 @@ def create_bundle_aeff(
     # 2) Selection efficiency
     # 3) Veto coverage
 
-    import tables
     import dashi
+    import tables
     from scipy.special import erf
 
     nside = None
@@ -677,8 +677,8 @@ def create_throughgoing_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-    import tables
     import dashi
+    import tables
     from scipy.special import erf
 
     nside = None
@@ -763,8 +763,8 @@ def create_cascade_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-    import tables
     import dashi
+    import tables
     from scipy.special import erf
 
     nside = None
@@ -837,8 +837,8 @@ def create_starting_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-    import tables
     import dashi
+    import tables
     from scipy.special import erf
 
     nside = None
@@ -1034,8 +1034,9 @@ def _load_radio_veff(filename):
     """
     :returns: a tuple (edges, veff). veff has units of m^3
     """
-    import pandas as pd
     import json
+
+    import pandas as pd
 
     if not filename.startswith("/"):
         filename = os.path.join(data_dir, "aeff", filename)

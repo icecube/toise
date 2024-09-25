@@ -1,6 +1,8 @@
+from itertools import product
+
 import numpy as np
 from toolz import memoize
-from itertools import product
+
 from .crosssections import DISCrossSection, GlashowResonanceCrossSection
 from .earth import get_t_earth
 

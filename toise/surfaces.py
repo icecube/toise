@@ -1,5 +1,6 @@
-import numpy
 import os
+
+import numpy
 
 from .util import data_dir
 
@@ -492,7 +493,7 @@ class ExtrudedPolygon(UprightSurface):
         :param fname: path to an I3 file containing at least a G frame
         :param padding: distance, in meters, to expand the surface in all directions
         """
-        from icecube import icetray, dataio, dataclasses
+        from icecube import dataclasses, dataio, icetray
 
         f = dataio.I3File(fname)
         fr = f.pop_frame(icetray.I3Frame.Geometry)

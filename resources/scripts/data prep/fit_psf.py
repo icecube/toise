@@ -1,11 +1,13 @@
 #!/bin/sh /cvmfs/icecube.opensciencegrid.org/py2-v1/icetray-start
 # METAPROJECT /data/user/jvansanten/tarballs/offline-software.openblas.2015-03-06
 
-from icecube.photospline import spglam as glam
-from icecube.photospline.utils import pad_knots
-from icecube.photospline import splinefitstable
+import os
 from collections import defaultdict
-import numpy, os
+
+import numpy
+from icecube.photospline import spglam as glam
+from icecube.photospline import splinefitstable
+from icecube.photospline.utils import pad_knots
 
 
 def create_psf(
@@ -88,8 +90,8 @@ def fit_psf(h, smooth=1e-6):
 
 
 def plot_psf(h, spline, cos_theta=0):
-    import matplotlib.pyplot as plt
     import dashi
+    import matplotlib.pyplot as plt
 
     dashi.visual()
 

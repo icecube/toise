@@ -2,9 +2,10 @@
 Idealized detectors used to estimate sensitivities in the WIS whitepaper
 """
 
-from toolz import memoize
 from numpy import vectorize
-from . import surfaces, energy_resolution, effective_areas
+from toolz import memoize
+
+from . import effective_areas, energy_resolution, surfaces
 
 
 def make_cylinder(volume=1.0, aspect=1.0):

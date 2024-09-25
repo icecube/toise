@@ -3,9 +3,10 @@ Hobo unbinned point source analysis
 """
 
 import numpy
+import scipy.interpolate
 import scipy.optimize
 import scipy.stats
-import scipy.interpolate
+
 from .util import *
 
 

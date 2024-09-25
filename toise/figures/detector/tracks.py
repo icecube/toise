@@ -8,14 +8,15 @@ def performance(tabulated_psf=False):
     """
     import matplotlib.pyplot as plt
     import numpy as np
+    from scipy.optimize import bisect, fsolve
+
     from toise import (
-        plotting,
         angular_resolution,
         effective_areas,
+        plotting,
         surfaces,
         util,
     )
-    from scipy.optimize import fsolve, bisect
 
     @np.vectorize
     def median_opening_angle(psf, energy, cos_theta):

@@ -1,9 +1,10 @@
-from scipy import interpolate, stats
-import pickle
 import os
-import numpy
+import pickle
 
-from .util import data_dir, center
+import numpy
+from scipy import interpolate, stats
+
+from .util import center, data_dir
 
 
 def get_angular_resolution(
@@ -161,8 +162,9 @@ class KingPointSpreadFunction(KingPointSpreadFunctionBase):
         self, fname="Sunflower_240_kingpsf4", psf_class=(0, 4), scale=1.0, **kwargs
     ):
         super(KingPointSpreadFunction, self).__init__(**kwargs)
-        import pandas as pd
         import operator
+
+        import pandas as pd
         from scipy import interpolate
 
         if not fname.startswith("/"):

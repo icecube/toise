@@ -1,16 +1,17 @@
 # Custom cache instance class must implement AbstractCacheInstance interface:
-from easy_cache import caches
-from easy_cache import ecached, ecached_property, create_cache_key
-from easy_cache.abc import AbstractCacheInstance
-from easy_cache.core import DEFAULT_TIMEOUT, NOT_FOUND
-from .util import data_dir
-from os.path import join
-from os import listdir, unlink
-import pickle as pickle
-from photospline import SplineTable
 import gzip
 import json
+import pickle as pickle
 import time
+from os import listdir, unlink
+from os.path import join
+
+from easy_cache import caches, create_cache_key, ecached, ecached_property
+from easy_cache.abc import AbstractCacheInstance
+from easy_cache.core import DEFAULT_TIMEOUT, NOT_FOUND
+from photospline import SplineTable
+
+from .util import data_dir
 
 
 class PickleCache(AbstractCacheInstance):

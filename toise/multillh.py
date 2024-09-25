@@ -1,6 +1,7 @@
 # Adapted from [multillh](http://code.icecube.wisc.edu/svn/sandbox/nwhitehorn/multillh)
 
 import logging
+
 import numpy
 import scipy.optimize
 
@@ -280,8 +281,8 @@ class LLHEval(object):
         If a parameter is fixed to an iterable value, it will be treated
         as a discrete parameter and minimized on a grid.
         """
-        from collections.abc import Iterable
         import itertools
+        from collections.abc import Iterable
 
         freeparams = list(self.components.keys())
         discrete_params = []

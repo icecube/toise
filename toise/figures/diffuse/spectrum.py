@@ -1,21 +1,21 @@
-from toise.figures import figure_data, figure
+from copy import copy
+from functools import partial
+from io import StringIO
+
+import numpy as np
+from scipy import optimize, stats
+from tqdm import tqdm
 
 from toise import (
     diffuse,
+    factory,
     multillh,
     plotting,
-    surface_veto,
     pointsource,
-    factory,
+    surface_veto,
 )
 from toise.cache import ecached, lru_cache
-
-from scipy import stats, optimize
-from copy import copy
-import numpy as np
-from tqdm import tqdm
-from functools import partial
-from io import StringIO
+from toise.figures import figure, figure_data
 
 
 def make_components(aeffs, emin=1e2, emax=1e11):
@@ -730,8 +730,8 @@ def unfolded_flux_plus_sensitivity_mm(
     ax=None,
 ):
     import matplotlib.pyplot as plt
-    from matplotlib.patches import Patch
     from matplotlib.container import ErrorbarContainer
+    from matplotlib.patches import Patch
 
     _default_plot_elements = [
         "cr",

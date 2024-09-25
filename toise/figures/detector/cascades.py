@@ -1,8 +1,8 @@
-from toise.figures import figure, figure_data
-from toise.figures.diffuse.flavor import psi_binning
-
 import dashi
 import numpy as np
+
+from toise.figures import figure, figure_data
+from toise.figures.diffuse.flavor import psi_binning
 
 
 def sparse_hese_veto_plot(ax, f):
@@ -54,10 +54,12 @@ def sparse_hese_veto_plot(ax, f):
 
 @figure
 def volume():
+    import os
+
     import matplotlib.pyplot as plt
     import numpy as np
-    import os
-    from toise import factory, effective_areas, surfaces, plotting
+
+    from toise import effective_areas, factory, plotting, surfaces
 
     edep = np.logspace(4, 8, 101)
     fig = plt.figure(figsize=(3.375, 3.375))
@@ -111,8 +113,10 @@ def effective_area(exposures):
 
 @figure
 def effective_area(datasets):
-    import matplotlib.pyplot as plt
     import os
+
+    import matplotlib.pyplot as plt
+
     from toise import plotting
 
     fig = plt.figure(figsize=(3.375, 3.375))
@@ -138,9 +142,10 @@ def effective_area(datasets):
 
 @figure
 def sparse_veto():
+    import os
+
     import matplotlib.pyplot as plt
     import numpy as np
-    import os
 
     fig = plt.figure(figsize=(3.375, 3.375))
     ax = plt.gca()

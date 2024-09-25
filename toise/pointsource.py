@@ -1,13 +1,15 @@
-from scipy.optimize import bisect
-from functools import partial
-import numpy
-from scipy import optimize, stats, interpolate
-from io import StringIO
 import itertools
+import logging
 from copy import copy
+from functools import partial
+from io import StringIO
+
+import numpy
+from scipy import interpolate, optimize, stats
+from scipy.optimize import bisect
+
 from .multillh import LLHEval, asimov_llh, get_expectations
 from .util import *
-import logging
 
 
 def is_zenith_weight(zenith_weight, aeff):

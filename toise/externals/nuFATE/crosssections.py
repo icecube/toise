@@ -1,11 +1,14 @@
-import numpy as np
-from functools import partial
-from . import taudecay
-import toise.util
-import os
 import itertools
+import os
+from functools import partial
+
+import numpy as np
 import photospline
+
+import toise.util
 from toise.cache import ecached, lru_cache
+
+from . import taudecay
 
 TOTAL_XSEC_BIAS = 80
 DPDX_BIAS = 10

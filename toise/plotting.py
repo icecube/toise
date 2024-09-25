@@ -1,6 +1,6 @@
+import numpy
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
-import numpy
 
 
 def stepped_path(edges, bins, cumulative=False):
@@ -46,8 +46,8 @@ def format_energy(fmt, energy):
 
 
 def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors="k", **kwargs):
-    from scipy.stats import chi2
     import matplotlib.pyplot as plt
+    from scipy.stats import chi2
 
     xv = numpy.unique(profile[x])
     yv = numpy.unique(profile[y])

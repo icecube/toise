@@ -1,7 +1,7 @@
 import numpy
 
-from . import selfveto
 from ...util import PDGCode, data_dir
+from . import selfveto
 
 
 class AnalyticPassingFraction(object):

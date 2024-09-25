@@ -1,9 +1,10 @@
 import os
-import numpy as np
-from subprocess import check_call, PIPE
-from os import path, unlink, environ, mkdir
-from lazy_object_proxy import Proxy
 from functools import partial
+from os import environ, mkdir, path, unlink
+from subprocess import PIPE, check_call
+
+import numpy as np
+from lazy_object_proxy import Proxy
 
 
 def defer(func, *args, **kwargs):

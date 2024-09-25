@@ -1,7 +1,8 @@
-from scipy import interpolate
-import pickle
 import os
+import pickle
+
 import numpy
+from scipy import interpolate
 from scipy.special import erf
 
 from .util import data_dir

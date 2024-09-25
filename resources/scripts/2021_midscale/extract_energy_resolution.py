@@ -1,11 +1,12 @@
-import matplotlib.pyplot as plt
-import tables
-import pandas as pd
-import numpy as np
-from toolz import memoize
-from toise import plotting, surfaces
-
 import argparse
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import tables
+from toolz import memoize
+
+from toise import plotting, surfaces
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

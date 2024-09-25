@@ -1,22 +1,26 @@
-from toise import (
-    effective_areas,
-    diffuse,
-    pointsource,
-    angular_resolution,
-    grb,
-    surface_veto,
-    multillh,
-    plotting,
-)
-from toise import factory, figures_of_merit, util, figures
-from toise.util import data_dir, center
-from tqdm import tqdm
-import numpy as np
-from collections import OrderedDict, defaultdict
 import json
+from collections import OrderedDict, defaultdict
+
+import numpy as np
+from tqdm import tqdm
 
 # generate aeff for radio
-from toise import radio_aeff_generation
+from toise import (
+    angular_resolution,
+    diffuse,
+    effective_areas,
+    factory,
+    figures,
+    figures_of_merit,
+    grb,
+    multillh,
+    plotting,
+    pointsource,
+    radio_aeff_generation,
+    surface_veto,
+    util,
+)
+from toise.util import center, data_dir
 
 # this file is basically a copy/strip down of the figures.pointsource.flare.sensitivity workbook
 

@@ -1,22 +1,24 @@
-import numpy
-from scipy import interpolate
-from functools import partial
 import numbers
 import os
 import pickle as pickle
+from functools import partial
+
+import numpy
+from scipy import interpolate
+
 from . import (
-    effective_areas,
-    diffuse,
-    pointsource,
     angular_resolution,
+    classification_efficiency,
+    diffuse,
+    effective_areas,
     grb,
-    surface_veto,
     multillh,
     plotting,
+    pointsource,
+    surface_veto,
+    surfaces,
 )
-from . import classification_efficiency
-from .util import data_dir, center, defer
-from . import surfaces
+from .util import center, data_dir, defer
 
 
 def make_key(opts, kwargs):
