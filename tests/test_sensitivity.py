@@ -2,11 +2,11 @@ from typing import Optional
 
 import numpy as np
 import pytest
-from toise import diffuse, factory, figures_of_merit, multillh, surface_veto
-from toise.effective_areas import effective_area
-from toise.figures import figure
 from scipy import stats
 from scipy.optimize import bisect
+
+from toise import diffuse, factory, figures_of_merit, multillh, surface_veto
+from toise.effective_areas import effective_area
 
 
 @pytest.fixture(scope="session")

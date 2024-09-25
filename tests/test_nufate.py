@@ -1,6 +1,7 @@
+import numpy as np
+
 from toise.externals import nuFATE
 from toise.util import center
-import numpy as np
 
 
 def test_cache():

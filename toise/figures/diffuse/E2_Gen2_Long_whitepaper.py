@@ -1,4 +1,4 @@
-from toise.figures import figure_data, figure
+from toise.figures import figure
 
 
 @figure
@@ -11,11 +11,11 @@ def diffuse_sensitivity_uhe():
     matplotlib.rc("axes", labelsize=20)
     legendfontsize = 13
 
-    import matplotlib.pyplot as plt
-    import numpy as np
-
     # from NuRadioMC.utilities import fluxes
     import os
+
+    import matplotlib.pyplot as plt
+    import numpy as np
     from scipy.interpolate import interp1d
 
     class units:

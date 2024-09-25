@@ -1,14 +1,14 @@
 import argparse
-import json
 import gzip
-import sys
-import os
-from setuptools import find_packages
-from pkgutil import iter_modules
 import importlib
 import inspect
+import json
+import os
+import sys
+from pkgutil import iter_modules
+from typing import Callable, Literal, Sequence, Union, get_args, get_origin
 
-from typing import Any, Callable, Literal, Sequence, Union, get_args, get_origin
+from setuptools import find_packages
 
 try:
     from typing import List
@@ -37,8 +37,8 @@ def find_modules(path):
 
 try:
     import docutils.frontend
-    import docutils.utils
     import docutils.parsers.rst
+    import docutils.utils
     from docutils import nodes
 
     class ParamHarvester(nodes.SparseNodeVisitor):
@@ -153,9 +153,10 @@ def _maybe_call_sequence(f: Union[Callable, Sequence[Callable]]):
 
 
 def make_figure_data():
-    import traceback
-    import sys
     import pdb
+    import sys
+    import traceback
+
     from toise import figures
 
     # find all submodules of toise.figures and import them
@@ -293,8 +294,9 @@ def _add_options_for_args(parser, spec: inspect.Signature, param_help):
 
 
 def make_figure():
-    import traceback
     import pdb
+    import traceback
+
     from toise import figures
 
     # find all submodules of toise.figures and import them

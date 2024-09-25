@@ -32,7 +32,7 @@ This script is nearly identical to the one distributed with http://arxiv.org/abs
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import numpy
+import numpy as np
 
 
 def overburden(cos_theta, depth=1950, elevation=2400):
@@ -49,7 +49,7 @@ def overburden(cos_theta, depth=1950, elevation=2400):
     r = 6371315 + elevation
     # this is secrety a translation in polar coordinates
     return (
-        numpy.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth**2)
+        np.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth**2)
         - (r - depth) * cos_theta
     )
 
@@ -66,7 +66,7 @@ def minimum_muon_energy(distance, emin=1e3):
         return sum(c * x**i for i, c in enumerate(coefficients))
 
     coeffs = [[2.793, -0.476, 0.187], [2.069, -0.201, 0.023], [-2.689, 3.882]]
-    a, b, c = (polynomial(numpy.log10(emin), c) for c in coeffs)
+    a, b, c = (polynomial(np.log10(emin), c) for c in coeffs)
     return 10 ** polynomial(distance, (a, b / 1e4, c / 1e10))
 
 
@@ -78,7 +78,7 @@ def effective_costheta(costheta):
     """
     x = costheta
     p = [0.102573, -0.068287, 0.958633, 0.0407253, 0.817285]
-    return numpy.sqrt(
+    return np.sqrt(
         (x**2 + p[0] ** 2 + p[1] * x ** p[2] + p[3] * x ** p[4])
         / (1 + p[0] ** 2 + p[1] + p[3])
     )
@@ -93,10 +93,10 @@ class fpe_context(object):
         self.new_kwargs = kwargs
 
     def __enter__(self):
-        self.old_kwargs = numpy.seterr(**self.new_kwargs)
+        self.old_kwargs = np.seterr(**self.new_kwargs)
 
     def __exit__(self, *args):
-        numpy.seterr(**self.old_kwargs)
+        np.seterr(**self.old_kwargs)
 
 
 elbert_params = {
@@ -155,13 +155,13 @@ def elbert_yield(
         decay_prob = 1.0 / (En * effective_costheta(cos_theta))
 
     with fpe_context(all="ignore"):
-        icdf = numpy.where(
+        icdf = np.where(
             x >= 1,
             0.0,
             a * primary_mass * decay_prob * x ** (-p1) * (1 - x**p3) ** p2,
         )
         if differential:
-            icdf *= (1.0 / En) * numpy.where(
+            icdf *= (1.0 / En) * np.where(
                 x >= 1, 0.0, (p1 / x + p2 * p3 * x ** (p3 - 1) / (1 - x**p3))
             )
 
@@ -209,21 +209,21 @@ def gaisser_flux(energy, ptype):
     rigidity = [4e6, 30e6, 2e9]
 
     return sum(
-        n[idx] * energy ** (-g[idx]) * numpy.exp(-energy / (r * z))
+        n[idx] * energy ** (-g[idx]) * np.exp(-energy / (r * z))
         for n, g, r in zip(norm, gamma, rigidity)
     )
 
 
 def logspace(start, stop, num):
     """
-    A version of numpy.logspace that takes array arguments
+    A version of np.logspace that takes array arguments
     """
     # Add a trailing dimension to the inputs
-    start = numpy.asarray(start)[..., None]
-    stop = numpy.asarray(stop)[..., None]
+    start = np.asarray(start)[..., None]
+    stop = np.asarray(stop)[..., None]
     num = int(num)
     step = (stop - start) / float(num - 1)
-    y = (numpy.core.numeric.arange(0, num) * step + start).squeeze()
+    y = (np.core.numeric.arange(0, num) * step + start).squeeze()
     return 10**y
 
 
@@ -243,14 +243,14 @@ def response_function(enu, emu, cos_theta, kind="numu"):
     :returns: a tuple (response, muonyield, energy_per_nucleon)
     """
     # make everything an array
-    enu, emu, cos_theta = list(map(numpy.asarray, (enu, emu, cos_theta)))
-    shape = numpy.broadcast(enu, emu, cos_theta).shape
+    enu, emu, cos_theta = list(map(np.asarray, (enu, emu, cos_theta)))
+    shape = np.broadcast(enu, emu, cos_theta).shape
     # contributions to the differential neutrino flux from chunks of the
     # primary spectrum for each element
-    contrib = numpy.zeros(shape + (5, 100))
+    contrib = np.zeros(shape + (5, 100))
     # mean integral muon yield from same chunks
-    muyield = numpy.zeros(shape + (5, 100))
-    energy_per_nucleon = logspace(numpy.log10(enu), numpy.log10(enu) + 3, 101)
+    muyield = np.zeros(shape + (5, 100))
+    energy_per_nucleon = logspace(np.log10(enu), np.log10(enu) + 3, 101)
     ptypes = [
         getattr(ParticleType, pt)
         for pt in ("PPlus", "He4Nucleus", "N14Nucleus", "Al27Nucleus", "Fe56Nucleus")
@@ -260,7 +260,7 @@ def response_function(enu, emu, cos_theta, kind="numu"):
         # primary energies that contribute to the neutrino flux at given energy
         penergy = a * energy_per_nucleon
         # width of energy bins
-        de = numpy.diff(penergy)
+        de = np.diff(penergy)
         # center of energy bins
         pe = penergy[..., :-1] + de / 2.0
         # hobo-integrate the flux
@@ -277,17 +277,17 @@ def response_function(enu, emu, cos_theta, kind="numu"):
     return (
         contrib,
         muyield,
-        energy_per_nucleon[..., :-1] + numpy.diff(energy_per_nucleon) / 2.0,
+        energy_per_nucleon[..., :-1] + np.diff(energy_per_nucleon) / 2.0,
     )
 
 
 def get_bin_edges(energy_grid):
-    half_width = 10 ** (numpy.diff(numpy.log10(energy_grid))[0] / 2)
-    return numpy.concatenate((energy_grid / half_width, [energy_grid[-1] * half_width]))
+    half_width = 10 ** (np.diff(np.log10(energy_grid))[0] / 2)
+    return np.concatenate((energy_grid / half_width, [energy_grid[-1] * half_width]))
 
 
 def get_bin_width(energy_grid):
-    return numpy.diff(get_bin_edges(energy_grid))
+    return np.diff(get_bin_edges(energy_grid))
 
 
 def extract_yields(yield_record, types):
@@ -295,16 +295,16 @@ def extract_yields(yield_record, types):
 
 
 def interpolate_integral_yield(log_N, log_e, log_emin):
-    interp = numpy.interp(log_emin, log_e, log_N)
-    if numpy.isfinite(interp):
-        return numpy.exp(interp)
+    interp = np.interp(log_emin, log_e, log_N)
+    if np.isfinite(interp):
+        return np.exp(interp)
     else:
         return 0.0
 
 
 def integral_yield(e_min, e_grid, diff_yield):
     edges = get_bin_edges(e_grid)
-    de = numpy.diff(edges)
+    de = np.diff(edges)
     intyield = de * diff_yield
     axis = 1
     index = [slice(None)] * diff_yield.ndim
@@ -313,12 +313,12 @@ def integral_yield(e_min, e_grid, diff_yield):
     # cumulative sum from the right
     N = intyield[index].cumsum(axis=axis)[index]
 
-    return numpy.apply_along_axis(
+    return np.apply_along_axis(
         interpolate_integral_yield,
         1,
-        numpy.log(N),
-        numpy.log(edges[1:]),
-        numpy.log(e_min),
+        np.log(N),
+        np.log(edges[1:]),
+        np.log(e_min),
     )
 
 
@@ -333,11 +333,11 @@ def mceq_response_function(fname, emu, nu_types, prompt_muons=False):
 
     :returns: a tuple (response, muonyield, energy_per_nucleon)
     """
-    bundle = numpy.load(fname)
+    bundle = np.load(fname)
     e_grid = bundle["e_grid"]
 
-    contrib = numpy.empty((e_grid.size, 5, e_grid.size))
-    muyield = numpy.empty((e_grid.size, 5, e_grid.size))
+    contrib = np.empty((e_grid.size, 5, e_grid.size))
+    muyield = np.empty((e_grid.size, 5, e_grid.size))
     ptypes = [
         getattr(ParticleType, pt)
         for pt in ("PPlus", "He4Nucleus", "N14Nucleus", "Al27Nucleus", "Fe56Nucleus")
@@ -380,7 +380,7 @@ def uncorrelated_passing_rate(enu, emu, cos_theta, kind="numu"):
     contrib /= contrib.sum(axis=(-1, -2), keepdims=True)
     # weight contributions by probability of having zero muons. if that
     # probability is always 1, then this returns 1 by construction
-    return (numpy.exp(-muyield) * contrib).sum(axis=(-1, -2))
+    return (np.exp(-muyield) * contrib).sum(axis=(-1, -2))
 
 
 def mceq_uncorrelated_passing_rate(fname, emu, nu_types, prompt_muons=False):
@@ -391,7 +391,7 @@ def mceq_uncorrelated_passing_rate(fname, emu, nu_types, prompt_muons=False):
     contrib /= contrib.sum(axis=(-1, -2), keepdims=True)
     # weight contributions by probability of having zero muons. if that
     # probability is always 1, then this returns 1 by construction
-    return (numpy.exp(-muyield) * contrib).sum(axis=(-1, -2))
+    return (np.exp(-muyield) * contrib).sum(axis=(-1, -2))
 
 
 def analytic_numu_flux(enu, cos_theta, emu=None):
@@ -426,17 +426,15 @@ def analytic_numu_flux(enu, cos_theta, emu=None):
     R_PI, R_K, ALAM_N, ALAM_PI, ALAM_K = 0.5731, 0.0458, 120.0, 160.0, 180.0
 
     F = (GAMMA + 2.0) / (GAMMA + 1.0)
-    B_PI = (
-        F * (ALAM_PI - ALAM_N) / (ALAM_PI * numpy.log(ALAM_PI / ALAM_N) * (1.0 - R_PI))
-    )
-    B_K = F * (ALAM_K - ALAM_N) / (ALAM_K * numpy.log(ALAM_K / ALAM_N) * (1.0 - R_K))
+    B_PI = F * (ALAM_PI - ALAM_N) / (ALAM_PI * np.log(ALAM_PI / ALAM_N) * (1.0 - R_PI))
+    B_K = F * (ALAM_K - ALAM_N) / (ALAM_K * np.log(ALAM_K / ALAM_N) * (1.0 - R_K))
 
     if emu is not None:
         z = 1 + emu / enu
         zpimin = 1.0 / (1.0 - R_PI)
         zkmin = 1.0 / (1.0 - R_K)
-        zzpi = numpy.where(z >= zpimin, z, zpimin)
-        zzk = numpy.where(z >= zkmin, z, zkmin)
+        zzpi = np.where(z >= zpimin, z, zpimin)
+        zzk = np.where(z >= zkmin, z, zkmin)
         A_PI = Z_NPI / ((1.0 - R_PI) * (GAMMA + 1) * zzpi ** (GAMMA + 1.0))
         A_K = Z_NK / ((1.0 - R_K) * (GAMMA + 1) * zzk ** (GAMMA + 1.0))
 
@@ -484,10 +482,10 @@ def plot_passing_rate(depth):
     import pylab
 
     ax = pylab.gca()
-    enu = numpy.logspace(3, 7, 101)
+    enu = np.logspace(3, 7, 101)
 
     for zenith, color in zip((0, 70, 80, 85), colors):
-        cos_theta = numpy.cos(numpy.radians(zenith))
+        cos_theta = np.cos(np.radians(zenith))
         emu = minimum_muon_energy(overburden(cos_theta, depth))
         correlated = correlated_passing_rate(enu, emu, cos_theta)
         uncorr_numu = uncorrelated_passing_rate(enu, emu, cos_theta, kind="numu")
@@ -515,7 +513,7 @@ def plot_passing_rate(depth):
 
 
 def format_energy(fmt, energy):
-    places = int(numpy.log10(energy) / 3) * 3
+    places = int(np.log10(energy) / 3) * 3
     if places == 1:
         unit = "GeV"
     elif places == 3:
@@ -547,7 +545,7 @@ def plot_response_function(enu, depth, cos_theta, kind):
         pylab.plot(energy_per_nucleon, response[i, :], color=color, lw=1, label=label)
         pylab.plot(
             energy_per_nucleon,
-            numpy.exp(-muyield[i, :]) * response[i, :],
+            np.exp(-muyield[i, :]) * response[i, :],
             color=color,
             ls="--",
             lw=1,
@@ -556,7 +554,7 @@ def plot_response_function(enu, depth, cos_theta, kind):
     ax.plot(energy_per_nucleon, response.sum(axis=0), color="k", lw=2, label="Total")
     ax.plot(
         energy_per_nucleon,
-        (numpy.exp(-muyield) * response).sum(axis=-2),
+        (np.exp(-muyield) * response).sum(axis=-2),
         color="k",
         ls="--",
         lw=2,
@@ -569,7 +567,7 @@ def plot_response_function(enu, depth, cos_theta, kind):
     ax.legend(
         loc="lower left", prop=dict(size="small"), title="Flux contributions", ncol=2
     )
-    passrate = (numpy.exp(-muyield) * response).sum(axis=(-2, -1)) / response.sum(
+    passrate = (np.exp(-muyield) * response).sum(axis=(-2, -1)) / response.sum(
         axis=(-2, -1)
     )
     if kind == "charm":
@@ -584,14 +582,14 @@ def plot_response_function(enu, depth, cos_theta, kind):
         % (
             format_energy("%d", enu),
             kindlabel,
-            numpy.round(numpy.degrees(numpy.arccos(cos_theta))),
+            np.round(np.degrees(np.arccos(cos_theta))),
             depth,
             passrate * 100,
         ),
         size="medium",
     )
 
-    logmax = numpy.ceil(numpy.log10(response.max()))
+    logmax = np.ceil(np.log10(response.max()))
     ax.set_ylim(10 ** (logmax - 8), 10 ** (logmax))
     ax.xaxis.set_major_formatter(NullFormatter())
     ax.yaxis.set_ticks(ax.yaxis.get_ticklocs()[2:-1])
@@ -600,7 +598,7 @@ def plot_response_function(enu, depth, cos_theta, kind):
     for i, color, label in zip(range(5), colors, elements):
         pylab.plot(energy_per_nucleon, muyield[i, :], color=color, lw=1, label=label)
     pylab.loglog()
-    logmax = numpy.ceil(numpy.log10(muyield.max()))
+    logmax = np.ceil(np.log10(muyield.max()))
     ax.set_ylim(10 ** (logmax - 4), 10 ** (logmax))
     ax.xaxis.set_major_formatter(NullFormatter())
     ax.set_ylabel(r"$\left<N_{\mu} > 1\, \mathrm{TeV} \right>$")
@@ -610,7 +608,7 @@ def plot_response_function(enu, depth, cos_theta, kind):
     for i, color, label in zip(range(5), colors, elements):
         pylab.plot(
             energy_per_nucleon,
-            numpy.exp(-muyield[i, :]),
+            np.exp(-muyield[i, :]),
             color=color,
             lw=1,
             label=label,
@@ -637,7 +635,7 @@ def plot_response_function(enu, depth, cos_theta, kind):
 	of the integrals of the solid and dashed black curves (%d%%).
 	""" % (
         format_energy("%d", enu),
-        numpy.round(numpy.degrees(numpy.arccos(cos_theta))),
+        np.round(np.degrees(np.arccos(cos_theta))),
         depth,
         passrate * 100,
     )
@@ -655,8 +653,8 @@ def plot_response_function(enu, depth, cos_theta, kind):
 
 if __name__ == "__main__":
 
-    from optparse import OptionParser, OptionGroup
     import sys
+    from optparse import OptionGroup, OptionParser
 
     parser = OptionParser(usage="%prog [OPTIONS]", description=__doc__)
     parser.add_option(
@@ -707,21 +705,21 @@ if __name__ == "__main__":
         plot_response_function(
             opts.energy,
             opts.depth,
-            numpy.cos(numpy.radians(opts.zenith)),
+            np.cos(np.radians(opts.zenith)),
             [opts.flavor, "charm"][opts.charm],
         )
         sys.exit(0)
 
     # Calculate passing rate on a grid of energies and zenith angles
-    enu = numpy.logspace(3, 7, 101)
-    cos_theta = numpy.arange(0, 1, 0.05) + 0.05
-    enu, cos_theta = numpy.meshgrid(enu, cos_theta)
+    enu = np.logspace(3, 7, 101)
+    cos_theta = np.arange(0, 1, 0.05) + 0.05
+    enu, cos_theta = np.meshgrid(enu, cos_theta)
     emu = minimum_muon_energy(overburden(cos_theta, opts.depth))
 
     if opts.flavor == "numu":
         passrate = correlated_passing_rate(enu, emu, cos_theta)
     else:
-        passrate = numpy.ones(enu.shape)
+        passrate = np.ones(enu.shape)
 
     if opts.charm:
         kind = "charm"
@@ -729,17 +727,17 @@ if __name__ == "__main__":
         kind = opts.flavor
     passrate *= uncorrelated_passing_rate(enu, emu, cos_theta, kind=kind)
 
-    data = numpy.vstack(
+    data = np.vstack(
         list(
             map(
-                numpy.ndarray.flatten,
+                np.ndarray.flatten,
                 (cos_theta, overburden(cos_theta, opts.depth), emu, enu, passrate),
             )
         )
     ).T
     fields = ["cos_theta", "overburden", "emu_min", "energy", "passrate"]
 
-    numpy.savetxt(
+    np.savetxt(
         sys.stdout,
         data,
         fmt="%12.3e",

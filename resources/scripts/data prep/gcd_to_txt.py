@@ -8,9 +8,7 @@ parser.add_argument("text_file")
 args = parser.parse_args()
 
 import numpy
-from icecube import icetray, dataclasses, dataio
-
-from icecube import icetray, dataio, dataclasses
+from icecube import dataio, icetray
 
 f = dataio.I3File(args.gcd_file)
 fr = f.pop_frame(icetray.I3Frame.Geometry)

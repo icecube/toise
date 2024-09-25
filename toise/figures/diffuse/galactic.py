@@ -1,22 +1,22 @@
-from toise.figures import figure_data, figure
-
-from toise import diffuse, pointsource, surface_veto, multillh, factory
-from toise.cache import ecached, lru_cache
-
 # from scipy import stats, optimize
 from copy import copy
-import numpy as np
 
 # from tqdm import tqdm
 from functools import partial
-from typing import List, Literal, Optional
+from typing import List, Literal
+
+import numpy as np
+
+from toise import diffuse, factory, multillh, surface_veto
+from toise.cache import lru_cache
+from toise.figures import figure, figure_data
 
 from .dnnc import (
+    AngularSmearing,
+    RingAveraging,
     create_dnn_aeff,
     get_dnn_smoothing,
     get_monopod_smoothing,
-    AngularSmearing,
-    RingAveraging,
 )
 
 factory.add_configuration(
@@ -221,9 +221,9 @@ def fermi_pi0(
 
 @figure
 def rates(datasets):
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import LogNorm
     import healpy
+    import matplotlib.pyplot as plt
+
     from toise import plotting
 
     dataset = datasets[0]

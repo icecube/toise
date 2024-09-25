@@ -2,6 +2,7 @@ import itertools
 
 import numpy as np
 import pytest
+
 from toise.diffuse import AtmosphericNu
 from toise.effective_areas import effective_area
 from toise.externals.AtmosphericSelfVeto import AnalyticPassingFraction

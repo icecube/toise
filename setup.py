@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
+from os import environ, mkdir, path, unlink
+from subprocess import PIPE, check_call
+
 from setuptools import find_packages
-from subprocess import check_call, PIPE
-from os import path, unlink, environ, mkdir
 
 cwd = path.join(path.dirname(__file__), "toise", "data")
 if not path.isdir(cwd):

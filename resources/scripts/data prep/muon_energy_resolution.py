@@ -15,9 +15,10 @@ def plot_energy_resolution(h2, axis_range=(2.5, 7)):
     dashi.visual()
 
     import matplotlib.pyplot as plt
-    from matplotlib import gridspec, cm
+    from matplotlib import cm, gridspec
     from matplotlib.colors import LogNorm
     from matplotlib.ticker import NullFormatter
+
     from toise import plotting
 
     with plotting.pretty(tex=False):
@@ -110,8 +111,8 @@ def save_energy_resolution_profile(h2, fname, smoothing=1e-2):
 
 if __name__ == "__main__":
 
-    import tables
     import dashi
+    import tables
 
     with tables.open_file(
         "/Users/brianclark/Documents/work/Gen2/gen2_optical/gen2-analysis/toise/data/energy_reconstruction/aachen_muon_energy_resolution.hdf5"

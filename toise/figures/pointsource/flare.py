@@ -1,21 +1,20 @@
-import re
 from collections import OrderedDict
-from copy import copy
 from functools import partial
 
 import numpy as np
+from tqdm import tqdm
+
 from toise import (
     diffuse,
     factory,
     figures_of_merit,
     multillh,
     pointsource,
+    radio_aeff_generation,
     surface_veto,
     util,
 )
 from toise.figures import figure, figure_data
-from tqdm import tqdm
-from toise import radio_aeff_generation
 
 try:
     from typing import List

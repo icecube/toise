@@ -1,20 +1,21 @@
-from scipy.optimize import bisect
-from functools import partial
-import numpy
-from scipy import optimize, stats, interpolate
-from io import StringIO
-import itertools
-from copy import copy
-from .multillh import LLHEval, asimov_llh, get_expectations
-from .util import *
 import logging
+from copy import copy
+from functools import partial
+from io import StringIO
+
+import numpy as np
+from scipy import interpolate, optimize, stats
+from scipy.optimize import bisect
+
+from .multillh import asimov_llh, get_expectations
+from .util import *
 
 
 def is_zenith_weight(zenith_weight, aeff):
     zenith_dim = aeff.dimensions.index("true_zenith_band")
-    # print issubclass(numpy.asarray(zenith_weight).dtype.type, numpy.floating), len(zenith_weight), aeff.values.shape[zenith_dim]
+    # print issubclass(np.asarray(zenith_weight).dtype.type, np.floating), len(zenith_weight), aeff.values.shape[zenith_dim]
     return (
-        issubclass(numpy.asarray(zenith_weight).dtype.type, numpy.floating)
+        issubclass(np.asarray(zenith_weight).dtype.type, np.floating)
         and len(zenith_weight) == aeff.values.shape[zenith_dim]
     )
 
@@ -52,7 +53,7 @@ class PointSource(object):
         # 1/yr
         rate = fluence[tuple(expand)] * (effective_area * 1e4)
 
-        assert numpy.isfinite(rate).all()
+        assert np.isfinite(rate).all()
 
         self._use_energies = with_energy
 
@@ -91,7 +92,7 @@ class PointSource(object):
         self._last_expectations = total
         return self._last_expectations
 
-    def get_chunk(self, emin=-numpy.inf, emax=numpy.inf):
+    def get_chunk(self, emin=-np.inf, emax=np.inf):
         ebins = self._edges[0]
         start, stop = ebins.searchsorted((emin, emax))
         start = max((0, start - 1))
@@ -105,7 +106,7 @@ class PointSource(object):
         return chunk
 
     def differential_chunks(
-        self, decades=1, emin=-numpy.inf, emax=numpy.inf, exclusive=False
+        self, decades=1, emin=-np.inf, emax=np.inf, exclusive=False
     ):
         """
         Yield copies of self with the neutrino spectrum restricted to *decade*
@@ -113,7 +114,7 @@ class PointSource(object):
         """
         # now, sum over decades in neutrino energy
         ebins = self._edges[0]
-        loge = numpy.log10(ebins)
+        loge = np.log10(ebins)
         bin_range = int(round(decades / (loge[1] - loge[0])))
 
         # when emin is "equal" to an edge in ebins
@@ -156,7 +157,7 @@ class SteadyPointSource(PointSource):
         livetime,
         zenith_bin,
         emin=0,
-        emax=numpy.inf,
+        emax=np.inf,
         with_energy=True,
     ):
         # reference flux is E^2 Phi = 1e-12 TeV cm^-2 s^-1
@@ -316,7 +317,7 @@ class StackedPopulation(PointSource):
 
     @staticmethod
     def draw_sindec(n_sources):
-        return numpy.random.uniform(-1, 1, n_sources)
+        return np.random.uniform(-1, 1, n_sources)
 
     def __init__(self, effective_area, livetime, fluxes, sindecs, with_energy=True):
         """
@@ -332,10 +333,8 @@ class StackedPopulation(PointSource):
 
         # scatter sources through the zenith bands isotropically
         zenith_bins = effective_area.bin_edges[1]
-        self.sources_per_band = numpy.histogram(-sindecs, bins=zenith_bins)[0]
-        self.flux_per_band = numpy.histogram(
-            -sindecs, bins=zenith_bins, weights=fluxes
-        )[0]
+        self.sources_per_band = np.histogram(-sindecs, bins=zenith_bins)[0]
+        self.flux_per_band = np.histogram(-sindecs, bins=zenith_bins, weights=fluxes)[0]
 
         # reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
         # remember: fluxes are defined as neutrino + antineutrino, so the flux
@@ -353,7 +352,7 @@ class StackedPopulation(PointSource):
             * 24
             * 3600
         )
-        fluence = numpy.outer(fluence, self.flux_per_band)
+        fluence = np.outer(fluence, self.flux_per_band)
 
         super(StackedPopulation, self).__init__(
             effective_area, fluence, slice(None), with_energy
@@ -368,29 +367,28 @@ def source_to_local_zenith(declination, latitude, ct_bins):
     :param latitude: observer latitude in degrees
     :param ct_bins: edges of bins in cos(zenith), in ascending order
     """
-    dec = numpy.radians(declination)
-    lat = numpy.radians(latitude)
+    dec = np.radians(declination)
+    lat = np.radians(latitude)
 
     def offset(hour_angle, ct=0):
         "difference between source elevation and bin edge at given hour angle"
         return (
-            numpy.cos(hour_angle) * numpy.cos(dec) * numpy.cos(lat)
-            + numpy.sin(dec) * numpy.sin(lat)
+            np.cos(hour_angle) * np.cos(dec) * np.cos(lat) + np.sin(dec) * np.sin(lat)
         ) - ct
 
     # find minimum and maximum elevation
-    lo = numpy.searchsorted(ct_bins[1:], offset(numpy.pi))
-    hi = numpy.searchsorted(ct_bins[:-1], offset(0))
-    hour_angle = numpy.empty(len(ct_bins))
+    lo = np.searchsorted(ct_bins[1:], offset(np.pi))
+    hi = np.searchsorted(ct_bins[:-1], offset(0))
+    hour_angle = np.empty(len(ct_bins))
     # source never crosses the band
-    hour_angle[: lo + 1] = numpy.pi
+    hour_angle[: lo + 1] = np.pi
     hour_angle[hi:] = 0
     # source enters or exits
     hour_angle[lo + 1 : hi] = list(
-        map(partial(bisect, offset, 0, numpy.pi), ct_bins[lo + 1 : hi])
+        map(partial(bisect, offset, 0, np.pi), ct_bins[lo + 1 : hi])
     )
 
-    return abs(numpy.diff(hour_angle)) / numpy.pi
+    return abs(np.diff(hour_angle)) / np.pi
 
 
 def nevents(llh, **hypo):
@@ -403,7 +401,7 @@ def nevents(llh, **hypo):
                 hypo[k] = llh.components[k].seed
             else:
                 hypo[k] = 1
-    return sum(map(numpy.sum, llh.expectations(**hypo).values()))
+    return sum(map(np.sum, llh.expectations(**hypo).values()))
 
 
 def discovery_potential(
@@ -458,14 +456,12 @@ def discovery_potential(
         total = nevents(allh, ps=1, **fixed)
         nb = nevents(allh, ps=0, **fixed)
         ns = total - nb
-        baseline = min((1000, numpy.sqrt(critical_ts) / (ns / numpy.sqrt(nb)))) / 10
-        baseline = max(
-            ((numpy.sqrt(critical_ts) / (ns / numpy.sqrt(nb))) / 10, 0.3 / ns)
-        )
+        baseline = min((1000, np.sqrt(critical_ts) / (ns / np.sqrt(nb)))) / 10
+        baseline = max(((np.sqrt(critical_ts) / (ns / np.sqrt(nb))) / 10, 0.3 / ns))
         # logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
     # baseline = 1000
-    if not numpy.isfinite(baseline):
-        return numpy.inf, numpy.inf, numpy.inf
+    if not np.isfinite(baseline):
+        return np.inf, np.inf, np.inf
     else:
         # actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
         actual = optimize.fsolve(f, baseline, xtol=tolerance, factor=1, epsfcn=1)
@@ -488,7 +484,7 @@ def events_above(observables, edges, ecutoff):
         # print(np.shape(observables[k]))
         if len(edge_k) > 2:
             edge_k = [edge_k[1], edge_k[2]]
-        cut = numpy.where(edge_k[1][1:] > ecutoff)[0][0]
+        cut = np.where(edge_k[1][1:] > ecutoff)[0][0]
         n += observables[k].sum(axis=0)[cut:].sum()
 
     return n
@@ -525,8 +521,8 @@ def fc_upper_limit(point_source, diffuse_components, ecutoff=0, cl=0.9, **fixed)
 # Average 90% upper limit for known background
 # taken from Table XII of Feldman & Cousins (1998)
 fc_upper_limit.table = interpolate.interp1d(
-    numpy.loadtxt(StringIO("0 0.5 1 1.5 2 2.5 3 3.5 4 5 6 7 8 9 10 11 12 13 14 15")),
-    numpy.loadtxt(
+    np.loadtxt(StringIO("0 0.5 1 1.5 2 2.5 3 3.5 4 5 6 7 8 9 10 11 12 13 14 15")),
+    np.loadtxt(
         StringIO(
             "2.44 2.86 3.28 3.62 3.94 4.20 4.42 4.63 4.83 5.18 5.53 5.90 6.18 6.49 6.76 7.02 7.28 7.51 7.75 7.99"
         )
@@ -576,18 +572,16 @@ def upper_limit(
         total = nevents(allh, ps=1, **fixed)
         nb = nevents(allh, ps=0, **fixed)
         ns = total - nb
-        baseline = min((1000, numpy.sqrt(critical_ts) / (ns / numpy.sqrt(nb)))) / 10
-        baseline = max(
-            ((numpy.sqrt(critical_ts) / (ns / numpy.sqrt(nb))) / 10, 0.3 / ns)
-        )
+        baseline = min((1000, np.sqrt(critical_ts) / (ns / np.sqrt(nb)))) / 10
+        baseline = max(((np.sqrt(critical_ts) / (ns / np.sqrt(nb))) / 10, 0.3 / ns))
         logging.getLogger().debug(
             "total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g"
             % (total, ns, nb, baseline)
         )
         # logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
     # baseline = 1000
-    if not numpy.isfinite(baseline):
-        return numpy.inf, numpy.inf, numpy.inf
+    if not np.isfinite(baseline):
+        return np.inf, np.inf, np.inf
     else:
         # actual = optimize.bisect(f, 0, baseline, xtol=baseline*1e-2)
         actual = optimize.fsolve(f, baseline, xtol=tolerance, factor=1, epsfcn=1)
@@ -607,8 +601,8 @@ def differential_discovery_potential(
     baseline=None,
     tolerance=1e-2,
     decades=0.5,
-    emin=-numpy.inf,
-    emax=numpy.inf,
+    emin=-np.inf,
+    emax=np.inf,
     **fixed
 ):
     """
@@ -643,8 +637,8 @@ def differential_upper_limit(
     baseline=None,
     tolerance=1e-2,
     decades=0.5,
-    emin=-numpy.inf,
-    emax=numpy.inf,
+    emin=-np.inf,
+    emax=np.inf,
     **fixed
 ):
     """
@@ -678,8 +672,8 @@ def differential_fc_upper_limit(
     ecutoff=0,
     cl=0.9,
     decades=0.5,
-    emin=-numpy.inf,
-    emax=numpy.inf,
+    emin=-np.inf,
+    emax=np.inf,
     **fixed
 ):
     energies = []
@@ -691,4 +685,4 @@ def differential_fc_upper_limit(
         sensitivities.append(
             fc_upper_limit(pschunk, diffuse_components, ecutoff, cl, **fixed)
         )
-    return numpy.asarray(energies), numpy.asarray(sensitivities)
+    return np.asarray(energies), np.asarray(sensitivities)

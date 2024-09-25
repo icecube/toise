@@ -1,14 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import itertools
+from icecube.toise import plotting, surfaces
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from icecube.toise import plotting, surfaces, effective_areas
-from icecube import icetray, dataclasses, dataio
 
 
 def string_heads(gcdfile):
-    from icecube import icetray, dataio, dataclasses
+    from icecube import dataclasses, dataio, icetray  # noqa: F401
 
     f = dataio.I3File(gcdfile)
     omgeo = f.pop_frame(icetray.I3Frame.Geometry)["I3Geometry"].omgeo

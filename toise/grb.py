@@ -1,7 +1,9 @@
-import numpy as np
-from scipy import stats, interpolate
-from io import StringIO
 import warnings
+from io import StringIO
+
+import numpy as np
+from scipy import interpolate, stats
+
 from . import pointsource
 
 

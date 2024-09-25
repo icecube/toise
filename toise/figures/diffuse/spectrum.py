@@ -1,21 +1,19 @@
-from toise.figures import figure_data, figure
+from copy import copy
+from functools import partial
+from io import StringIO
+
+import numpy as np
+from scipy import optimize
+from tqdm import tqdm
 
 from toise import (
     diffuse,
-    multillh,
-    plotting,
-    surface_veto,
-    pointsource,
     factory,
+    multillh,
+    surface_veto,
 )
 from toise.cache import ecached, lru_cache
-
-from scipy import stats, optimize
-from copy import copy
-import numpy as np
-from tqdm import tqdm
-from functools import partial
-from io import StringIO
+from toise.figures import figure, figure_data
 
 
 def make_components(aeffs, emin=1e2, emax=1e11):
@@ -113,12 +111,14 @@ def find_limits(llh, key, nom=None, critical_ts=1**2, plotit=False):
 
     energy_range = list(llh.components[key]._components.values())[0][0].energy_range
     if plotit and energy_range[0] > 1e6:
-        x = linspace(0, g0 * 2, 101)
+        import matplotlib.pyplot as plt
+
+        x = np.linspace(0, g0 * 2, 101)
         energy_range = list(llh.components[key]._components.values())[0][0].energy_range
-        line = plot(
+        line = plt.plot(
             x, [ts_diff(x_) for x_ in x], label="%.1g-%.1g" % tuple(energy_range)
         )[0]
-        axvline(nom[key], color=line.get_color())
+        plt.axvline(nom[key], color=line.get_color())
 
     return lo, hi
 
@@ -628,7 +628,6 @@ def plot_crs(ax):
 @figure
 def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
     import matplotlib.pyplot as plt
-    from matplotlib.container import ErrorbarContainer
 
     fig = plt.figure(figsize=(7, 3.5), dpi=300)
     ax = plt.gca()
@@ -731,7 +730,6 @@ def unfolded_flux_plus_sensitivity_mm(
 ):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
-    from matplotlib.container import ErrorbarContainer
 
     _default_plot_elements = [
         "cr",

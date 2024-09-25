@@ -1,15 +1,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
-from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from icecube.toise import (
-    plotting,
-    effective_areas,
+
+from toise import (
+    angular_resolution,
     diffuse,
-    pointsource,
+    effective_areas,
+    energy_resolution,
     multillh,
+    plotting,
+    pointsource,
+    surface_veto,
 )
-from icecube.toise import angular_resolution, energy_resolution
 
 
 def create_aeff(

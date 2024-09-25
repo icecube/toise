@@ -1,9 +1,14 @@
 from enum import Enum
 from functools import partial
-import numpy
-from . import factory, diffuse, surface_veto, pointsource, multillh
-from .util import constants
-from . import radio_aeff_generation
+
+from . import (
+    diffuse,
+    factory,
+    multillh,
+    pointsource,
+    radio_aeff_generation,
+    surface_veto,
+)
 
 # Enum has no facility for setting docstrings inline. Do it by hand.
 TOT = Enum("TOT", ["ul", "dp", "fc"])

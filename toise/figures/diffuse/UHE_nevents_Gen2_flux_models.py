@@ -3,20 +3,18 @@
 
 # # Flux model plot for Gen2
 
-import numpy as np
-import matplotlib.pyplot as plt
+from enum import Enum
 from itertools import product
 
-from toise.diffuse import DiffuseModel
-from toise import factory
-from toise.util import center
-from toise import diffuse
+import matplotlib.pyplot as plt
+import numpy as np
+
+from toise import diffuse, factory
 
 # get enums for models ...
-from toise.diffuse import DIFFUSE_MODELS
-from toise.figures import figure_data, figure
-
-from enum import Enum
+from toise.diffuse import DIFFUSE_MODELS, DiffuseModel
+from toise.figures import figure
+from toise.util import center
 
 IC_DIFFUSE = Enum("IC_DIFFUSE", ["HESE", "NUMU"])
 

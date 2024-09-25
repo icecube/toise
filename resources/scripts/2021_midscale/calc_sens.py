@@ -1,18 +1,14 @@
+import json
+from collections import OrderedDict
+
+from tqdm import tqdm
+
 from toise import (
     effective_areas,
-    diffuse,
-    pointsource,
-    angular_resolution,
-    grb,
-    surface_veto,
-    multillh,
-    plotting,
+    factory,
+    figures,
+    figures_of_merit,
 )
-from toise import factory, figures_of_merit, util, figures
-from toise.util import data_dir, center
-from tqdm import tqdm
-from collections import OrderedDict, defaultdict
-import json
 
 # this file is basically a copy/strip down of the figures.pointsource.flare.sensitivity workbook
 

@@ -1,16 +1,18 @@
-from scipy.special import erf, erfc
-from scipy.optimize import fsolve
-from scipy import interpolate
-import healpy
-import pickle
 import os
-import numpy
+import pickle
 from copy import copy
 
+import healpy
+import numpy as np
+from scipy import interpolate
+from scipy.optimize import fsolve
+from scipy.special import erf, erfc
+
 from toise import effective_areas
+
 from . import surfaces
-from .util import *
 from .pointsource import is_zenith_weight
+from .util import center, constants, data_dir
 
 # hobo-costing!
 
@@ -20,10 +22,7 @@ def surface_area(theta_max, volume):
     Surface coverage area required so that a track that
     """
     d = 1950 - volume._z_range[0]  # depth of the bottom of the detector
-    return (
-        numpy.pi
-        * (d * numpy.tan(theta_max) + numpy.sqrt(volume.get_cap_area() / numpy.pi)) ** 2
-    )
+    return np.pi * (d * np.tan(theta_max) + np.sqrt(volume.get_cap_area() / np.pi)) ** 2
 
 
 def array_cost(area, fill_factor):
@@ -52,7 +51,7 @@ def veto_cost_for_angle(theta_max, emu_min, surface):
     above emu_min out to theta_max
     """
     fill = fill_factor_for_threshold(emu_min)
-    area = surface_area(numpy.radians(theta_max), surface)
+    area = surface_area(np.radians(theta_max), surface)
     return array_cost(area / 1e6, fill) / 1e6
 
 
@@ -77,7 +76,7 @@ def margin_for_area(base_surface, area):
 
 
 def get_geometric_coverage_for_area(
-    geometry, spacing, area, ct_bins=numpy.linspace(0, 1, 11), nsamples=int(1e4)
+    geometry, spacing, area, ct_bins=np.linspace(0, 1, 11), nsamples=int(1e4)
 ):
     """
     Calculate the geometric coverage of a surface veto by Monte Carlo
@@ -93,7 +92,7 @@ def get_geometric_coverage_for_area(
     margin = margin_for_area(ref_surface, area)
     veto_surface = ref_surface.expand(margin)
 
-    coverage = numpy.zeros(ct_bins.size - 1)
+    coverage = np.zeros(ct_bins.size - 1)
 
     if not area > 0:
         return coverage
@@ -126,7 +125,7 @@ class GeometricVetoCoverage(object):
         else:
             self.cache = dict()
 
-    def __call__(self, ct_bins=numpy.linspace(-1, 1, 11)):
+    def __call__(self, ct_bins=np.linspace(-1, 1, 11)):
         key = (
             self.geometry,
             self.spacing,
@@ -160,17 +159,17 @@ class EulerVetoProbability(object):
         z = 1 - (1 - v_mu) * (1 - v_e)
         self.spline = interpolate.RectBivariateSpline(x, y, z)
         # don't trust table beyond its statistical limits
-        self.pmax = numpy.nanmax(v_mu[v_mu < 1])
+        self.pmax = np.nanmax(v_mu[v_mu < 1])
         self.log_emin = x[0]
         self.log_emax = x[-1]
         self.ct_min = y[0]
         self.ct_max = y[-2]
 
     def __call__(self, energy, cos_theta):
-        logE, cos_theta = numpy.broadcast_arrays(
-            numpy.log10(energy / 1e3), numpy.clip(cos_theta, -1, self.ct_max)
+        logE, cos_theta = np.broadcast_arrays(
+            np.log10(energy / 1e3), np.clip(cos_theta, -1, self.ct_max)
         )
-        p = numpy.clip(self.spline(logE, cos_theta, grid=False), 0, self.pmax)
+        p = np.clip(self.spline(logE, cos_theta, grid=False), 0, self.pmax)
         p[logE > self.log_emax] = self.pmax
         p[logE < self.log_emin] = 0
         p[cos_theta < self.ct_min] = 0
@@ -230,7 +229,7 @@ def overburden(cos_theta, depth=1950, elevation=2400):
     r = 6371315 + elevation
     # this is secrety a translation in polar coordinates
     return (
-        numpy.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth**2)
+        np.sqrt(2 * r * depth + (cos_theta * (r - depth)) ** 2 - depth**2)
         - (r - depth) * cos_theta
     )
 
@@ -247,7 +246,7 @@ def minimum_muon_energy(distance, emin=1e3):
         return sum(c * x**i for i, c in enumerate(coefficients))
 
     coeffs = [[2.793, -0.476, 0.187], [2.069, -0.201, 0.023], [-2.689, 3.882]]
-    a, b, c = (polynomial(numpy.log10(emin), c) for c in coeffs)
+    a, b, c = (polynomial(np.log10(emin), c) for c in coeffs)
     return 10 ** polynomial(distance, (a, b / 1e4, c / 1e10))
 
 
@@ -292,7 +291,7 @@ def gaisser_flux(energy, ptype):
     rigidity = [4e6, 30e6, 2e9]
 
     return sum(
-        n[idx] * energy ** (-g[idx]) * numpy.exp(-energy / (r * z))
+        n[idx] * energy ** (-g[idx]) * np.exp(-energy / (r * z))
         for n, g, r in zip(norm, gamma, rigidity)
     )
 
@@ -324,7 +323,7 @@ def bundle_energy_at_depth(eprim, a=1, cos_theta=1.0, depth=1950.0):
         et * a / cos_theta * alpha / (alpha - 1.0) * (1 * emin / eprim) ** (-alpha + 1)
     )
     # assume that constant energy loss term is negligible
-    return surface_energy, numpy.exp(-bmu * X)
+    return surface_energy, np.exp(-bmu * X)
 
 
 def bundle_energy_distribution(emu_edges, eprim, a=1, cos_theta=1.0, depth=1950.0):
@@ -337,20 +336,20 @@ def bundle_energy_distribution(emu_edges, eprim, a=1, cos_theta=1.0, depth=1950.
     :param depth: vertical depth of detector
     """
     surface_energy, mean_loss = bundle_energy_at_depth(eprim, a, cos_theta, depth)
-    mu = numpy.log10(mean_loss * surface_energy)
+    mu = np.log10(mean_loss * surface_energy)
     # don't allow bundles to have more energy at the surface than the parent shower
-    hi = numpy.log10(numpy.minimum(emu_edges[1:], surface_energy))
-    lo = numpy.log10(emu_edges[:-1])
+    hi = np.log10(np.minimum(emu_edges[1:], surface_energy))
+    lo = np.log10(emu_edges[:-1])
     # width of log-normal distribution fit to (surface bundle energy / primary
     # energy) See:
     # https://wiki.icecube.wisc.edu/index.php/The_optimization_of_the_empirical_model_(IC22)
-    sigma = numpy.minimum(
-        1.25 - 0.16 * numpy.log10(eprim) + 0.00563 * numpy.log10(eprim) ** 2, 1.0
+    sigma = np.minimum(
+        1.25 - 0.16 * np.log10(eprim) + 0.00563 * np.log10(eprim) ** 2, 1.0
     )
-    dist = numpy.maximum((erf((hi - mu) / sigma) - erf((lo - mu) / sigma)) / 2.0, 0.0)
+    dist = np.maximum((erf((hi - mu) / sigma) - erf((lo - mu) / sigma)) / 2.0, 0.0)
 
     # compensate for truncating the gaussian at the surface energy
-    upper_tail = erfc((numpy.log10(surface_energy) - mu) / sigma) / 2.0
+    upper_tail = erfc((np.log10(surface_energy) - mu) / sigma) / 2.0
     return dist / (1.0 - upper_tail)
 
 
@@ -365,19 +364,19 @@ def bundle_flux_at_depth(emu, cos_theta):
         H/He/CNO/MgAlSi/Fe
     """
     # make everything an array
-    emu, cos_theta = list(map(numpy.asarray, (emu, cos_theta)))
-    emu_center = 10 ** (center(numpy.log10(emu)))
-    shape = numpy.broadcast(emu_center, cos_theta).shape
+    emu, cos_theta = list(map(np.asarray, (emu, cos_theta)))
+    emu_center = 10 ** (center(np.log10(emu)))
+    shape = np.broadcast(emu_center, cos_theta).shape
     # primary spectrum for each element
-    contrib = numpy.zeros(shape + (5, 1000))
+    contrib = np.zeros(shape + (5, 1000))
 
-    penergy = numpy.logspace(2, 12, 1000)
+    penergy = np.logspace(2, 12, 1000)
     if cos_theta <= 0:
         return contrib, penergy
 
-    logstep = numpy.unique(numpy.diff(numpy.log10(penergy)))[0]
-    de = 10 ** (numpy.log10(penergy) + logstep / 2.0) - 10 ** (
-        numpy.log10(penergy) - logstep / 2.0
+    logstep = np.unique(np.diff(np.log10(penergy)))[0]
+    de = 10 ** (np.log10(penergy) + logstep / 2.0) - 10 ** (
+        np.log10(penergy) - logstep / 2.0
     )
 
     ptypes = [
@@ -394,7 +393,7 @@ def bundle_flux_at_depth(emu, cos_theta):
         )
         contrib[..., i, :] = weights * c
     # convert to differential flux
-    contrib /= numpy.diff(emu)[:, None, None]
+    contrib /= np.diff(emu)[:, None, None]
     return contrib, penergy
 
 
@@ -408,9 +407,7 @@ def trigger_efficiency(eprim, threshold=10**5.5, sharpness=7):
     :param sharpness: speed of transition. 0 makes a flat line at 0.5, infinity
                       a step function
     """
-    return 1 / (
-        1 + numpy.exp(-(numpy.log10(eprim) - numpy.log10(threshold)) * sharpness)
-    )
+    return 1 / (1 + np.exp(-(np.log10(eprim) - np.log10(threshold)) * sharpness))
 
 
 def untagged_fraction(eprim, **kwargs):
@@ -425,9 +422,9 @@ class MuonBundleBackground(object):
 
         emu, cos_theta = effective_area.bin_edges[:2]
         # FIXME: account for healpix binning
-        self._solid_angle = 2 * numpy.pi * numpy.diff(self._aeff.bin_edges[1])
+        self._solid_angle = 2 * np.pi * np.diff(self._aeff.bin_edges[1])
 
-        flux = numpy.stack(
+        flux = np.stack(
             [
                 bundle_flux_at_depth(emu, ct)[0][:, :4, :].sum(axis=(1, 2))
                 for ct in center(cos_theta)
@@ -436,11 +433,11 @@ class MuonBundleBackground(object):
 
         # from icecube import MuonGun
         # model = MuonGun.load_model('GaisserH4a_atmod12_SIBYLL')
-        # flux, edist = numpy.vectorize(model.flux), numpy.vectorize(model.energy)
-        # emuc, ct = numpy.meshgrid(center(cos_theta), center(emu))
+        # flux, edist = np.vectorize(model.flux), np.vectorize(model.energy)
+        # emuc, ct = np.meshgrid(center(cos_theta), center(emu))
         # flux = flux(MuonGun.depth(0), ct, 1)*edist(MuonGun.depth(0), ct, 1, 0, emuc)
 
-        flux *= numpy.diff(emu)[:, None]
+        flux *= np.diff(emu)[:, None]
         if effective_area.is_healpix:
             flux *= healpy.nside2pixarea(effective_area.nside)
         else:
@@ -483,7 +480,7 @@ class MuonBundleBackground(object):
         ), "Don't know how to make PS backgrounds from HEALpix maps yet"
 
         background = copy(self)
-        bin_areas = (numpy.pi * numpy.diff(psi_bins**2))[None, ...]
+        bin_areas = (np.pi * np.diff(psi_bins**2))[None, ...]
         # observation time shorter for triggered transient searches
         if livetime is not None:
             bin_areas *= livetime / self._livetime / constants.annum
@@ -503,9 +500,9 @@ class MuonBundleBackground(object):
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):
             background.expectations = (
-                numpy.nansum(
-                    (self.expectations * zenith_index[:, None]) / omega, axis=0
-                )[..., None]
+                np.nansum((self.expectations * zenith_index[:, None]) / omega, axis=0)[
+                    ..., None
+                ]
                 * bin_areas
             )
         else:

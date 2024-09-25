@@ -1,8 +1,10 @@
+import gzip
+import json
+
 import matplotlib.pyplot as plt
 import numpy as np
-from toise import util, grb
-import json
-import gzip
+
+from toise import grb, util
 
 """
 This code plots the sensitivity or discovery potential (or whatever) for a detector

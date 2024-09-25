@@ -1,13 +1,9 @@
-import os
+import logging
+
 import numpy as np
-from scipy.stats import multivariate_normal
-from scipy import interpolate
-from scipy.special import erf
-from scipy.stats import cauchy
+from scipy.stats import cauchy, multivariate_normal
 
 from .energy_resolution import EnergySmearingMatrix
-
-import logging
 
 logger = logging.getLogger("radio resolution parametrisation")
 

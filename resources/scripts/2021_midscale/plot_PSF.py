@@ -1,9 +1,10 @@
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
-from toise import plotting, angular_resolution, effective_areas, surfaces, util
-from scipy.optimize import fsolve, bisect
+from scipy.optimize import bisect
 
-import argparse
+from toise import angular_resolution, effective_areas, plotting, surfaces, util
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

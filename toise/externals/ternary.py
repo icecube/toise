@@ -3,27 +3,23 @@ Custom axes for ternary projection, roughly adapted and updated from
 ternary_project.py by Kevin L. Davies 
 """
 
-import matplotlib
-from matplotlib.axes import Axes
-from matplotlib.patches import Circle, Polygon
-from matplotlib.path import Path
-from matplotlib.ticker import NullLocator, Formatter, FixedLocator, MultipleLocator
-from matplotlib.transforms import (
-    Affine2D,
-    IdentityTransform,
-    BboxTransformTo,
-    Transform,
-    ScaledTranslation,
-)
-from matplotlib.transforms import TransformedBbox, BboxTransformFrom
-from matplotlib import transforms as mtransforms
-from matplotlib.projections import register_projection
-import matplotlib.spines as mspines
 import matplotlib.axis as maxis
 import matplotlib.path as mpath
 import matplotlib.pyplot as plt
-
+import matplotlib.spines as mspines
 import numpy as np
+from matplotlib.axes import Axes
+from matplotlib.patches import Polygon
+from matplotlib.path import Path
+from matplotlib.projections import register_projection
+from matplotlib.ticker import MultipleLocator
+from matplotlib.transforms import (
+    Affine2D,
+    BboxTransformFrom,
+    BboxTransformTo,
+    ScaledTranslation,
+    TransformedBbox,
+)
 
 
 class TernaryAxes(Axes):

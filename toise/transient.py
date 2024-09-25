@@ -1,10 +1,12 @@
-from os import path
 from enum import Enum
-from .util import data_dir, constants, PDGCode
+from os import path
+
 import numpy as np
 from scipy import interpolate
 from scipy.integrate import quad
+
 from .pointsource import PointSource
+from .util import PDGCode, constants, data_dir
 
 # Enum has no facility for setting docstrings inline. Do it by hand.
 TRANSIENT_MODELS = Enum(

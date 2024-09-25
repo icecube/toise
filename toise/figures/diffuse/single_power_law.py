@@ -1,27 +1,23 @@
-from toise.figures import figure_data, figure, table
+from copy import copy
+from itertools import product
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.lines import Line2D
+from pandas import DataFrame
+from scipy import stats
+from tqdm import tqdm
 
 from toise import (
     diffuse,
-    multillh,
-    plotting,
-    surface_veto,
-    pointsource,
     factory,
+    multillh,
+    surface_veto,
 )
-from toise.cache import ecached, lru_cache
+from toise.cache import lru_cache
+from toise.figures import figure, figure_data, table
 
-from scipy import stats, optimize
-from copy import copy
-import numpy as np
-from tqdm import tqdm
-from functools import partial
-from io import StringIO
-from itertools import product
-from pandas import DataFrame
-
-from .flavor import extract_ts, detector_label
-from matplotlib.lines import Line2D
-import matplotlib.pyplot as plt
+from .flavor import detector_label, extract_ts, subdivide
 
 
 def make_components(aeffs, emin=1e2, emax=1e11):

@@ -117,9 +117,10 @@ if __name__ == "__main__":
 
     opts = parser.parse_args()
 
-    from icecube.photospline import splinefitstable
     import os
+
     import tables
+    from icecube.photospline import splinefitstable
 
     with tables.open_file(opts.infile[0]) as hdf:
         if opts.cuts is not None:
@@ -144,10 +145,8 @@ if __name__ == "__main__":
     if opts.plot:
 
         import matplotlib.pyplot as plt
+        from icecube.photospline import spglam as glam
         from icecube.toise import plotting
-        from icecube.photospline import spglam as glam
-
-        from icecube.photospline import spglam as glam
 
         with plotting.pretty(tex=False):
             ax = plt.gca()

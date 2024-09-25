@@ -1,24 +1,22 @@
+import json
+import logging
 import os
 from copy import copy
-import json
 
-import logging
 import numpy as np
 import pandas as pd
 from scipy import interpolate
 
 from toise.externals import nuFATE
 
-from .radio_response import radio_analysis_efficiency
-from .radio_response import RadioPointSpreadFunction
-from .radio_response import RadioEnergyResolution
-from .effective_areas import calculate_cascade_production_density
-from .effective_areas import effective_area
-from .radio_muon_background import get_muon_distribution
-from .radio_muon_background import get_tabulated_muon_distribution
-
+from .effective_areas import calculate_cascade_production_density, effective_area
 from .pointsource import is_zenith_weight
-from .util import *
+from .radio_response import (
+    RadioEnergyResolution,
+    RadioPointSpreadFunction,
+    radio_analysis_efficiency,
+)
+from .util import center, constants, data_dir
 
 logger = logging.getLogger("toise aeff calculation for radio")
 
@@ -709,7 +707,7 @@ def combine_aeffs(
         aeff = copy.deepcopy(aeff1)
 
         def overlap(E, logE, ovl):
-            interpolator = interpolate.interp1d(loge, ovl, fill_value="extrapolate")
+            interpolator = interpolate.interp1d(logE, ovl, fill_value="extrapolate")
             interpolation_result = np.maximum(interpolator(np.log10(E)), 0)
             return (interpolation_result + 1.0) ** -1
 

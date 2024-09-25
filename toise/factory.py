@@ -1,29 +1,27 @@
-import numpy
-from scipy import interpolate
-from functools import partial
 import numbers
 import os
 import pickle as pickle
+from functools import partial
+
+import numpy as np
+from scipy import interpolate
+
 from . import (
-    effective_areas,
-    diffuse,
-    pointsource,
     angular_resolution,
-    grb,
-    surface_veto,
+    classification_efficiency,
+    effective_areas,
     multillh,
-    plotting,
+    surface_veto,
+    surfaces,
 )
-from . import classification_efficiency
-from .util import data_dir, center, defer
-from . import surfaces
+from .util import data_dir, defer
 
 
 def make_key(opts, kwargs):
     key = dict(opts.__dict__)
     key.update(kwargs)
     for k, v in kwargs.items():
-        if isinstance(v, numpy.ndarray):
+        if isinstance(v, np.ndarray):
             key[k] = (v[0], v[-1], len(v))
         else:
             key[k] = v
@@ -66,7 +64,7 @@ def create_aeff(opts, **kwargs):
         def selection_efficiency(emu, cos_theta):
             return seleff(emu, cos_theta=0)
 
-        # selection_efficiency = lambda emu, cos_theta: numpy.ones(emu.shape)
+        # selection_efficiency = lambda emu, cos_theta: np.ones(emu.shape)
         # selection_efficiency = effective_areas.get_muon_selection_efficiency("IceCube", None)
     else:
         selection_efficiency = seleff
@@ -80,7 +78,7 @@ def create_aeff(opts, **kwargs):
             continue
         try:
             len(v)
-            kwargs[k] = numpy.asarray(v)
+            kwargs[k] = np.asarray(v)
         except TypeError:
             kwargs[k] = v
 
@@ -146,9 +144,9 @@ def create_cascade_aeff(opts, **kwargs):
 
     for k in "psi_bins", "cos_theta":
         if k in kwargs:
-            kwargs[k] = numpy.asarray(kwargs[k])
+            kwargs[k] = np.asarray(kwargs[k])
         elif hasattr(opts, k):
-            kwargs[k] = numpy.asarray(getattr(opts, k))
+            kwargs[k] = np.asarray(getattr(opts, k))
 
     aeff = effective_areas.create_cascade_aeff(
         energy_resolution=effective_areas.get_energy_resolution(
@@ -177,9 +175,9 @@ def create_starting_aeff(opts, **kwargs):
 
     for k in "psi_bins", "cos_theta":
         if k in kwargs:
-            kwargs[k] = numpy.asarray(kwargs[k])
+            kwargs[k] = np.asarray(kwargs[k])
         elif hasattr(opts, k):
-            kwargs[k] = numpy.asarray(getattr(opts, k))
+            kwargs[k] = np.asarray(getattr(opts, k))
 
     return effective_areas.create_starting_aeff(
         energy_resolution=effective_areas.get_energy_resolution(
@@ -238,9 +236,9 @@ class aeff_factory(object):
             psi_bins = kwargs.pop("psi_bins")
             for k in "cos_theta", "neutrino_energy":
                 if k in kwargs:
-                    kwargs[k] = numpy.asarray(kwargs[k])
+                    kwargs[k] = np.asarray(kwargs[k])
                 elif hasattr(opts, k):
-                    kwargs[k] = numpy.asarray(getattr(opts, k))
+                    kwargs[k] = np.asarray(getattr(opts, k))
             kwargs["psi_bins"] = psi_bins["radio"]
             if hasattr(opts, "config_file"):
                 from . import radio_aeff_generation
@@ -376,18 +374,18 @@ def gen2_throughgoing_muon_angular_resolution_correction(
         return -0.82 + 14.54 / x
 
     def med(emu, b):
-        return 0.11 + b / numpy.sqrt(emu)
+        return 0.11 + b / np.sqrt(emu)
 
     scale = med(energy, b(scale)) / med(energy, b(1))
     if ssmpe:
         # see: https://github.com/fbradascio/IceCube/blob/b8556b7b3d3c53a1cfab4bf53737bebff1264707/SensitivityStudy_SSMPE_vs_MPE.ipynb
         # https://doi.org/10.1051/epjconf/201920705002
         # NB: this improvement was evaluated at 2x PDOM sensitivty
-        scale *= numpy.minimum(
+        scale *= np.minimum(
             1,
-            numpy.polyval(
+            np.polyval(
                 [0.01266943, -0.1901559, 0.80568256, 0.04948373],
-                numpy.log10(energy / 2),
+                np.log10(energy / 2),
             ),
         )
     if mdom:
@@ -415,7 +413,7 @@ def make_options(**kwargs):
     # icecube has no veto...yet
     if kwargs.get("geometry") == "IceCube":
         defaults["veto_area"] = 0.0
-        defaults["veto_threshold"] = numpy.inf
+        defaults["veto_threshold"] = np.inf
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
 
@@ -558,12 +556,12 @@ for midscale in "corner", "sparse", "hcr":
 
 
 default_psi_bins = {
-    "tracks": numpy.linspace(0, numpy.radians(1.5) ** 2, 150) ** (1.0 / 2),
-    "cascades": numpy.linspace(0, numpy.radians(60) ** 2, 50) ** (1.0 / 2),
-    "radio": numpy.linspace(0, numpy.radians(15) ** 2, 50) ** (1.0 / 2),
+    "tracks": np.linspace(0, np.radians(1.5) ** 2, 150) ** (1.0 / 2),
+    "cascades": np.linspace(0, np.radians(60) ** 2, 50) ** (1.0 / 2),
+    "radio": np.linspace(0, np.radians(15) ** 2, 50) ** (1.0 / 2),
 }
 
-# default_cos_theta_bins = numpy.linspace(-1, 1, 21)
+# default_cos_theta_bins = np.linspace(-1, 1, 21)
 default_cos_theta_bins = [
     -1.0,
     -0.95,

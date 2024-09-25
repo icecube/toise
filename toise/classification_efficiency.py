@@ -3,11 +3,13 @@ Energy-dependent event classification efficiencies, e.g. for separating
 contained-vertex events into single cascades, starting tracks, and double cascades.
 """
 
-import numpy as np
-from .util import data_dir
 import json
 import os
 import warnings
+
+import numpy as np
+
+from .util import data_dir
 
 
 def get_classification_efficiency(geometry="IceCube", spacing=125):

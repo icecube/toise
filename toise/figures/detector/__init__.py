@@ -1,11 +1,12 @@
-from toise.figures import figure, figure_data
-from toise.figures.diffuse.flavor import psi_binning
+import gzip
+import itertools
+
+import numpy as np
+import pandas
 
 from toise import surfaces
-import gzip
-import numpy as np
-import itertools
-import pandas
+from toise.figures import figure, figure_data
+from toise.figures.diffuse.flavor import psi_binning
 
 
 def get_string_heads(geometry, spacing, **kwargs):
@@ -115,10 +116,11 @@ def get_surface_geometry():
 @figure
 def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
     import itertools
+
+    import matplotlib.patheffects as path_effects
     import matplotlib.pyplot as plt
     import numpy as np
     from mpl_toolkits.axes_grid1 import inset_locator
-    import matplotlib.patheffects as path_effects
     from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
     fig, axes = plt.subplots(1, 4, figsize=(8, 2.5))
@@ -397,11 +399,10 @@ def surface_geometry(reverse_order=False, which_radio="2022_tdr"):
 
 @figure
 def radio_surface_geometry():
-    import itertools
+
+    import matplotlib.patheffects as path_effects
     import matplotlib.pyplot as plt
     import numpy as np
-    from mpl_toolkits.axes_grid1 import inset_locator
-    import matplotlib.patheffects as path_effects
     from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
     fig, axes = plt.subplots(1, 1, figsize=(2 * 2.5, 2 * 2.5))
@@ -585,8 +586,9 @@ def effective_areas(exposures):
 
 @figure
 def effective_areas(datasets):
+
     import matplotlib.pyplot as plt
-    import os
+
     from toise import plotting
 
     nplots = len(datasets[0]["data"])
