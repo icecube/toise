@@ -1,6 +1,6 @@
 import os
 
-import numpy
+import numpy as np
 
 from .util import data_dir
 
@@ -149,18 +149,18 @@ def convex_hull(points):
     hull = lower[:-1] + upper[:-1]
 
     # convert into numpy array
-    return numpy.array(hull)
+    return np.array(hull)
 
 
 def hull_to_normals(points):
     # append first point at the end to close the hull
-    points = numpy.append(points, [points[0]], axis=0)
+    points = np.append(points, [points[0]], axis=0)
 
     vecs = points[1:] - points[:-1]
-    magn = numpy.sqrt(vecs[:, 0] ** 2 + vecs[:, 1] ** 2)
+    magn = np.sqrt(vecs[:, 0] ** 2 + vecs[:, 1] ** 2)
 
-    normals = numpy.array(
-        [vecs[:, 1] / magn, -vecs[:, 0] / magn, numpy.zeros(magn.shape)]
+    normals = np.array(
+        [vecs[:, 1] / magn, -vecs[:, 0] / magn, np.zeros(magn.shape)]
     ).T
 
     return normals
@@ -168,11 +168,11 @@ def hull_to_normals(points):
 
 def hull_to_lengths(points):
     # append first point at the end to close the hull
-    points = numpy.append(points, [points[0]], axis=0)
+    points = np.append(points, [points[0]], axis=0)
 
     vecs = points[1:] - points[:-1]
 
-    return numpy.sqrt(vecs[:, 0] ** 2 + vecs[:, 1] ** 2)
+    return np.sqrt(vecs[:, 0] ** 2 + vecs[:, 1] ** 2)
 
 
 def signed_area(points):
@@ -181,10 +181,10 @@ def signed_area(points):
     """
 
     # append first point at the end to close the hull
-    points = numpy.append(points, [points[0]], axis=0)
+    points = np.append(points, [points[0]], axis=0)
 
     return (
-        numpy.sum(
+        np.sum(
             points[:, 0][:-1] * points[:, 1][1:] - points[:, 0][1:] * points[:, 1][:-1]
         )
         / 2.0
@@ -215,26 +215,26 @@ class UprightSurface(object):
 
         :param cos_theta: cosine of the zenith angle
         """
-        return self.get_cap_area() * abs(cos_theta) + self.get_side_area() * numpy.sqrt(
+        return self.get_cap_area() * abs(cos_theta) + self.get_side_area() * np.sqrt(
             1 - cos_theta**2
         )
 
     def get_maximum_area(self):
-        ct_max = numpy.cos(numpy.arctan(self.get_side_area() / self.get_cap_area()))
+        ct_max = np.cos(np.arctan(self.get_side_area() / self.get_cap_area()))
         return self.azimuth_averaged_area(ct_max)
 
     def sample_direction(self, cos_min=-1, cos_max=1, size=1):
         max_area = self.get_maximum_area()
         blocksize = min((size * 4, 65535))
         accepted = 0
-        directions = numpy.empty((size, 3))
+        directions = np.empty((size, 3))
         while accepted < size:
-            ct = numpy.random.uniform(cos_min, cos_max, blocksize)
-            st = numpy.sqrt((1 - ct) * (1 + ct))
-            azi = numpy.random.uniform(0, 2 * numpy.pi, blocksize)
-            candidates = numpy.vstack((numpy.cos(azi) * st, numpy.sin(azi) * st, ct)).T
+            ct = np.random.uniform(cos_min, cos_max, blocksize)
+            st = np.sqrt((1 - ct) * (1 + ct))
+            azi = np.random.uniform(0, 2 * np.pi, blocksize)
+            candidates = np.vstack((np.cos(azi) * st, np.sin(azi) * st, ct)).T
             candidates = candidates[
-                numpy.random.uniform(0, max_area, blocksize)
+                np.random.uniform(0, max_area, blocksize)
                 <= self.projected_area(candidates),
                 :,
             ]
@@ -251,10 +251,10 @@ class UprightSurface(object):
             cap * (b**2 - a**2)
             + sides
             * (
-                numpy.arccos(a)
-                - numpy.arccos(b)
-                - numpy.sqrt(1 - a**2) * a
-                + numpy.sqrt(1 - b**2) * b
+                np.arccos(a)
+                - np.arccos(b)
+                - np.sqrt(1 - a**2) * a
+                + np.sqrt(1 - b**2) * b
             )
         ) / 2.0
 
@@ -281,11 +281,11 @@ class UprightSurface(object):
                 0, cosMax, cap, sides
             )
         else:
-            area = numpy.nan
+            area = np.nan
             raise ValueError(
                 "Can't deal with zenith range [%.1e, %.1e]" % (cosMin, cosMax)
             )
-        return 2 * numpy.pi * area
+        return 2 * np.pi * area
 
     def average_area(self, cosMin=-1, cosMax=1):
         """
@@ -296,7 +296,7 @@ class UprightSurface(object):
         :param cosMax: cosine of the minimum zenith angle
         :returns: the average projected area in the zenith angle range
         """
-        return self.etendue(cosMin, cosMax) / (2 * numpy.pi * (cosMax - cosMin))
+        return self.etendue(cosMin, cosMax) / (2 * np.pi * (cosMax - cosMin))
 
     def volume(self):
         return self.get_cap_area() * self.length
@@ -313,7 +313,7 @@ class ExtrudedPolygon(UprightSurface):
         # hull points, in counterclockwise order
         self._x = hull
         # next neighbor in the hull
-        self._nx = numpy.roll(hull, -1, axis=0)
+        self._nx = np.roll(hull, -1, axis=0)
         # vector connecting each pair of points in the hull
         self._dx = self._nx - self._x
 
@@ -324,10 +324,10 @@ class ExtrudedPolygon(UprightSurface):
         self._side_lengths = hull_to_lengths(hull)
         side_areas = self._side_lengths * self.length
         cap_area = [signed_area(hull)] * 2
-        cap_normals = numpy.array([[0.0, 0.0, 1.0], [0.0, 0.0, -1.0]])
+        cap_normals = np.array([[0.0, 0.0, 1.0], [0.0, 0.0, -1.0]])
 
-        self._areas = numpy.concatenate((side_areas, cap_area))
-        self._normals = numpy.concatenate((side_normals, cap_normals))
+        self._areas = np.concatenate((side_areas, cap_area))
+        self._normals = np.concatenate((side_normals, cap_normals))
         assert self._areas.size == self._normals.shape[0]
 
     def get_z_range(self):
@@ -340,11 +340,11 @@ class ExtrudedPolygon(UprightSurface):
         # the projected area of a plane, averaged over a 2\pi rotation that
         # passes through the normal, is
         # A*\int_0^\pi \Theta(\sin\alpha)\sin\alpha d\alpha / 2\pi = A/\pi
-        return self._side_lengths.sum() * self.length / numpy.pi
+        return self._side_lengths.sum() * self.length / np.pi
 
     def projected_area(self, direction):
-        inner = numpy.dot(direction, self._normals.T)
-        areas = numpy.where(inner < 0, -inner * self._areas, 0)
+        inner = np.dot(direction, self._normals.T)
+        areas = np.where(inner < 0, -inner * self._areas, 0)
         return areas.sum(axis=areas.ndim - 1)
 
     def _sample_on_caps(self, directions, bottom, offset, scale):
@@ -355,10 +355,10 @@ class ExtrudedPolygon(UprightSurface):
         size = len(directions)
         accepted = 0
         blocksize = min((size * 4, 65535))
-        positions = numpy.empty((len(directions), 3))
+        positions = np.empty((len(directions), 3))
         while accepted < size:
-            cpos = numpy.random.uniform(size=(blocksize, 2)) * scale + offset
-            mask = numpy.array(list(map(self._point_in_hull, cpos)))
+            cpos = np.random.uniform(size=(blocksize, 2)) * scale + offset
+            mask = np.array(list(map(self._point_in_hull, cpos)))
             cpos = cpos[mask]
             if len(cpos) + accepted > size:
                 cpos = cpos[: size - accepted]
@@ -371,8 +371,8 @@ class ExtrudedPolygon(UprightSurface):
         return positions
 
     def sample_impact_ray(self, cos_min=-1, cos_max=1, size=1):
-        directions = numpy.empty((size, 3))
-        positions = numpy.empty((size, 3))
+        directions = np.empty((size, 3))
+        positions = np.empty((size, 3))
         accepted = 0
         blocksize = min((size * 4, 65535))
 
@@ -383,12 +383,12 @@ class ExtrudedPolygon(UprightSurface):
             block = min((blocksize, size - accepted))
             cdir = self.sample_direction(cos_min, cos_max, block)
             directions[accepted : accepted + block] = cdir
-            inner = numpy.dot(cdir, self._normals.T)
-            areas = numpy.where(inner < 0, -inner * self._areas, 0)
+            inner = np.dot(cdir, self._normals.T)
+            areas = np.where(inner < 0, -inner * self._areas, 0)
             prob = areas.cumsum(axis=1)
             prob /= prob[:, -1:]
-            p = numpy.random.uniform(size=block)
-            target = numpy.array([prob[i, :].searchsorted(p[i]) for i in range(block)])
+            p = np.random.uniform(size=block)
+            target = np.array([prob[i, :].searchsorted(p[i]) for i in range(block)])
 
             # first, handle sides
             sides = target < len(self._areas) - 2
@@ -396,14 +396,14 @@ class ExtrudedPolygon(UprightSurface):
             nsides = sides.sum()
             xy = (
                 self._x[side_target]
-                + numpy.random.uniform(size=nsides)[:, None] * self._dx[side_target]
+                + np.random.uniform(size=nsides)[:, None] * self._dx[side_target]
             )
-            xyz = numpy.concatenate(
+            xyz = np.concatenate(
                 (
                     xy,
                     (
                         self._z_range[0]
-                        + numpy.random.uniform(size=nsides) * self.length
+                        + np.random.uniform(size=nsides) * self.length
                     )[:, None],
                 ),
                 axis=1,
@@ -434,7 +434,7 @@ class ExtrudedPolygon(UprightSurface):
         # normalized vector connecting each vertex to the next one
         d = self._dx / self._side_lengths[:, None]
         # and the one connecting the previous vertex
-        prev_d = numpy.roll(d, 1, axis=0)
+        prev_d = np.roll(d, 1, axis=0)
         # sine of the inner angle of each vertex
         det = prev_d[:, 0] * d[:, 1] - prev_d[:, 1] * d[:, 0]
         assert (det != 0.0).all(), "Edges can't be [anti]parallel"
@@ -459,7 +459,7 @@ class ExtrudedPolygon(UprightSurface):
             if omgeo.omtype != omgeo.IceTop:
                 strings[omkey.string].append(list(omgeo.position))
         mean_xy = [
-            numpy.mean(positions, axis=0)[0:2] for positions in list(strings.values())
+            np.mean(positions, axis=0)[0:2] for positions in list(strings.values())
         ]
         zmax = max(max(p[2] for p in positions) for positions in list(strings.values()))
         zmin = min(min(p[2] for p in positions) for positions in list(strings.values()))
@@ -472,11 +472,11 @@ class ExtrudedPolygon(UprightSurface):
 
     @classmethod
     def from_file(cls, fname, padding=0):
-        dats = numpy.loadtxt(fname)
+        dats = np.loadtxt(fname)
         zmax = dats[:, -1].max()
         zmin = dats[:, -1].min()
         mean_xy = [
-            dats[dats[:, 0] == i].mean(axis=0)[2:4] for i in numpy.unique(dats[:, 0])
+            dats[dats[:, 0] == i].mean(axis=0)[2:4] for i in np.unique(dats[:, 0])
         ]
 
         self = cls(mean_xy, [zmin, zmax])
@@ -501,11 +501,11 @@ class ExtrudedPolygon(UprightSurface):
         return cls.from_I3Geometry(fr["I3Geometry"], padding)
 
     def _direction_to_vec(self, cos_zenith, azimuth):
-        ct, azi = numpy.broadcast_arrays(cos_zenith, azimuth)
-        st = numpy.sqrt(1.0 - ct**2)
-        cp = numpy.cos(azi)
-        sp = numpy.sin(azi)
-        return -numpy.array([st * cp, st * sp, ct])
+        ct, azi = np.broadcast_arrays(cos_zenith, azimuth)
+        st = np.sqrt(1.0 - ct**2)
+        cp = np.cos(azi)
+        sp = np.sin(azi)
+        return -np.array([st * cp, st * sp, ct])
 
     def area(self, cos_zenith, azimuth):
         """
@@ -513,7 +513,7 @@ class ExtrudedPolygon(UprightSurface):
         """
         vec = self._direction_to_vec(cos_zenith, azimuth)
         # inner product with component normals
-        inner = numpy.dot(self._normals, vec)
+        inner = np.dot(self._normals, vec)
         # only surfaces that face the requested direction count towards the area
         mask = inner < 0
         return -(inner * self._areas[:, None] * mask).sum(axis=0)
@@ -549,8 +549,8 @@ class ExtrudedPolygon(UprightSurface):
         # proportional distance along edge to intersection point
         # NB: if diry/dirx == dy/dx, the ray is parallel to the line segment
         nonparallel = diry * dx != dirx * dy
-        alpha = numpy.where(
-            nonparallel, (dirx * y - diry * x) / (diry * dx - dirx * dy), numpy.nan
+        alpha = np.where(
+            nonparallel, (dirx * y - diry * x) / (diry * dx - dirx * dy), np.nan
         )
         # check whether the intersection is actually in the segment
         mask = (alpha >= 0) & (alpha < 1)
@@ -562,16 +562,16 @@ class ExtrudedPolygon(UprightSurface):
             beta = ((y + alpha * dy) / diry)[mask]
 
         if beta.size == 0:
-            return (numpy.nan,) * 2
+            return (np.nan,) * 2
         else:
-            return (numpy.nanmin(beta), numpy.nanmax(beta))
+            return (np.nanmin(beta), np.nanmax(beta))
 
     def _distance_to_cap(self, point, dir, cap_z):
         d = (point[2] - cap_z) / dir[2]
         if self._point_in_hull(point + d * dir):
             return d
         else:
-            return numpy.nan
+            return np.nan
 
     def _distance_to_caps(self, point, dir):
         return sorted(
@@ -582,7 +582,7 @@ class ExtrudedPolygon(UprightSurface):
         return self._point_in_hull(point)
 
     def intersections(self, x, y, z, cos_zenith, azimuth):
-        point = numpy.array((x, y, z))
+        point = np.array((x, y, z))
         vec = self._direction_to_vec(cos_zenith, azimuth)
 
         # perfectly vertical track: only check intersections with caps
@@ -593,11 +593,11 @@ class ExtrudedPolygon(UprightSurface):
             return self._distance_to_hull(point, vec)
         # general case: both rho and z components nonzero
         else:
-            sin_zenith = numpy.sqrt(1.0 - cos_zenith**2)
-            sides = numpy.array(self._distance_to_hull(point, vec)) / sin_zenith
+            sin_zenith = np.sqrt(1.0 - cos_zenith**2)
+            sides = np.array(self._distance_to_hull(point, vec)) / sin_zenith
             caps = self._distance_to_caps(point, vec)
 
-            return numpy.nanmax((sides[0], caps[0])), numpy.nanmin((sides[1], caps[1]))
+            return np.nanmax((sides[0], caps[0])), np.nanmin((sides[1], caps[1]))
 
 
 class Cylinder(UprightSurface):
@@ -609,28 +609,28 @@ class Cylinder(UprightSurface):
         return Cylinder(self.length + 2 * margin, self.radius + margin)
 
     def point_in_footprint(self, point):
-        return numpy.hypot(point[0], point[1]) < self.radius
+        return np.hypot(point[0], point[1]) < self.radius
 
     def get_z_range(self):
         return (-self.length / 2.0, self.length / 2)
 
     def get_cap_area(self):
-        return numpy.pi * self.radius**2
+        return np.pi * self.radius**2
 
     def get_side_area(self):
         return 2 * self.radius * self.length
 
-    def area(self, cos_zenith, azimuth=numpy.nan):
+    def area(self, cos_zenith, azimuth=np.nan):
         return self.azimuth_averaged_area(cos_zenith)
 
     def projected_area(self, direction):
         ct = direction[..., -1]
-        st = numpy.sqrt((1 + ct) * (1 - ct))
+        st = np.sqrt((1 + ct) * (1 - ct))
         return self.get_cap_area() * abs(ct) + self.get_side_area() * st
 
     def sample_impact_ray(self, cos_min=-1, cos_max=1, size=1):
-        directions = numpy.empty((size, 3))
-        positions = numpy.empty((size, 3))
+        directions = np.empty((size, 3))
+        positions = np.empty((size, 3))
         accepted = 0
         blocksize = min((size * 4, 65535))
 
@@ -639,32 +639,32 @@ class Cylinder(UprightSurface):
             cdir = self.sample_direction(cos_min, cos_max, block)
             directions[accepted : accepted + block] = cdir
             ct = -cdir[:, -1]
-            st = numpy.sqrt((1 + ct) * (1 - ct))
+            st = np.sqrt((1 + ct) * (1 - ct))
 
-            areas = numpy.array(
+            areas = np.array(
                 [
                     self.get_side_area() * st,
-                    self.get_cap_area() * numpy.where(ct > 0, ct, 0),
-                    self.get_cap_area() * numpy.where(ct < 0, abs(ct), 0),
+                    self.get_cap_area() * np.where(ct > 0, ct, 0),
+                    self.get_cap_area() * np.where(ct < 0, abs(ct), 0),
                 ]
             ).T
 
             prob = areas.cumsum(axis=1)
             prob /= prob[:, -1:]
-            p = numpy.random.uniform(size=block)
-            target = numpy.array([prob[i, :].searchsorted(p[i]) for i in range(block)])
+            p = np.random.uniform(size=block)
+            target = np.array([prob[i, :].searchsorted(p[i]) for i in range(block)])
 
             # first, handle sides
             sides = target == 0
             nsides = sides.sum()
-            beta = numpy.arcsin(
-                numpy.random.uniform(-1, 1, size=nsides)
-            ) + numpy.arctan2(-cdir[sides, 1], -cdir[sides, 0])
-            positions[accepted : accepted + block][sides] = numpy.stack(
+            beta = np.arcsin(
+                np.random.uniform(-1, 1, size=nsides)
+            ) + np.arctan2(-cdir[sides, 1], -cdir[sides, 0])
+            positions[accepted : accepted + block][sides] = np.stack(
                 (
-                    self.radius * numpy.cos(beta) * st[sides],
-                    self.radius * numpy.sin(beta) * st[sides],
-                    numpy.random.uniform(
+                    self.radius * np.cos(beta) * st[sides],
+                    self.radius * np.sin(beta) * st[sides],
+                    np.random.uniform(
                         -self.length / 2, self.length / 2, size=nsides
                     ),
                 )
@@ -674,13 +674,13 @@ class Cylinder(UprightSurface):
             caps = ~sides
             ncaps = caps.sum()
             cap_target = target[caps]
-            beta = numpy.random.uniform(0, 2 * numpy.pi, size=ncaps)
-            r = numpy.sqrt(numpy.random.uniform(size=ncaps)) * self.radius
-            positions[accepted : accepted + block][caps] = numpy.stack(
+            beta = np.random.uniform(0, 2 * np.pi, size=ncaps)
+            r = np.sqrt(np.random.uniform(size=ncaps)) * self.radius
+            positions[accepted : accepted + block][caps] = np.stack(
                 (
-                    r * numpy.cos(beta),
-                    r * numpy.sin(beta),
-                    numpy.where(cap_target == 1, self.length / 2, -self.length / 2),
+                    r * np.cos(beta),
+                    r * np.sin(beta),
+                    np.where(cap_target == 1, self.length / 2, -self.length / 2),
                 )
             ).T
             accepted += block

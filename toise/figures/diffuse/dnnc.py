@@ -3,7 +3,6 @@ from functools import cache, lru_cache
 from pathlib import Path
 
 import healpy
-import numpy
 import numpy as np
 import pandas as pd
 from scipy import interpolate, optimize
@@ -39,7 +38,7 @@ def create_dnn_aeff(nside: int = 16, scale=1):
     values = np.array(list(values.values())).T[:, ::-1]
 
     # snap zenith bands to rings of a healpix map
-    pixel_centers = -healpy.ringinfo(nside, numpy.arange(1, 4 * nside))[2]
+    pixel_centers = -healpy.ringinfo(nside, np.arange(1, 4 * nside))[2]
     # broadcast effective area into each ring
     values = values[:, np.digitize(pixel_centers, ct_edges) - 1]
     # reset zenith bands to the bounds of the healpix rings

@@ -111,12 +111,14 @@ def find_limits(llh, key, nom=None, critical_ts=1**2, plotit=False):
 
     energy_range = list(llh.components[key]._components.values())[0][0].energy_range
     if plotit and energy_range[0] > 1e6:
-        x = linspace(0, g0 * 2, 101)
+        import matplotlib.pyplot as plt
+
+        x = np.linspace(0, g0 * 2, 101)
         energy_range = list(llh.components[key]._components.values())[0][0].energy_range
-        line = plot(
+        line = plt.plot(
             x, [ts_diff(x_) for x_ in x], label="%.1g-%.1g" % tuple(energy_range)
         )[0]
-        axvline(nom[key], color=line.get_color())
+        plt.axvline(nom[key], color=line.get_color())
 
     return lo, hi
 

@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 
 def stepped_path(edges, bins, cumulative=False):
@@ -11,8 +11,8 @@ def stepped_path(edges, bins, cumulative=False):
     if len(edges) != len(bins) + 1:
         raise ValueError("edges must be 1 element longer than bins")
 
-    x = numpy.zeros((2 * len(edges)))
-    y = numpy.zeros((2 * len(edges)))
+    x = np.zeros((2 * len(edges)))
+    y = np.zeros((2 * len(edges)))
 
     if cumulative is not False:
         if cumulative == "<":
@@ -27,7 +27,7 @@ def stepped_path(edges, bins, cumulative=False):
 
 
 def format_energy(fmt, energy):
-    places = int(numpy.log10(energy) / 3) * 3
+    places = int(np.log10(energy) / 3) * 3
     if places == 0:
         unit = "GeV"
     elif places == 3:
@@ -47,11 +47,11 @@ def plot_profile2d(profile, x, y, levels=[68, 90, 99], colors="k", **kwargs):
     import matplotlib.pyplot as plt
     from scipy.stats import chi2
 
-    xv = numpy.unique(profile[x])
-    yv = numpy.unique(profile[y])
+    xv = np.unique(profile[x])
+    yv = np.unique(profile[y])
     shape = (xv.size, yv.size)
 
-    ts = 2 * (numpy.nanmax(profile["LLH"]) - profile["LLH"]).reshape(shape)
+    ts = 2 * (np.nanmax(profile["LLH"]) - profile["LLH"]).reshape(shape)
     pvalue = chi2.cdf(ts.T, 2) * 100
 
     ax = plt.gca()
@@ -128,21 +128,21 @@ def label_curve(ax, line, x=None, y=None, orientation="parallel", offset=0, **kw
     xd = line.get_xdata()
     yd = line.get_ydata()
     # sort if necessary
-    if (numpy.diff(xd) < 0).any():
+    if (np.diff(xd) < 0).any():
         order = xd.argsort()
         xd = xd[order]
         yd = yd[order]
     # de-step if necessary
-    ux = numpy.unique(xd)
+    ux = np.unique(xd)
     if 2 * ux.size == xd.size and (ux == xd[::2]).all():
         xd = (xd[::2] + xd[1::2]) / 2
         yd = yd[1::2]
 
     # interpolate for x if y is supplied
     if x is None:
-        x = numpy.interp([y], yd, xd)[0]
+        x = np.interp([y], yd, xd)[0]
     # get points on either side of the anchor point
-    i = numpy.searchsorted(xd, x)
+    i = np.searchsorted(xd, x)
     if i > xd.size - 2:
         i = xd.size - 2
     xb, yb = xd[i : i + 2], yd[i : i + 2]
@@ -160,7 +160,7 @@ def label_curve(ax, line, x=None, y=None, orientation="parallel", offset=0, **kw
     p1 = ax.transData.transform_point([xb[0], yb[0]])
     p2 = ax.transData.transform_point([xb[1], yb[1]])
     if orientation == "parallel":
-        kw["rotation"] = numpy.degrees(numpy.arctan2(p2[1] - p1[1], p2[0] - p1[0]))
+        kw["rotation"] = np.degrees(np.arctan2(p2[1] - p1[1], p2[0] - p1[0]))
 
     kw.update(**kwargs)
 
@@ -168,8 +168,8 @@ def label_curve(ax, line, x=None, y=None, orientation="parallel", offset=0, **kw
     # calculate normal in *screen coordinates*
     if offset != 0:
         xy = ax.transData.transform_point(text.get_position())
-        norm = numpy.array([p2[1] - p1[1], p2[0] - p1[0]])
-        norm = norm / (numpy.hypot(norm[0], norm[1]) / offset)
+        norm = np.array([p2[1] - p1[1], p2[0] - p1[0]])
+        norm = norm / (np.hypot(norm[0], norm[1]) / offset)
         xy = ax.transData.inverted().transform_point((xy[0] - norm[0], xy[1] + norm[1]))
         text.set_position(xy)
     return text
