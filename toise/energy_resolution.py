@@ -61,9 +61,7 @@ class EnergySmearingMatrix(object):
         :param reco_energy: edges of reconstructed muon energy bins
         """
         loge_true = np.log10(true_energy)
-        loge_center = np.clip(
-            0.5 * (loge_true[:-1] + loge_true[1:]), *self._loge_range
-        )
+        loge_center = np.clip(0.5 * (loge_true[:-1] + loge_true[1:]), *self._loge_range)
         loge_width = np.diff(loge_true)
         loge_lo = np.log10(reco_energy[:-1])
         loge_hi = np.log10(reco_energy[1:])

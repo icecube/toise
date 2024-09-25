@@ -159,9 +159,7 @@ def hull_to_normals(points):
     vecs = points[1:] - points[:-1]
     magn = np.sqrt(vecs[:, 0] ** 2 + vecs[:, 1] ** 2)
 
-    normals = np.array(
-        [vecs[:, 1] / magn, -vecs[:, 0] / magn, np.zeros(magn.shape)]
-    ).T
+    normals = np.array([vecs[:, 1] / magn, -vecs[:, 0] / magn, np.zeros(magn.shape)]).T
 
     return normals
 
@@ -401,10 +399,9 @@ class ExtrudedPolygon(UprightSurface):
             xyz = np.concatenate(
                 (
                     xy,
-                    (
-                        self._z_range[0]
-                        + np.random.uniform(size=nsides) * self.length
-                    )[:, None],
+                    (self._z_range[0] + np.random.uniform(size=nsides) * self.length)[
+                        :, None
+                    ],
                 ),
                 axis=1,
             )
@@ -657,16 +654,14 @@ class Cylinder(UprightSurface):
             # first, handle sides
             sides = target == 0
             nsides = sides.sum()
-            beta = np.arcsin(
-                np.random.uniform(-1, 1, size=nsides)
-            ) + np.arctan2(-cdir[sides, 1], -cdir[sides, 0])
+            beta = np.arcsin(np.random.uniform(-1, 1, size=nsides)) + np.arctan2(
+                -cdir[sides, 1], -cdir[sides, 0]
+            )
             positions[accepted : accepted + block][sides] = np.stack(
                 (
                     self.radius * np.cos(beta) * st[sides],
                     self.radius * np.sin(beta) * st[sides],
-                    np.random.uniform(
-                        -self.length / 2, self.length / 2, size=nsides
-                    ),
+                    np.random.uniform(-self.length / 2, self.length / 2, size=nsides),
                 )
             ).T
 

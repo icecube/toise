@@ -288,9 +288,7 @@ def _interpolate_production_efficiency(
                 np.clip(cos_zenith, centers[1].min(), centers[1].max()),
             ] + centers[2:]
             with np.errstate(divide="ignore"):
-                y = np.where(
-                    ~(h.bincontent <= 0), np.log10(h.bincontent), -np.inf
-                )
+                y = np.where(~(h.bincontent <= 0), np.log10(h.bincontent), -np.inf)
 
             assert not np.isnan(y).any()
             interpolant = interpolate.RegularGridInterpolator(
@@ -573,7 +571,6 @@ def create_bundle_aeff(
     # 2) Selection efficiency
     # 3) Veto coverage
 
-
     nside = None
     if isinstance(cos_theta, int):
         nside = cos_theta
@@ -673,7 +670,6 @@ def create_throughgoing_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-
     nside = None
     if isinstance(cos_theta, int):
         nside = cos_theta
@@ -756,7 +752,6 @@ def create_cascade_aeff(
     # 4) Point spread function
     # 5) Energy resolution
 
-
     nside = None
     if isinstance(cos_theta, int):
         nside = cos_theta
@@ -826,7 +821,6 @@ def create_starting_aeff(
     # 3) Selection efficiency
     # 4) Point spread function
     # 5) Energy resolution
-
 
     nside = None
     if isinstance(cos_theta, int):
@@ -948,9 +942,7 @@ def _interpolate_ara_aeff(ct_edges=None, depth=200, nstations=37):
         center(loge_edges),
         np.clip(center(ct_edges), centers[1].min(), centers[1].max()),
     ]
-    xi = np.vstack(
-        [x.flatten() for x in np.meshgrid(*newcenters, indexing="ij")]
-    ).T
+    xi = np.vstack([x.flatten() for x in np.meshgrid(*newcenters, indexing="ij")]).T
     assert np.isfinite(xi).all()
 
     interpolant = interpolate.RegularGridInterpolator(
@@ -1195,9 +1187,7 @@ def _interpolate_gen2_ehe_aeff(ct_edges=None):
         center(loge_edges),
     ]
 
-    xi = np.vstack(
-        [x.flatten() for x in np.meshgrid(*new_centers, indexing="ij")]
-    )
+    xi = np.vstack([x.flatten() for x in np.meshgrid(*new_centers, indexing="ij")])
 
     vs = []
     for aeff in aeffs:

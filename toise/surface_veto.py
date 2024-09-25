@@ -22,10 +22,7 @@ def surface_area(theta_max, volume):
     Surface coverage area required so that a track that
     """
     d = 1950 - volume._z_range[0]  # depth of the bottom of the detector
-    return (
-        np.pi
-        * (d * np.tan(theta_max) + np.sqrt(volume.get_cap_area() / np.pi)) ** 2
-    )
+    return np.pi * (d * np.tan(theta_max) + np.sqrt(volume.get_cap_area() / np.pi)) ** 2
 
 
 def array_cost(area, fill_factor):
@@ -410,9 +407,7 @@ def trigger_efficiency(eprim, threshold=10**5.5, sharpness=7):
     :param sharpness: speed of transition. 0 makes a flat line at 0.5, infinity
                       a step function
     """
-    return 1 / (
-        1 + np.exp(-(np.log10(eprim) - np.log10(threshold)) * sharpness)
-    )
+    return 1 / (1 + np.exp(-(np.log10(eprim) - np.log10(threshold)) * sharpness))
 
 
 def untagged_fraction(eprim, **kwargs):
@@ -505,9 +500,9 @@ class MuonBundleBackground(object):
         # dimensions of the keys in expectations are now energy, radial bin
         if is_zenith_weight(zenith_index, self._aeff):
             background.expectations = (
-                np.nansum(
-                    (self.expectations * zenith_index[:, None]) / omega, axis=0
-                )[..., None]
+                np.nansum((self.expectations * zenith_index[:, None]) / omega, axis=0)[
+                    ..., None
+                ]
                 * bin_areas
             )
         else:

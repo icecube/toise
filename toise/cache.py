@@ -18,6 +18,7 @@ __all__ = [
     "lru_cache",
 ]
 
+
 class PickleCache(AbstractCacheInstance):
     def __init__(self, base_dir=join(data_dir, "cache"), *args, **kwargs):
         super(PickleCache, self).__init__(*args, **kwargs)

@@ -426,9 +426,7 @@ def analytic_numu_flux(enu, cos_theta, emu=None):
     R_PI, R_K, ALAM_N, ALAM_PI, ALAM_K = 0.5731, 0.0458, 120.0, 160.0, 180.0
 
     F = (GAMMA + 2.0) / (GAMMA + 1.0)
-    B_PI = (
-        F * (ALAM_PI - ALAM_N) / (ALAM_PI * np.log(ALAM_PI / ALAM_N) * (1.0 - R_PI))
-    )
+    B_PI = F * (ALAM_PI - ALAM_N) / (ALAM_PI * np.log(ALAM_PI / ALAM_N) * (1.0 - R_PI))
     B_K = F * (ALAM_K - ALAM_N) / (ALAM_K * np.log(ALAM_K / ALAM_N) * (1.0 - R_K))
 
     if emu is not None:

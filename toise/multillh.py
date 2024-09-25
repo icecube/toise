@@ -98,12 +98,8 @@ class Combination(object):
                 {
                     "label": label,
                     "livetime": livetime,
-                    "emin": max(
-                        component.energy_range[0], kwargs.get("emin", -np.inf)
-                    ),
-                    "emax": min(
-                        component.energy_range[1], kwargs.get("emax", np.inf)
-                    ),
+                    "emin": max(component.energy_range[0], kwargs.get("emin", -np.inf)),
+                    "emax": min(component.energy_range[1], kwargs.get("emax", np.inf)),
                     "chunks": component.differential_chunks(
                         *args, exclusive=True, **kwargs
                     ),

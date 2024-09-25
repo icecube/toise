@@ -334,9 +334,7 @@ class StackedPopulation(PointSource):
         # scatter sources through the zenith bands isotropically
         zenith_bins = effective_area.bin_edges[1]
         self.sources_per_band = np.histogram(-sindecs, bins=zenith_bins)[0]
-        self.flux_per_band = np.histogram(
-            -sindecs, bins=zenith_bins, weights=fluxes
-        )[0]
+        self.flux_per_band = np.histogram(-sindecs, bins=zenith_bins, weights=fluxes)[0]
 
         # reference flux is E^2 Phi = 1e-12 TeV^2 cm^-2 s^-1
         # remember: fluxes are defined as neutrino + antineutrino, so the flux
@@ -375,8 +373,7 @@ def source_to_local_zenith(declination, latitude, ct_bins):
     def offset(hour_angle, ct=0):
         "difference between source elevation and bin edge at given hour angle"
         return (
-            np.cos(hour_angle) * np.cos(dec) * np.cos(lat)
-            + np.sin(dec) * np.sin(lat)
+            np.cos(hour_angle) * np.cos(dec) * np.cos(lat) + np.sin(dec) * np.sin(lat)
         ) - ct
 
     # find minimum and maximum elevation
@@ -460,9 +457,7 @@ def discovery_potential(
         nb = nevents(allh, ps=0, **fixed)
         ns = total - nb
         baseline = min((1000, np.sqrt(critical_ts) / (ns / np.sqrt(nb)))) / 10
-        baseline = max(
-            ((np.sqrt(critical_ts) / (ns / np.sqrt(nb))) / 10, 0.3 / ns)
-        )
+        baseline = max(((np.sqrt(critical_ts) / (ns / np.sqrt(nb))) / 10, 0.3 / ns))
         # logging.getLogger().warn('total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g ts: %.2g' % (total, ns, nb, baseline, ts(baseline)))
     # baseline = 1000
     if not np.isfinite(baseline):
@@ -578,9 +573,7 @@ def upper_limit(
         nb = nevents(allh, ps=0, **fixed)
         ns = total - nb
         baseline = min((1000, np.sqrt(critical_ts) / (ns / np.sqrt(nb)))) / 10
-        baseline = max(
-            ((np.sqrt(critical_ts) / (ns / np.sqrt(nb))) / 10, 0.3 / ns)
-        )
+        baseline = max(((np.sqrt(critical_ts) / (ns / np.sqrt(nb))) / 10, 0.3 / ns))
         logging.getLogger().debug(
             "total: %.2g ns: %.2g nb: %.2g baseline norm: %.2g"
             % (total, ns, nb, baseline)
