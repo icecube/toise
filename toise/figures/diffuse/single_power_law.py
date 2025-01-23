@@ -25,7 +25,7 @@ def make_components(aeffs, emin=1e2, emax=1e11):
     aeff, muon_aeff = copy(aeffs)
     ebins = aeff.bin_edges[0]
     mask = (ebins[1:] <= emax) & (ebins[:-1] >= emin)
-    aeff.values *= mask[[None] + [slice(None)] + [None] * (aeff.values.ndim - 2)]
+    aeff.values *= mask[(None, slice(None),) + (None,) * (aeff.values.ndim - 2)]
 
     atmo = diffuse.AtmosphericNu.conventional(aeff, 1, veto_threshold=None)
     atmo.prior = lambda v, **kwargs: -((v - 1) ** 2) / (2 * 0.1**2)
