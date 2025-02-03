@@ -6684,39 +6684,39 @@ package:
   manager: pip
   platform: linux-64
   dependencies: {}
-  url: https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0.tar.gz
+  url: https://github.com/IceCube-SPNO/dashi/releases/download/v2.0.0/pydashi-2.0.0-py3-none-any.whl
   hash:
-    sha256: dde4d041e16d64e04e704f3f594c9158e3b0d6a5099fecf634a8b502e292d0bb
+    sha256: 17b8136aae7858efbf756c3c6bb97031ec1287e47e32a0119a28917b17cd854e
   category: main
   source:
     type: url
-    url: https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0.tar.gz#sha256=dde4d041e16d64e04e704f3f594c9158e3b0d6a5099fecf634a8b502e292d0bb
+    url: https://github.com/IceCube-SPNO/dashi/releases/download/v2.0.0/pydashi-2.0.0-py3-none-any.whl
   optional: false
 - name: pydashi
   version: 2.0.0
   manager: pip
   platform: osx-64
   dependencies: {}
-  url: https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0.tar.gz
+  url: https://github.com/IceCube-SPNO/dashi/releases/download/v2.0.0/pydashi-2.0.0-py3-none-any.whl
   hash:
-    sha256: dde4d041e16d64e04e704f3f594c9158e3b0d6a5099fecf634a8b502e292d0bb
+    sha256: 17b8136aae7858efbf756c3c6bb97031ec1287e47e32a0119a28917b17cd854e
   category: main
   source:
     type: url
-    url: https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0.tar.gz#sha256=dde4d041e16d64e04e704f3f594c9158e3b0d6a5099fecf634a8b502e292d0bb
+    url: https://github.com/IceCube-SPNO/dashi/releases/download/v2.0.0/pydashi-2.0.0-py3-none-any.whl
   optional: false
 - name: pydashi
   version: 2.0.0
   manager: pip
   platform: osx-arm64
   dependencies: {}
-  url: https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0.tar.gz
+  url: https://github.com/IceCube-SPNO/dashi/releases/download/v2.0.0/pydashi-2.0.0-py3-none-any.whl
   hash:
-    sha256: dde4d041e16d64e04e704f3f594c9158e3b0d6a5099fecf634a8b502e292d0bb
+    sha256: 17b8136aae7858efbf756c3c6bb97031ec1287e47e32a0119a28917b17cd854e
   category: main
   source:
     type: url
-    url: https://github.com/IceCube-SPNO/dashi/archive/refs/tags/v2.0.0.tar.gz#sha256=dde4d041e16d64e04e704f3f594c9158e3b0d6a5099fecf634a8b502e292d0bb
+    url: https://github.com/IceCube-SPNO/dashi/releases/download/v2.0.0/pydashi-2.0.0-py3-none-any.whl
   optional: false
 - name: pytest-pinned
   version: 0.4.2
