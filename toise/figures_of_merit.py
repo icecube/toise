@@ -1,3 +1,4 @@
+import numpy as np
 from enum import Enum
 from functools import partial
 
@@ -157,7 +158,7 @@ class PointSource(object):
         ps = components.pop("ps")
 
         decades = kwargs.pop("decades", 0.5)
-        emin = kwargs.pop("emin", None)
+        emin = kwargs.pop("emin", -np.inf)
         if len(kwargs) != 0:
             raise ValueError("Can't take kwargs")
         if emin is not None:
