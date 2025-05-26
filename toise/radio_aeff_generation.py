@@ -152,7 +152,7 @@ def _load_radio_veff_json(
 
     # keep only necessary columns
     veff = dataframe.filter(["energy", "cos_theta", "domega", "veff_values"], axis=1)
-    veff.sort_index(level=[0, 1, 2, 3], inplace=True)
+    veff.sort_values(by=["energy", "cos_theta", "domega"], inplace=True)
 
     veff_values = np.array(veff.veff_values)
     return (bin_edges_energy_gev, bin_edges_costheta), veff_values.reshape(
