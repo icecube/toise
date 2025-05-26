@@ -512,6 +512,7 @@ class radio_aeff:
                         matrix_data[f"transfer_matrix_{flavor}"],
                         kind="nearest",
                         axis=1,
+                        fill_value="extrapolate",
                         bounds_error=False,
                     )(center(cos_theta))
                     prod_dens = 1.0 / neutrino_interaction_length_ice(
