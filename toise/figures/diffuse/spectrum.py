@@ -730,7 +730,12 @@ def unfolded_flux_plus_sensitivity_mm(
 ):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
-
+    
+    _default_colors = [
+        "#1f77b4",
+        "orange",
+        "darkgreen"
+    ]   
     _default_plot_elements = [
         "cr",
         "10y_diffuse",
@@ -741,6 +746,7 @@ def unfolded_flux_plus_sensitivity_mm(
         "gen2_sensitivity",
         "model_flux_powerlaw",
     ]
+    
     if plot_elements is None:
         plot_elements = _default_plot_elements
     group_label_ic, group_label_gen2 = False, False
@@ -931,8 +937,9 @@ def unfolded_flux_plus_sensitivity_mm(
         )
 
     if "gen2_unfolding" in plot_elements:
-        plot_kwargs = dict(linestyle="None", marker="o", markersize=0, color="#1f77b4")
-        for dataset in datasets:
+        plot_kwargs = dict(linestyle="None", marker="o", markersize=0)
+        for cindex,dataset in enumerate(datasets):
+            plot_kwargs["color"]=_default_colors[cindex%len(_default_colors)]
             xlimits = np.array(dataset["data"]["xlimits"])
             ylimits = np.array(dataset["data"]["ylimits"])
             yvalues = np.array(dataset["data"]["ycenters"])
@@ -946,7 +953,8 @@ def unfolded_flux_plus_sensitivity_mm(
                 for detector, years in dataset["detectors"]
                 if detector != "IceCube"
             )
-
+            
+            
             edges = np.concatenate((xlimits[:, 0], [xlimits[-1, 1]]))
             xvalues = 0.5 * (edges[1:] + edges[:-1])
             index_start = (np.asarray(xvalues) < 1e4).sum() - 1
@@ -970,7 +978,7 @@ def unfolded_flux_plus_sensitivity_mm(
                         ye0 + ye1,
                         edgecolor=None,
                         alpha=0.9,
-                        facecolor="#1f77b4",
+                        facecolor=plot_kwargs['color'],
                         linewidth=0,
                         zorder=100,
                     )
@@ -978,25 +986,29 @@ def unfolded_flux_plus_sensitivity_mm(
         group_label_gen2 = True
 
     if "gen2_sensitivity" in plot_elements:
-        energies, flux, ns, nb = sensitivity
-        flux = np.array(flux) * unit
-        fluxerr = 0.3 * flux
-        index_start = (np.asarray(energies) < 1e7).sum()
-        index_low = (np.asarray(energies) < 1e4).sum()
-        energies_s, flux_s, fluxerr_s = [
-            x[index_start:-1] for x in [energies, flux, fluxerr]
-        ]
-        energies_l, flux_l, fluxerr_l = [
-            x[index_low : index_start + 1] for x in [energies, flux, fluxerr]
-        ]
-        ax.errorbar(
-            energies_s,
-            flux_s,
-            xerr=None,
-            yerr=fluxerr_s,
-            uplims=np.ones_like(flux_s),
-            color="#1f77b4",
-        )
+        if len(sensitivity) == 4: # Very bad way to check the type of list, but keeps backward compatibility   
+            sensitivity=[sensitivity]
+        
+        for cindex,sens in enumerate(sensitivity):
+            energies, flux, ns, nb = sens
+            flux = np.array(flux) * unit
+            fluxerr = 0.3 * flux
+            index_start = (np.asarray(energies) < 1e7).sum()
+            index_low = (np.asarray(energies) < 1e4).sum()
+            energies_s, flux_s, fluxerr_s = [
+                x[index_start:-1] for x in [energies, flux, fluxerr]
+            ]
+            energies_l, flux_l, fluxerr_l = [
+                x[index_low : index_start + 1] for x in [energies, flux, fluxerr]
+            ]
+            ax.errorbar(
+                energies_s,
+                flux_s,
+                xerr=None,
+                yerr=fluxerr_s,
+                uplims=np.ones_like(flux_s),
+                color=_default_colors[cindex%len(_default_colors)],
+            )
         group_label_gen2 = True
 
     if "gen2_sensitivity_extension" in plot_elements:
@@ -1004,12 +1016,15 @@ def unfolded_flux_plus_sensitivity_mm(
         group_label_gen2 = True
 
     if group_label_gen2:
-        poly_handle.append(
-            Patch(edgecolor=None, alpha=0.9, facecolor="#1f77b4", linewidth=0)
-        )
-        poly_label.append(
-            "{label} ({years:.0f} years)".format(label=label, years=years)
-        )
+        if type(label) is str: label=[label]
+        for cindex,l in enumerate(label):
+            poly_handle.append(
+                Patch(edgecolor=None, alpha=0.9, facecolor=_default_colors[cindex%len(_default_colors)],
+                      linewidth=0)
+            )
+            poly_label.append(
+                "{label} ({years:.0f} years)".format(label=l, years=years)
+            )
 
     ax.set_xscale("log")
     ax.set_yscale("log", nonpositive="clip")

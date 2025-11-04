@@ -527,7 +527,7 @@ default_configs = {
     ),
     "Gen2-Phase2-Radio": dict(
         geometry="Radio",
-        config_file=os.path.join(os.path.dirname(__file__), "radio_config_16.yaml"),
+        config_file="data/gen2-radio/phase2.yaml",
     ),
 }
 
