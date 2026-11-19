@@ -3,5 +3,12 @@
   "extends": [
     "config:best-practices",
     "security:only-security-updates"
+  ],
+  "packageRules": [
+    // keep runners up to date
+    {
+      "matchDepTypes": ["github-runner"],
+      "enabled": true
+    }
   ]
 }
