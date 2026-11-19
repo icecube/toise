@@ -9,4 +9,5 @@ jobs:
       - name: Check formatting with Ruff
         uses: astral-sh/ruff-action@v3
         with:
-          args: format --check toise tests
+          args: format --check
+          src: "toise tests"
