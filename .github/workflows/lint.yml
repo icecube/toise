@@ -7,7 +7,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Check files using the black formatter
-        uses: psf/black@22.3.0
+        uses: psf/black@35ea67920b7f6ac8e09be1c47278752b1e827f76 # 26.3.0
         with:
           src: "toise tests"
           options: "--check --diff"
