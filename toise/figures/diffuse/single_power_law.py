@@ -249,7 +249,7 @@ def alert_rates(datasets):
 
         for p, logx, y in zip(target_purity, thresholds, count_above_threshold):
             ax2.annotate(
-                f"{p*100:.0f}%: {y:.1f} alerts/year",
+                f"{p * 100:.0f}%: {y:.1f} alerts/year",
                 (np.exp(logx), p),
                 (0 - i * 5 * 15, 15 + i * 15),
                 textcoords="offset points",

@@ -1,14 +1,13 @@
 name: lint
 on: [pull_request]
 jobs:
-  black:
-    name: black
-    runs-on: ubuntu-20.04
+  ruff:
+    name: ruff
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v2
-      - name: Check files using the black formatter
-        uses: psf/black@22.3.0
+      - name: Check formatting with Ruff
+        uses: astral-sh/ruff-action@v3
         with:
+          args: format --check
           src: "toise tests"
-          options: "--check --diff"
-          version: "22.3.0"

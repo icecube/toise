@@ -8,6 +8,7 @@ platforms:
 dependencies:
   - python >=3.8
   - numpy
+  - libopenblas >=0.3.34
   - scipy>=0.15
   - healpy
   - ipykernel

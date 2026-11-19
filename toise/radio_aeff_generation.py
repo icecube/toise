@@ -445,7 +445,6 @@ class radio_aeff:
         cos_theta=np.linspace(-1, 1, 21),
         neutrino_energy=np.logspace(6, 12, 61),
     ):
-
         """
         Create an effective area for radio
         """
@@ -765,9 +764,9 @@ class MuonBackground(object):
         :param with_energy: if False, integrate over reconstructed energy. Otherwise,
                             provide a differential prediction in reconstructed energy.
         """
-        assert (
-            not self._aeff.is_healpix
-        ), "Don't know how to make PS backgrounds from HEALpix maps yet"
+        assert not self._aeff.is_healpix, (
+            "Don't know how to make PS backgrounds from HEALpix maps yet"
+        )
 
         background = copy(self)
         bin_areas = (np.pi * np.diff(psi_bins**2))[None, ...]

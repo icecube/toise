@@ -313,14 +313,10 @@ def diffuse_sensitivity_uhe():
     )
     ice_cube_hese[:, 1] *= 3
 
-    ice_cube_hese[:, 2] *= (
-        units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    ice_cube_hese[:, 2] *= units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     ice_cube_hese[:, 2] *= 3
 
-    ice_cube_hese[:, 3] *= (
-        units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    ice_cube_hese[:, 3] *= units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     ice_cube_hese[:, 3] *= 3
 
     # Ice cube
@@ -386,9 +382,7 @@ def diffuse_sensitivity_uhe():
     )
 
     anita_limit_old[:, 0] *= units.eV
-    anita_limit_old[:, 1] *= (
-        units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    anita_limit_old[:, 1] *= units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     anita_limit_old[:, 1] /= 2
     anita_limit_old[:, 1] *= energyBinsPerDecade
 
@@ -438,9 +432,7 @@ def diffuse_sensitivity_uhe():
         )
     )
     auger_limit_old[:, 0] = 10 ** auger_limit_old[:, 0] * units.eV
-    auger_limit_old[:, 1] *= (
-        units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    auger_limit_old[:, 1] *= units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     auger_limit_old[:, 1] /= 2  # half-decade binning
     auger_limit_old[:, 1] *= energyBinsPerDecade
 
@@ -463,9 +455,7 @@ def diffuse_sensitivity_uhe():
     )
 
     auger_limit[:, 0] *= units.eV
-    auger_limit[:, 1] *= (
-        units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    auger_limit[:, 1] *= units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     auger_limit[:, 1] *= 3
     auger_limit[:, 1] /= 2  # half-decade binning
     auger_limit[:, 1] *= energyBinsPerDecade
@@ -561,9 +551,7 @@ def diffuse_sensitivity_uhe():
     )
     Heinze_band_label = "Best fit UHECR, Heinze et al."
     Heinze_band[:, 0] *= units.GeV
-    Heinze_band[:, 1] *= (
-        units.GeV**-1 * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    Heinze_band[:, 1] *= units.GeV**-1 * units.cm**-2 * units.second**-1 * units.sr**-1
     Heinze_band_int = interp1d(
         Heinze_band[:, 0], Heinze_band[:, 1] * Heinze_band[:, 0] ** 2
     )
@@ -575,9 +563,7 @@ def diffuse_sensitivity_uhe():
     )
     Heinze_evo_label = r"Best fit UHECR + 3$\sigma$, Heinze et al."
     Heinze_evo[:, 0] *= units.GeV
-    Heinze_evo[:, 6] *= (
-        units.GeV**-1 * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    Heinze_evo[:, 6] *= units.GeV**-1 * units.cm**-2 * units.second**-1 * units.sr**-1
     Heinze_evo_int = interp1d(
         Heinze_evo[:, 0], Heinze_evo[:, 6] * Heinze_evo[:, 0] ** 2
     )
@@ -605,9 +591,7 @@ def diffuse_sensitivity_uhe():
     )
     vanVliet_reas_label = r"10% protons in UHECRs, van Vliet et al."
     vanVliet_reas[0, :] *= units.GeV
-    vanVliet_reas[1, :] *= (
-        units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    vanVliet_reas[1, :] *= units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     vanVliet_reas_int = interp1d(vanVliet_reas[0, :], vanVliet_reas[1, :])
 
     # Sources
@@ -686,9 +670,7 @@ def diffuse_sensitivity_uhe():
     )
 
     data_ns_merger[:, 0] *= units.GeV
-    data_ns_merger[:, 1] *= (
-        units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    data_ns_merger[:, 1] *= units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     data_ns_merger_label = "NS-NS merger, Fang & Metzger 1707.04263"
     data_ns_merger_int = interp1d(data_ns_merger[:, 0], data_ns_merger[:, 1])
 
@@ -716,9 +698,7 @@ def diffuse_sensitivity_uhe():
         delimiter=",",
     )
     agn[:, 0] = agn[:, 0] * units.GeV
-    agn[:, 1] = (
-        agn[:, 1] * units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
-    )
+    agn[:, 1] = agn[:, 1] * units.GeV * units.cm**-2 * units.second**-1 * units.sr**-1
     # agn_label = "AGN, Murase et al. 1403.4089"
     agn_label = "From AGN"
     agn_int = interp1d(agn[:, 0], agn[:, 1])
@@ -1168,7 +1148,6 @@ def diffuse_sensitivity_uhe():
         Veff = np.array(Veff)
 
         if Veff.shape[0] != 2:
-
             limit = fluxes.get_limit_e2_flux(
                 energy=E,
                 veff_sr=Veff,
@@ -1190,7 +1169,6 @@ def diffuse_sensitivity_uhe():
 
             limit_labels.append(_plt)
         else:
-
             limit_lower = fluxes.get_limit_e2_flux(
                 energy=E,
                 veff_sr=Veff[0],

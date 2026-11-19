@@ -496,7 +496,6 @@ def set_limits(ax, erange, yrange, ax2=None):
 
 
 if __name__ == "__main__":
-
     p.interactive(0)
 
     p.matplotlib.rcParams["figure.facecolor"] = "white"
@@ -526,7 +525,7 @@ if __name__ == "__main__":
         label=r"Cosmic $\upnu$ (IceCube, this work)",
         plotlimits=True,
         linewidth=1,
-        capthick=0.5
+        capthick=0.5,
     )
     plot_auger(ax, lh, ll, label="Cosmic rays (Auger)", marker="o", color="tomato")
     plot_ta(ax, lh, ll, label="Cosmic rays (TA)", color="mediumseagreen")

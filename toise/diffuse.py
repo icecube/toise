@@ -90,8 +90,9 @@ class NullComponent(object):
     def __init__(self, aeff):
         self.seed = 1
         self.uncertainty = None
-        i, j = aeff.dimensions.index("true_zenith_band"), aeff.dimensions.index(
-            "reco_energy"
+        i, j = (
+            aeff.dimensions.index("true_zenith_band"),
+            aeff.dimensions.index("reco_energy"),
         )
         self.expectations = np.zeros((aeff.values.shape[i], aeff.values.shape[j]))
 
@@ -270,9 +271,9 @@ class AtmosphericNu(DiffuseNuGen):
         :param with_energy: if False, integrate over reconstructed energy. Otherwise,
                             provide a differential prediction in reconstructed energy.
         """
-        assert (
-            not self.is_healpix
-        ), "Don't know how to make PS backgrounds from HEALpix maps yet"
+        assert not self.is_healpix, (
+            "Don't know how to make PS backgrounds from HEALpix maps yet"
+        )
 
         background = copy(self)
         psi_bins = self._aeff.bin_edges[-1][:-1]
@@ -358,7 +359,6 @@ class AtmosphericNu(DiffuseNuGen):
             flux = flux[1]
         instance = cls(effective_area, flux, livetime)
         if isinstance(flux, tuple):
-
             if not veto_threshold in cache:
                 cache[veto_threshold] = list()
             cache[veto_threshold].append((shape_key, instance._flux))
@@ -433,8 +433,9 @@ class DiffuseAstro(DiffuseNuGen):
         if effective_area.is_healpix:
             flux *= healpy.nside2pixarea(effective_area.nside)
         else:
-            flux = flux * (
-                (2 * np.pi * np.diff(effective_area.bin_edges[1]))[None, None, :]
+            flux = (
+                flux
+                * ((2 * np.pi * np.diff(effective_area.bin_edges[1]))[None, None, :])
             )
         super(DiffuseAstro, self).__init__(effective_area, flux, livetime)
         self._with_psi = False
@@ -465,9 +466,9 @@ class DiffuseAstro(DiffuseNuGen):
         self, zenith_index, livetime=None, n_sources=None, with_energy=True
     ):
         __doc__ = AtmosphericNu.point_source_background.__doc__
-        assert (
-            not self.is_healpix
-        ), "Don't know how to make PS backgrounds from HEALpix maps yet"
+        assert not self.is_healpix, (
+            "Don't know how to make PS backgrounds from HEALpix maps yet"
+        )
 
         background = copy(self)
         psi_bins = self._aeff.bin_edges[-1][:-1]
@@ -498,9 +499,9 @@ class DiffuseAstro(DiffuseNuGen):
         if isinstance(sel, slice):
             background._flux = self._flux[:, :, sel] / self._solid_angle[zenith_index]
         else:
-            assert (
-                abs(self._flux[:, :, :1] - self._flux[:, :, 1:]) < 1e-12
-            ).all(), "Diffuse flux must be independent of zenith angle for this weighting to work out"
+            assert (abs(self._flux[:, :, :1] - self._flux[:, :, 1:]) < 1e-12).all(), (
+                "Diffuse flux must be independent of zenith angle for this weighting to work out"
+            )
             background._flux = self._flux[:, :, :1] / self._solid_angle[0]
 
         # replace reconstructed zenith with opening angle
@@ -663,9 +664,9 @@ class DiffuseAstro(DiffuseNuGen):
             # http://arxiv.org/abs/1108.3163
             if param("pgamma_fraction") in flavor_kwargs:
                 pgamma_fraction = flavor_kwargs[param("pgamma_fraction")]
-                assert (
-                    param("mu_fraction") not in flavor_kwargs
-                ), "flavor fit and pp/pgamma are mutually exclusive"
+                assert param("mu_fraction") not in flavor_kwargs, (
+                    "flavor fit and pp/pgamma are mutually exclusive"
+                )
                 assert pgamma_fraction >= 0 and pgamma_fraction <= 1
                 flavor_weight[0, ...] = 1 - pgamma_fraction * (1 - 0.78 / 0.5)
                 flavor_weight[1, ...] = 1 - pgamma_fraction * (1 - 0.22 / 0.5)
@@ -1241,9 +1242,7 @@ class KRAGalacticFlux(object):
 
     def __call__(self, e_center):
         # NB: flux is given as all-particle, here we return per-particle (/6)
-        return (
-            10 ** (self._interpolant(np.log10(e_center) - 3) - 8) / e_center**2 / 6.0
-        )
+        return 10 ** (self._interpolant(np.log10(e_center) - 3) - 8) / e_center**2 / 6.0
 
 
 class ExtrapolatedPowerlawFlux:

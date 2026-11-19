@@ -54,8 +54,9 @@ def nevents_uhe_model():
             edges[ev] = radio_edges
         else:
             edges[ev] = optical[ev][0].bin_edges[0]
-    np.log10(optical["shadowed_tracks"][0].bin_edges[0]), np.log10(
-        radio["radio_events"][0].bin_edges[0]
+    (
+        np.log10(optical["shadowed_tracks"][0].bin_edges[0]),
+        np.log10(radio["radio_events"][0].bin_edges[0]),
     )
     energies = np.logspace(1, 12, 111)
 

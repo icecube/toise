@@ -39,9 +39,9 @@ def sensitivity(exposures, decades=1, gamma=-2, emin=0.0):
             ("discovery_potential", figures_of_merit.TOT.dp),
         ]
     )
-    assert (
-        len({exposure for detector, exposure in exposures}) == 1
-    ), "exposures are equal"
+    assert len({exposure for detector, exposure in exposures}) == 1, (
+        "exposures are equal"
+    )
     meta = {
         "cos_zenith": factory.aeff_factory.instance.get_kwargs(exposures[0][0])[
             "cos_theta"

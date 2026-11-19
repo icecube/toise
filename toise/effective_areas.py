@@ -314,9 +314,10 @@ def _interpolate_production_efficiency(
 
             efficiencies.append(10**v)
 
-    return (h.binedges[0], None,) + tuple(
-        h.binedges[2:]
-    ), np.array(efficiencies)
+    return (
+        h.binedges[0],
+        None,
+    ) + tuple(h.binedges[2:]), np.array(efficiencies)
 
 
 def _ring_range(nside):
@@ -680,10 +681,13 @@ def create_throughgoing_aeff(
 
     # Step 2: Geometric muon effective area (no selection effects yet)
     # NB: assumes cylindrical symmetry.
-    aeff = efficiency * (
-        np.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[
-            None, None, :, None
-        ]
+    aeff = (
+        efficiency
+        * (
+            np.vectorize(surface.average_area)(cos_theta[:-1], cos_theta[1:])[
+                None, None, :, None
+            ]
+        )
     )
 
     # Step 3: apply selection efficiency

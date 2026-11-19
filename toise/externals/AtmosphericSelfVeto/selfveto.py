@@ -652,7 +652,6 @@ def plot_response_function(enu, depth, cos_theta, kind):
 
 
 if __name__ == "__main__":
-
     import sys
     from optparse import OptionGroup, OptionParser
 
@@ -701,7 +700,6 @@ if __name__ == "__main__":
         plot_passing_rate(opts.depth)
         sys.exit(0)
     elif opts.plot == "response":
-
         plot_response_function(
             opts.energy,
             opts.depth,
