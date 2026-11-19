@@ -1,6 +1,6 @@
 """
 Custom axes for ternary projection, roughly adapted and updated from
-ternary_project.py by Kevin L. Davies 
+ternary_project.py by Kevin L. Davies
 """
 
 import matplotlib.axis as maxis

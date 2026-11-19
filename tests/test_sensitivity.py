@@ -62,9 +62,12 @@ def test_nullhypo(asimov_llh: multillh.LLHEval, pinned):
 
 def test_likelihood_ratio(asimov_llh: multillh.LLHEval, pinned):
     # test statistic between astro = f and astro = 0
-    ts = lambda f: -2 * (
-        asimov_llh.llh(**asimov_llh.fit(astro=f))
-        - asimov_llh.llh(**asimov_llh.fit(astro=0))
+    ts = lambda f: (
+        -2
+        * (
+            asimov_llh.llh(**asimov_llh.fit(astro=f))
+            - asimov_llh.llh(**asimov_llh.fit(astro=0))
+        )
     )
     # fit for \Delta TS = 2.705 (90% CL for 1 degree of freedom)
     critical_ts = stats.chi2(1).ppf(0.9)

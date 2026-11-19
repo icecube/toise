@@ -214,9 +214,9 @@ class NeutrinoCascade(object):
         """
         assert isinstance(flavor, int) and 0 <= flavor < 6
         assert isinstance(out_flavor, int) and 0 <= out_flavor < 6
-        assert (flavor % 2) == (
-            out_flavor % 2
-        ), "no lepton-number-violating interactions"
+        assert (flavor % 2) == (out_flavor % 2), (
+            "no lepton-number-violating interactions"
+        )
         e_nu, e_sec = np.meshgrid(self.energy_nodes, self.energy_nodes, indexing="ij")
         total = np.zeros_like(e_nu)
         if out_flavor == flavor:

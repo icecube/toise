@@ -180,10 +180,8 @@ class RadioEnergyResolution(EnergySmearingMatrix):
         sigma, lo = np.meshgrid(self.sigma(loge_center), loge_lo, indexing="ij")
 
         return (
-            (
-                cauchy.cdf((hi - mu), self._loc, self._scale)
-                - cauchy.cdf((lo - mu), self._loc, self._scale)
-            )
+            cauchy.cdf((hi - mu), self._loc, self._scale)
+            - cauchy.cdf((lo - mu), self._loc, self._scale)
         ).T
 
 

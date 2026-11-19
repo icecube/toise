@@ -179,7 +179,7 @@ class PointSource(object):
                 tolerance=1e-4,
                 gamma=diff_gamma,
                 ps_gamma=gamma,
-                **kwargs
+                **kwargs,
             )
             return ul, ns, nb
         elif fom == TOT.dp:
@@ -189,7 +189,7 @@ class PointSource(object):
                 tolerance=1e-4,
                 gamma=diff_gamma,
                 ps_gamma=gamma,
-                **kwargs
+                **kwargs,
             )
             return dp, ns, nb
         elif fom == TOT.fc:
@@ -205,7 +205,7 @@ class PointSource(object):
                 tolerance=1e-4,
                 decades=decades,
                 emin=emin,
-                **kwargs
+                **kwargs,
             )
         elif fom == DIFF.dp:
             return pointsource.differential_discovery_potential(
@@ -216,7 +216,7 @@ class PointSource(object):
                 tolerance=1e-4,
                 decades=decades,
                 emin=emin,
-                **kwargs
+                **kwargs,
             )
         else:
             raise RuntimeError("No such fom")

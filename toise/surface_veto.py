@@ -198,11 +198,7 @@ class UDelSurfaceVeto(effective_areas.VetoThreshold):
         "When you work in cosmic rays, everything is a broken power law with a smooth roll-off :see_no_evil:"
         -- A. Coleman
         """
-        return (
-            a
-            * eng**g1
-            * (1 + (10**eng / 10**eng0) ** curve) ** ((g2 - g1) / curve)
-        )
+        return a * eng**g1 * (1 + (10**eng / 10**eng0) ** curve) ** ((g2 - g1) / curve)
 
     def __call__(self, energy, cos_theta):
         st2 = 1 - cos_theta**2
@@ -475,9 +471,9 @@ class MuonBundleBackground(object):
         :param with_energy: if False, integrate over reconstructed energy. Otherwise,
                             provide a differential prediction in reconstructed energy.
         """
-        assert (
-            not self._aeff.is_healpix
-        ), "Don't know how to make PS backgrounds from HEALpix maps yet"
+        assert not self._aeff.is_healpix, (
+            "Don't know how to make PS backgrounds from HEALpix maps yet"
+        )
 
         background = copy(self)
         bin_areas = (np.pi * np.diff(psi_bins**2))[None, ...]

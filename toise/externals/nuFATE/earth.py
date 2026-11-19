@@ -1,5 +1,5 @@
-""" Funcitons to evaluate the Earth density.
-"""
+"""Funcitons to evaluate the Earth density."""
+
 import numpy as np
 import scipy.integrate as integrate
 

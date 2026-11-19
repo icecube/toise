@@ -13,6 +13,7 @@ notebook_dir = Path(__file__).parents[3] / "notebooks" / "galactic plane"
 
 logging.getLogger("healpy").setLevel("WARN")
 
+
 # @cache
 def create_dnn_aeff(nside: int = 16, scale=1):
     base = notebook_dir / "DNNC_effa"

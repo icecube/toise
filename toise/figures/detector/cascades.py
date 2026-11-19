@@ -41,7 +41,7 @@ def sparse_hese_veto_plot(ax, f):
     ax.plot(
         *fit(f["arr_2"], f["arr_5"], (10**3.5, 10**4.7)),
         color=line.get_color(),
-        ls="--"
+        ls="--",
     )
 
     ax.loglog(nonposy="clip")

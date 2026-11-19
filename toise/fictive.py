@@ -39,10 +39,13 @@ def base_aeff():
     """
     cos_theta = np.linspace(-1, 1, 40)[19:21]
     (
-        e_nu,
-        cos_theta,
-        e_mu,
-    ), efficiency = effective_areas.get_muon_production_efficiency(cos_theta)
+        (
+            e_nu,
+            cos_theta,
+            e_mu,
+        ),
+        efficiency,
+    ) = effective_areas.get_muon_production_efficiency(cos_theta)
 
     # Step 5: apply smearing for energy resolution
     response = FictiveEnergyResolution().get_response_matrix(e_mu, e_mu)

@@ -109,7 +109,7 @@ def create_aeff(opts, **kwargs):
         ),
         selection_efficiency=selection_efficiency,
         surface=effective_areas.get_fiducial_surface(fiducial_geometry, opts.spacing),
-        **kwargs
+        **kwargs,
     )
 
     bundle_aeff = effective_areas.create_bundle_aeff(
@@ -123,7 +123,7 @@ def create_aeff(opts, **kwargs):
             if isinstance(opts.veto_threshold, numbers.Number)
             else opts.veto_threshold
         ),
-        **kwargs
+        **kwargs,
     )
 
     # cache[key] = aeff
@@ -163,7 +163,7 @@ def create_cascade_aeff(opts, **kwargs):
             opts.angular_resolution_scale,
             channel="cascade",
         ),
-        **kwargs
+        **kwargs,
     )
 
     # cache[key] = aeff
@@ -196,7 +196,7 @@ def create_starting_aeff(opts, **kwargs):
             opts.angular_resolution_scale,
             channel="cascade",
         ),
-        **kwargs
+        **kwargs,
     )
 
 

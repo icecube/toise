@@ -439,7 +439,7 @@ def plot_ic_data(ax, source, all_flavor=True, **kwargs):
         uplims=is_limit,
         linestyle="",
         capsize=0,
-        **kwargs
+        **kwargs,
     )
     return ax
 
@@ -485,7 +485,7 @@ def plot_ic_limit(ax, source, all_flavor=True, **kwargs):
         xerr=None,
         yerr=ice_cube_limit[:, 1] * 0.3,
         uplims=np.ones_like(ice_cube_limit[:, 1]),
-        **kwargs
+        **kwargs,
     )
 
 
@@ -555,7 +555,7 @@ def unfolded_flux(datasets, label="Gen2-InIce+Radio"):
             yerr=yerr,
             # uplims=m[mask],
             label="{label} ({years:.0f} years)".format(label=label, years=years),
-            **plot_kwargs
+            **plot_kwargs,
         )
 
     x = np.logspace(np.log10(25e3), np.log10(2.8e6), 101)
@@ -564,7 +564,7 @@ def unfolded_flux(datasets, label="Gen2-InIce+Radio"):
         *ic_butterfly(x, "lars"),
         facecolor="lightgrey",
         edgecolor="None",
-        label="IceCube (ApJ 2015)"
+        label="IceCube (ApJ 2015)",
     )
     x = np.logspace(np.log10(1.94e5), np.log10(7.8e6), 101)
     fill = ax.fill_between(
@@ -572,7 +572,7 @@ def unfolded_flux(datasets, label="Gen2-InIce+Radio"):
         *ic_butterfly(x, "aachen"),
         facecolor="None",
         edgecolor="#566573",
-        label="IceCube (tracks only, ApJ 2016)"
+        label="IceCube (tracks only, ApJ 2016)",
     )
 
     ax.loglog(nonpositive="clip")
@@ -609,19 +609,19 @@ def plot_crs(ax):
         label="Diffuse $\gamma$ (Fermi LAT)",
         marker="D",
         color="C1",
-        **apply_style(lars_plot.get_fermi_igrb_2014())
+        **apply_style(lars_plot.get_fermi_igrb_2014()),
     )
     ax.errorbar(
         label="Cosmic rays (Auger)",
         marker="o",
         color="C4",
-        **apply_style(lars_plot.get_auger())
+        **apply_style(lars_plot.get_auger()),
     )
     ax.errorbar(
         label="Cosmic rays (TA)",
         marker="s",
         color="C2",
-        **apply_style(lars_plot.get_ta())
+        **apply_style(lars_plot.get_ta()),
     )
 
 
@@ -669,7 +669,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
             yerr=yerr,
             # uplims=m[mask],
             label="{label} ({years:.0f} years)".format(label=label, years=years),
-            **plot_kwargs
+            **plot_kwargs,
         )
 
     x = np.logspace(np.log10(25e3), np.log10(2.8e6), 101)
@@ -678,7 +678,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
         *ic_butterfly(x, "lars"),
         facecolor="lightgrey",
         edgecolor="None",
-        label="IceCube (ApJ 2015)"
+        label="IceCube (ApJ 2015)",
     )
     x = np.logspace(np.log10(1.94e5), np.log10(7.8e6), 101)
     fill = ax.fill_between(
@@ -686,7 +686,7 @@ def unfolded_flux_multimessenger(datasets, label="Gen2-InIce+Radio"):
         *ic_butterfly(x, "aachen"),
         facecolor="None",
         edgecolor="#566573",
-        label="IceCube (tracks only, ApJ 2016)"
+        label="IceCube (tracks only, ApJ 2016)",
     )
 
     ax.set_xscale("log")

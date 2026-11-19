@@ -603,7 +603,7 @@ def differential_discovery_potential(
     decades=0.5,
     emin=-np.inf,
     emax=np.inf,
-    **fixed
+    **fixed,
 ):
     """
     Calculate the discovery potential in the same way as :func:`discovery_potential`,
@@ -639,7 +639,7 @@ def differential_upper_limit(
     decades=0.5,
     emin=-np.inf,
     emax=np.inf,
-    **fixed
+    **fixed,
 ):
     """
     Calculate the discovery potential in the same way as :func:`discovery_potential`,
@@ -674,7 +674,7 @@ def differential_fc_upper_limit(
     decades=0.5,
     emin=-np.inf,
     emax=np.inf,
-    **fixed
+    **fixed,
 ):
     energies = []
     sensitivities = []
