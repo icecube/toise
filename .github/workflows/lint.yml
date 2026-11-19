@@ -3,7 +3,7 @@ on: [pull_request]
 jobs:
   black:
     name: black
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v2
       - name: Check files using the black formatter
